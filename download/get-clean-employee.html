@@ -67,16 +67,10 @@
                 <p id="empInfo" class="text-slate-400 text-sm mt-1"></p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <!-- Admin-only buttons -->
-                <div id="adminButtons" class="hidden flex flex-wrap gap-3">
-                    <button id="exportPdfBtn2" onclick="openExportModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                        📄 تصدير PDF
-                    </button>
-                    <button onclick="openBranchModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                        ➕ إضافة فرع
-                    </button>
-                    <button onclick="openEmpModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                        👤 إضافة موظف
+                <!-- Admin-only: switch to management screen -->
+                <div id="adminModeToggleBtn" class="hidden">
+                    <button onclick="switchToAdminManagement()" class="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-amber-500/30">
+                        ⚙️ إدارة النظام
                     </button>
                 </div>
                 <button onclick="logoutEmployee()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
@@ -163,23 +157,23 @@
         <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-cyan-400">💧 جيت كلين (Get Clean)</h1>
-                <p class="text-slate-400 text-sm mt-1">نظام تتبع سحوبات وعجوزات الموظفين بالفروع</p>
+                <p class="text-slate-400 text-sm mt-1">نظام إدارة الفروع والموظفين</p>
             </div>
             <div class="flex flex-wrap gap-3">
-                <button id="closingBtn" onclick="openClosingModal()" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                    🔒 الإغلاق اليومي
+                <button onclick="switchToCarEntry()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    🚗 تسجيل السيارات
                 </button>
-                <button id="exportPdfBtn" onclick="openExportModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                <button id="exportPdfBtn" onclick="openExportModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                     📄 تصدير تقرير PDF
                 </button>
                 <button onclick="openBranchModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                     ➕ إضافة فرع
                 </button>
-                <button onclick="openEmpModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                <button onclick="openEmpModal()" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                     👤 إضافة موظف
                 </button>
-                <button onclick="goToLogin()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                    🔙 تسجيل خروج
+                <button onclick="goToLogin()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
+                    🚪 تسجيل خروج
                 </button>
             </div>
         </header>
@@ -211,73 +205,6 @@
 
         <!-- Branches Container -->
         <div id="branchesContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
-
-        <!-- Admin Car Entry Section -->
-        <div class="mt-10 pt-8 border-t border-slate-700">
-            <h2 class="text-2xl font-bold text-amber-400 mb-6 flex items-center gap-2">🚗 تسجيل السيارات (المسؤول)</h2>
-
-            <!-- Admin Branch & Date Selectors -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                    <label class="block text-sm text-slate-300 mb-2 font-semibold">اختر الفرع:</label>
-                    <select id="adminBranchSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500 text-base" onchange="onAdminBranchChange()">
-                        <option value="">-- اختر فرع --</option>
-                    </select>
-                </div>
-                <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700">
-                    <label class="block text-sm text-slate-300 mb-2 font-semibold">التاريخ:</label>
-                    <input type="date" id="adminDatePicker" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500 text-base" onchange="renderAdminCarSummary()">
-                </div>
-            </div>
-
-            <!-- Admin Room Selection & Car Entry -->
-            <div id="adminCarEntrySection" class="hidden">
-                <div class="bg-slate-800 p-5 rounded-2xl border border-amber-500/20 mb-4">
-                    <label class="block text-sm text-slate-300 mb-2 font-semibold">اختر الغرفة:</label>
-                    <select id="adminRoomSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500 text-base" onchange="renderAdminCarEntry()">
-                        <option value="">-- اختر غرفة --</option>
-                    </select>
-                </div>
-
-                <div id="adminCarEntryArea" class="hidden">
-                    <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-                        <h3 id="adminSelectedRoomTitle" class="text-lg font-bold text-amber-400 mb-4"></h3>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5" id="adminPriceGrid"></div>
-                        <div class="flex gap-3">
-                            <button onclick="saveAdminCarEntry()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm flex items-center justify-center gap-2">
-                                💾 حفظ التسجيل
-                            </button>
-                            <button onclick="clearAdminCarEntry()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition text-sm">
-                                🗑️ مسح
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin Car Summary -->
-            <div id="adminCarSummarySection" class="hidden mt-6">
-                <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">📊 ملخص تسجيلات السيارات</h3>
-                <div id="adminCarSummaryGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
-                <div id="adminGrandTotalCard" class="hidden mt-6 bg-gradient-to-l from-emerald-600/20 to-cyan-600/20 border border-emerald-500/30 rounded-2xl p-6">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <p class="text-slate-300 text-sm">إجمالي مبيعات جميع الغرف</p>
-                            <p id="adminGrandTotalAmount" class="text-3xl font-black text-emerald-400 mt-1"></p>
-                        </div>
-                        <div class="p-4 bg-emerald-500/10 rounded-2xl text-3xl">💰</div>
-                    </div>
-                    <div class="flex justify-between items-center mt-3">
-                        <p class="text-slate-300 text-sm">إجمالي عدد السيارات</p>
-                        <p id="adminGrandTotalCars" class="text-lg font-bold text-cyan-400"></p>
-                    </div>
-                    <div class="flex justify-between items-center mt-3 pt-3 border-t border-dashed border-emerald-500/30">
-                        <p class="text-slate-300 text-sm font-semibold">إجمالي الصافي لكل الغرف:</p>
-                        <p id="adminGrandTotalNet" class="text-2xl font-black text-cyan-400"></p>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- ======================== MODALS ======================== -->
@@ -524,6 +451,9 @@
         let currentEmployee = null;
         // Admin mode flag
         let isAdminMode = false;
+        // Admin state
+        let adminSelectedBranch = null;
+        let adminCustomPricesData = {};
         // Admin account
         const ADMIN_ACCOUNT = { name: 'طه علي', password: '19970880528' };
 
@@ -540,24 +470,39 @@
             isAdminMode = false;
             adminSelectedBranch = null;
             // Hide admin-only elements
-            document.getElementById('adminButtons').classList.add('hidden');
+            document.getElementById('adminModeToggleBtn').classList.add('hidden');
             document.getElementById('adminBranchSelector').classList.add('hidden');
             showScreen('loginScreen');
             populateLoginDropdown();
         }
 
         function goToAdmin() {
-            // Admin uses the employee screen but with branch selector
-            isAdminMode = true;
+            // Admin starts at the management screen (adminScreen)
+            isAdminMode = false;
             adminSelectedBranch = null;
             currentEmployee = null;
+            adminCustomPricesData = {};
+
+            // Hide admin-only employee screen elements
+            document.getElementById('adminModeToggleBtn').classList.add('hidden');
+            document.getElementById('adminBranchSelector').classList.add('hidden');
+
+            showScreen('adminScreen');
+            document.getElementById('datePicker').value = todayISO();
+            renderApp();
+        }
+
+        // Switch from admin management to car entry (employeeScreen)
+        function switchToCarEntry() {
+            isAdminMode = true;
+            adminSelectedBranch = null;
             adminCustomPricesData = {};
 
             document.getElementById('empInfo').textContent = 'مرحباً المسؤول طه علي 👨‍💼';
             document.getElementById('empDatePicker').value = todayISO();
 
-            // Show admin-only elements
-            document.getElementById('adminButtons').classList.remove('hidden');
+            // Show admin-only elements in employee screen
+            document.getElementById('adminModeToggleBtn').classList.remove('hidden');
             document.getElementById('adminBranchSelector').classList.remove('hidden');
 
             // Populate admin branch select
@@ -575,6 +520,18 @@
 
             showScreen('employeeScreen');
             renderEmployeeDashboard();
+        }
+
+        // Switch from car entry back to admin management
+        function switchToAdminManagement() {
+            isAdminMode = false;
+            adminSelectedBranch = null;
+            adminCustomPricesData = {};
+            document.getElementById('adminModeToggleBtn').classList.add('hidden');
+            document.getElementById('adminBranchSelector').classList.add('hidden');
+            showScreen('adminScreen');
+            document.getElementById('datePicker').value = todayISO();
+            renderApp();
         }
 
         // Admin branch change handler (new version using employeeScreen)
@@ -672,7 +629,7 @@
             document.getElementById('empInfo').textContent = `مرحباً ${emp.name} | ${branch ? branch.name : ''} | ${emp.shift}`;
 
             // Hide admin-only elements
-            document.getElementById('adminButtons').classList.add('hidden');
+            document.getElementById('adminModeToggleBtn').classList.add('hidden');
             document.getElementById('adminBranchSelector').classList.add('hidden');
             document.getElementById('empDatePicker').value = todayISO();
 
@@ -797,6 +754,30 @@
                 delete customPricesData[key];
                 renderCustomPricesList();
             }
+        }
+
+        // Render admin custom prices list (into customPricesList container)
+        function renderAdminCustomPricesList() {
+            const list = document.getElementById('customPricesList');
+            if (!list) return;
+            list.innerHTML = '';
+            Object.keys(adminCustomPricesData).forEach(key => {
+                const item = adminCustomPricesData[key];
+                list.innerHTML += `
+                    <div class="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
+                        <span class="text-violet-300">${item.price} د.ل × ${item.count}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+                            <button onclick="removeAdminCustomPrice2('${key}')" class="text-rose-400 hover:text-rose-300">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function removeAdminCustomPrice2(key) {
+            delete adminCustomPricesData[key];
+            renderAdminCustomPricesList();
         }
 
         function clearCarEntry() {
@@ -1302,384 +1283,6 @@
                 }
                 renderAdminCustomPricesList();
                 document.getElementById('carEntryArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 100);
-        }
-
-        // ==================== ADMIN CAR ENTRY ====================
-        let adminSelectedBranch = null;
-        let adminCustomPricesData = {};
-
-        function onAdminBranchChange() {
-            const branchId = document.getElementById('adminBranchSelect').value;
-            if (!branchId) {
-                document.getElementById('adminCarEntrySection').classList.add('hidden');
-                adminSelectedBranch = null;
-                renderAdminCarSummary();
-                return;
-            }
-            adminSelectedBranch = branchId;
-            const branch = branches.find(b => b.id === branchId);
-            const branchName = branch ? branch.name : '';
-
-            // Populate rooms for this branch
-            const branchRooms = getRoomsForBranch(branchName);
-            const roomSelect = document.getElementById('adminRoomSelect');
-            roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
-            branchRooms.forEach(room => {
-                roomSelect.innerHTML += `<option value="${room}">${ROOM_ICONS[room] || '🏠'} ${room}</option>`;
-            });
-
-            document.getElementById('adminCarEntrySection').classList.remove('hidden');
-            document.getElementById('adminCarEntryArea').classList.add('hidden');
-            adminCustomPricesData = {};
-            renderAdminCarSummary();
-        }
-
-        function renderAdminCarEntry() {
-            const room = document.getElementById('adminRoomSelect').value;
-            const area = document.getElementById('adminCarEntryArea');
-            const title = document.getElementById('adminSelectedRoomTitle');
-            const grid = document.getElementById('adminPriceGrid');
-
-            if (!room) {
-                area.classList.add('hidden');
-                return;
-            }
-
-            area.classList.remove('hidden');
-            title.innerHTML = `${ROOM_ICONS[room] || '🏠'} ${room}`;
-
-            const prices = getPricesForRoom(room);
-            grid.innerHTML = '';
-            prices.forEach(price => {
-                const isExtraPrice = EXTRA_PRICES.includes(price);
-                const extraNote = isExtraPrice ? `<p class="text-[10px] text-amber-400 mt-1">(شامل 5 د.ل إكسترا)</p>` : '';
-                grid.innerHTML += `
-                    <div class="room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center">
-                        <p class="text-xs text-slate-400 mb-2">تسعيرة</p>
-                        <p class="text-2xl font-black text-white mb-1">${price} د.ل</p>
-                        ${extraNote}
-                        <input type="number" min="0" value="0" data-price="${price}"
-                               class="price-input w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-amber-500"
-                               id="adminCarCount_${price}" onfocus="this.select()">
-                    </div>
-                `;
-            });
-
-            // Custom price card
-            grid.innerHTML += `
-                <div class="room-card bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center col-span-full sm:col-span-1">
-                    <p class="text-xs text-violet-300 mb-2 font-semibold">➕ تسعيرة مخصصة</p>
-                    <div class="flex gap-2 items-center">
-                        <input type="number" min="0" value="" placeholder="السعر"
-                               class="price-input flex-1 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-base font-bold focus:outline-none focus:border-violet-500"
-                               id="adminCustomPrice" onfocus="this.select()">
-                        <input type="number" min="0" value="0" placeholder="العدد"
-                               class="price-input w-20 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-violet-500"
-                               id="adminCustomCount" onfocus="this.select()">
-                    </div>
-                    <button onclick="addAdminCustomPrice()" class="mt-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition w-full">إضافة</button>
-                    <div id="adminCustomPricesList" class="mt-2 space-y-1"></div>
-                </div>
-            `;
-        }
-
-        function addAdminCustomPrice() {
-            const price = parseFloat(document.getElementById('adminCustomPrice').value);
-            const count = parseInt(document.getElementById('adminCustomCount').value) || 0;
-            if (!price || price <= 0) return alert('الرجاء إدخال سعر صحيح');
-            if (count <= 0) return alert('الرجاء إدخال عدد سيارات صحيح');
-            adminCustomPricesData['custom_' + price] = { price, count };
-            renderAdminCustomPricesList();
-            document.getElementById('adminCustomPrice').value = '';
-            document.getElementById('adminCustomCount').value = 0;
-        }
-
-        function renderAdminCustomPricesList() {
-            // Try both containers - adminCarEntryArea and shared carEntryArea
-            const list = document.getElementById('adminCustomPricesList') || document.getElementById('customPricesList');
-            if (!list) return;
-            list.innerHTML = '';
-            Object.keys(adminCustomPricesData).forEach(key => {
-                const item = adminCustomPricesData[key];
-                list.innerHTML += `
-                    <div class="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
-                        <span class="text-violet-300">${item.price} د.ل × ${item.count}</span>
-                        <div class="flex items-center gap-2">
-                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
-                            <button onclick="removeAdminCustomPrice('${key}')" class="text-rose-400 hover:text-rose-300">×</button>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function removeAdminCustomPrice(key) {
-            delete adminCustomPricesData[key];
-            renderAdminCustomPricesList();
-        }
-
-        function clearAdminCarEntry() {
-            const room = document.getElementById('adminRoomSelect').value;
-            const prices = getPricesForRoom(room);
-            prices.forEach(price => {
-                const el = document.getElementById('adminCarCount_' + price);
-                if (el) el.value = 0;
-            });
-            adminCustomPricesData = {};
-            const list = document.getElementById('adminCustomPricesList');
-            if (list) list.innerHTML = '';
-            const cp = document.getElementById('adminCustomPrice');
-            const cc = document.getElementById('adminCustomCount');
-            if (cp) cp.value = '';
-            if (cc) cc.value = 0;
-        }
-
-        function saveAdminCarEntry() {
-            const branchId = adminSelectedBranch;
-            const room = document.getElementById('adminRoomSelect').value;
-            const date = document.getElementById('adminDatePicker').value;
-
-            if (!branchId) return alert('الرجاء اختيار الفرع');
-            if (!room) return alert('الرجاء اختيار الغرفة');
-            if (!date) return alert('الرجاء تحديد التاريخ');
-
-            const prices = getPricesForRoom(room);
-            const priceCounts = {};
-            let totalCars = 0;
-            let totalAmount = 0;
-            let extraCars = 0;
-            let extraAmount = 0;
-
-            prices.forEach(price => {
-                const count = parseInt(document.getElementById('adminCarCount_' + price).value) || 0;
-                if (count > 0) {
-                    priceCounts[price] = count;
-                    totalCars += count;
-                    if (EXTRA_PRICES.includes(price)) {
-                        totalAmount += (price - 5) * count;
-                        extraCars += count;
-                        extraAmount += 5 * count;
-                    } else {
-                        totalAmount += price * count;
-                    }
-                }
-            });
-
-            let customPricesSaved = {};
-            Object.keys(adminCustomPricesData).forEach(key => {
-                const item = adminCustomPricesData[key];
-                priceCounts['custom_' + item.price] = item.count;
-                customPricesSaved['custom_' + item.price] = { price: item.price, count: item.count };
-                totalCars += item.count;
-                totalAmount += item.price * item.count;
-            });
-
-            if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل');
-
-            // Admin entry uses empId = 'admin_' + branchId to avoid conflict with employees
-            const adminEmpId = 'admin_' + branchId;
-            const existingIdx = carEntries.findIndex(e =>
-                e.empId === adminEmpId && e.room === room && e.date === date
-            );
-
-            const entry = {
-                id: existingIdx >= 0 ? carEntries[existingIdx].id : 'car_' + Date.now(),
-                empId: adminEmpId,
-                empName: 'المسؤول',
-                branchId: branchId,
-                room: room,
-                date: date,
-                month: date.slice(0, 7),
-                priceCounts: priceCounts,
-                totalCars: totalCars,
-                totalAmount: totalAmount,
-                extraCars: extraCars,
-                extraAmount: extraAmount,
-                customPrices: customPricesSaved,
-                timestamp: Date.now()
-            };
-
-            if (existingIdx >= 0) {
-                carEntries[existingIdx] = entry;
-            } else {
-                carEntries.push(entry);
-            }
-
-            saveData();
-            adminCustomPricesData = {};
-            clearAdminCarEntry();
-            renderAdminCarSummary();
-
-            // Auto-move to next room
-            const branch = branches.find(b => b.id === branchId);
-            const branchName = branch ? branch.name : '';
-            const branchRooms = getRoomsForBranch(branchName);
-            const currentRoomIdx = branchRooms.indexOf(room);
-            if (currentRoomIdx >= 0 && currentRoomIdx < branchRooms.length - 1) {
-                const nextRoom = branchRooms[currentRoomIdx + 1];
-                document.getElementById('adminRoomSelect').value = nextRoom;
-                renderAdminCarEntry();
-            }
-
-            let msg = `تم الحفظ بنجاح!\n${room} - ${totalCars} سيارات - ${totalAmount} د.ل`;
-            if (extraAmount > 0) msg += `\nإكسترا: ${extraCars} سيارة × 5 د.ل = ${extraAmount} د.ل`;
-            alert(msg);
-        }
-
-        function renderAdminCarSummary() {
-            const branchId = adminSelectedBranch;
-            const date = document.getElementById('adminDatePicker').value;
-            const summarySection = document.getElementById('adminCarSummarySection');
-            const grid = document.getElementById('adminCarSummaryGrid');
-            const grandCard = document.getElementById('adminGrandTotalCard');
-
-            if (!branchId || !date) {
-                summarySection.classList.add('hidden');
-                return;
-            }
-
-            const branch = branches.find(b => b.id === branchId);
-            const branchName = branch ? branch.name : '';
-            const adminEmpId = 'admin_' + branchId;
-            const entries = carEntries.filter(e => e.empId === adminEmpId && e.date === date);
-            const availableRooms = getRoomsForBranch(branchName);
-
-            if (entries.length === 0) {
-                summarySection.classList.remove('hidden');
-                grid.innerHTML = `
-                    <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
-                        <div class="text-4xl mb-3">📋</div>
-                        <p class="text-slate-400">لا توجد تسجيلات لهذا اليوم في هذا الفرع</p>
-                    </div>
-                `;
-                grandCard.classList.add('hidden');
-                return;
-            }
-
-            summarySection.classList.remove('hidden');
-            let grandTotalAmount = 0;
-            let grandTotalCars = 0;
-            let grandTotalNet = 0;
-            let html = '';
-
-            availableRooms.forEach(room => {
-                const entry = entries.find(e => e.room === room);
-                if (!entry) return;
-
-                grandTotalAmount += entry.totalAmount;
-                grandTotalCars += entry.totalCars;
-                grandTotalNet += getNetAmount(entry.totalAmount, branchName, room);
-
-                let detailsHtml = '';
-                const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
-                entryPrices.forEach(price => {
-                    const count = entry.priceCounts[price] || 0;
-                    if (count > 0) {
-                        let subtotal = price * count;
-                        let priceLabel = `${price} د.ل`;
-                        if (EXTRA_PRICES.includes(price)) {
-                            subtotal = (price - 5) * count;
-                            priceLabel = `${price} د.ل <span class="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = ${price - 5} د.ل)</span>`;
-                        }
-                        detailsHtml += `
-                            <div class="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
-                                <span class="text-slate-300">تسعيرة ${priceLabel}:</span>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-white font-bold">${count} سيارة</span>
-                                    <span class="text-emerald-400 font-bold">${subtotal} د.ل</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                });
-
-                if (entry.customPrices) {
-                    Object.keys(entry.customPrices).forEach(key => {
-                        const item = entry.customPrices[key];
-                        detailsHtml += `
-                            <div class="flex justify-between items-center text-sm bg-violet-500/10 border border-violet-500/20 px-3 py-2 rounded-lg">
-                                <span class="text-violet-300">تسعيرة مخصصة ${item.price} د.ل:</span>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-white font-bold">${item.count} سيارة</span>
-                                    <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-
-                if (entry.extraCars && entry.extraCars > 0) {
-                    detailsHtml += `
-                        <div class="flex justify-between items-center text-sm bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg mt-1">
-                            <span class="text-amber-300 font-semibold">⭐ إكسترا:</span>
-                            <div class="flex items-center gap-3">
-                                <span class="text-amber-200 font-bold">${entry.extraCars} سيارة × 5 د.ل</span>
-                                <span class="text-amber-400 font-bold">${entry.extraAmount} د.ل</span>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                html += `
-                    <div class="room-card bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
-                        <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
-                            <h3 class="text-lg font-bold text-amber-400 flex items-center gap-2">
-                                ${ROOM_ICONS[room] || '🏠'} ${room}
-                            </h3>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">${entry.totalCars} سيارة</span>
-                                <button onclick="editAdminCarEntry('${room}')" class="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️ تعديل</button>
-                                <button onclick="deleteCarEntry('${entry.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
-                            </div>
-                        </div>
-                        <div class="space-y-1.5">${detailsHtml}</div>
-                        <div class="mt-4 pt-3 border-t border-slate-700">
-                            <div class="flex justify-between items-center">
-                                <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
-                                <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
-                            </div>
-                            <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
-                                <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
-                                <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, branchName, room)} د.ل</span>
-                            </div>
-                            <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(branchName, room)})</p>
-                        </div>
-                    </div>
-                `;
-            });
-
-            grid.innerHTML = html;
-            document.getElementById('adminGrandTotalAmount').textContent = grandTotalAmount + ' د.ل';
-            document.getElementById('adminGrandTotalCars').textContent = grandTotalCars + ' سيارة';
-            document.getElementById('adminGrandTotalNet').textContent = grandTotalNet + ' د.ل';
-            grandCard.classList.remove('hidden');
-        }
-
-        function editAdminCarEntry(roomName) {
-            const date = document.getElementById('adminDatePicker').value;
-            const adminEmpId = 'admin_' + adminSelectedBranch;
-            const entry = carEntries.find(e => e.empId === adminEmpId && e.room === roomName && e.date === date);
-            if (!entry) return;
-
-            document.getElementById('adminRoomSelect').value = roomName;
-            renderAdminCarEntry();
-
-            setTimeout(() => {
-                const prices = getPricesForRoom(roomName);
-                prices.forEach(price => {
-                    const el = document.getElementById('adminCarCount_' + price);
-                    if (el) el.value = entry.priceCounts[price] || 0;
-                });
-                adminCustomPricesData = {};
-                if (entry.customPrices) {
-                    Object.keys(entry.customPrices).forEach(key => {
-                        const item = entry.customPrices[key];
-                        adminCustomPricesData[key] = { price: item.price, count: item.count };
-                    });
-                }
-                renderAdminCustomPricesList();
-                document.getElementById('adminCarEntryArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
 
