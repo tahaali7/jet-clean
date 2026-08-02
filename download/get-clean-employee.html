@@ -2096,6 +2096,52 @@
                 '</div>' +
                 '</div>';
 
+            // مصاريف العمال - صافي كل غرفة + النظافة + الإجمالي
+            var cleannessConfig = BRANCH_CLEANLINESS[branchName];
+            var workerExpKey = getWorkerExpenseKey(branchName, selectedDate);
+            var savedCleanliness = 0;
+            if (cleannessConfig) {
+                if (cleannessConfig.type === 'fixed') {
+                    savedCleanliness = cleannessConfig.value;
+                } else {
+                    savedCleanliness = (workerExpenses[workerExpKey] && workerExpenses[workerExpKey].cleanliness) || 0;
+                }
+            }
+
+            var workerRowsHtml = '';
+            orderedRooms.forEach(function(room) {
+                var roomEnts = entries.filter(function(e) { return e.room === room; });
+                var roomAmt = 0;
+                roomEnts.forEach(function(entry) { roomAmt += entry.totalAmount; });
+                var roomNet = getNetAmount(roomAmt, branchName, room);
+                var icon = ROOM_ICONS[room] || '\u{1F3E0}';
+
+                workerRowsHtml += '<tr>' +
+                    '<td style="padding:4px 8px;border:1px solid #333;font-size:11px;">' + icon + ' ' + room + '</td>' +
+                    '<td style="padding:4px 8px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
+                    '</tr>';
+            });
+
+            // صف النظافة
+            workerRowsHtml += '<tr style="background:#fffbe6;">' +
+                '<td style="padding:4px 8px;border:1px solid #333;font-size:11px;font-weight:bold;">\u{1F9F9} النظافة</td>' +
+                '<td style="padding:4px 8px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;">' + savedCleanliness + ' د.ل</td>' +
+                '</tr>';
+
+            // صف الإجمالي بعد المصاريف
+            var finalTotalAfterExpenses = grandTotalNet + savedCleanliness;
+            workerRowsHtml += '<tr style="background:#e8f5e9;">' +
+                '<td style="padding:5px 8px;border:2px solid #333;font-size:12px;font-weight:bold;">الإجمالي</td>' +
+                '<td style="padding:5px 8px;border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+                '</tr>';
+
+            var workerExpensesHtml = '<div style="margin-top:8px;border:2px solid #333;">' +
+                '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+                '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;border:1px solid #333;">مصاريف العمال</td></tr>' +
+                workerRowsHtml +
+                '</table>' +
+                '</div>';
+
             // أسماء الموظفين
             var allEmpNames = [];
             entries.forEach(function(e) {
@@ -2114,6 +2160,7 @@
                 '</div>' +
                 roomsGridHtml +
                 totalsHtml +
+                workerExpensesHtml +
                 '</div>';
         }
 
