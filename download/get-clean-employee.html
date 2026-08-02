@@ -1871,18 +1871,22 @@
                 '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:60px;">الإجمالي</td>' +
                 '</tr>' +
                 rowsHtml +
-                // Summary rows
+                // Extra row (before total)
+                (mergedExtraCars > 0 ? (
+                '<tr style="background:#fffbe6;">' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;color:#b45309;">إكسترا</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;color:#b45309;">' + mergedExtraCars + '</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;color:#b45309;">' + mergedExtraAmount + ' د.ل</td>' +
+                '</tr>'
+                ) : '') +
+                // Room total row
                 '<tr style="background:#f0f0f0;">' +
-                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">عدد السيارات</td>' +
-                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:12px;font-weight:bold;">' + roomTotalCars + '</td>' +
-                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;" rowspan="2"></td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">إجمالي الغرفة</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalAmount + ' د.ل</td>' +
                 '</tr>' +
-                '<tr style="background:#f0f0f0;">' +
-                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">نسبة الغرفة</td>' +
-                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalAmount + ' د.ل</td>' +
-                '</tr>' +
+                // Net row (without formula explanation)
                 '<tr>' +
-                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;color:#555;">الصافي (' + getNetFormulaText(branchName, room) + ')</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;color:#555;">الصافي</td>' +
                 '<td colspan="2" style="border:1px solid #333;padding:3px 6px;text-align:center;font-size:11px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
                 '</tr>' +
                 '</table>';
@@ -1954,10 +1958,6 @@
             // Grand totals row
             var totalsHtml = '<div style="display:flex;gap:0;margin-top:8px;border:2px solid #333;">' +
                 '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
-                '<div style="font-size:11px;color:#555;">إجمالي عدد السيارات</div>' +
-                '<div style="font-size:18px;font-weight:bold;">' + grandTotalCars + '</div>' +
-                '</div>' +
-                '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
                 '<div style="font-size:11px;color:#555;">إجمالي المبيعات</div>' +
                 '<div style="font-size:18px;font-weight:bold;">' + grandTotalAmount + ' د.ل</div>' +
                 '</div>' +
@@ -2019,13 +2019,8 @@
                 '</tr>' +
                 rowsHtml +
                 '<tr style="background:#f0f0f0;">' +
-                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">عدد السيارات</td>' +
-                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:12px;font-weight:bold;"></td>' +
-                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;" rowspan="2"></td>' +
-                '</tr>' +
-                '<tr style="background:#f0f0f0;">' +
-                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">نسبة الغرفة</td>' +
-                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">إجمالي الغرفة</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;"></td>' +
                 '</tr>' +
                 '<tr>' +
                 '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;color:#555;">الصافي</td>' +
