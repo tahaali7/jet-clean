@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مغسلة جيت كلين - نظام إدارة الفروع</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        #pdfReportArea { position: fixed; top: 0; left: -99999px; width: 800px; }
+        .login-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0c4a6e 100%);
+        }
+        .room-card:hover { transform: translateY(-2px); }
+        .room-card { transition: transform 0.2s ease; }
+        .price-input::-webkit-inner-spin-button,
+        .price-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .price-input { -moz-appearance: textfield; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+
+    <!-- ======================== LOGIN SCREEN ======================== -->
+    <div id="loginScreen" class="login-bg fixed inset-0 flex items-center justify-center p-4 z-[100]">
+        <div class="bg-slate-800/90 backdrop-blur-md border border-slate-600/50 rounded-3xl shadow-2xl w-full max-w-md p-8">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <div class="text-5xl mb-3">💧</div>
+                <h1 class="text-3xl font-extrabold text-cyan-400">جيت كلين</h1>
+                <p class="text-slate-400 text-sm mt-2">نظام تسجيل السيارات - تسجيل دخول الموظف</p>
+            </div>
+
+            <!-- Login Form -->
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm text-slate-300 mb-2 font-semibold">اسم الموظف</label>
+                    <select id="loginEmployee" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500 transition text-base">
+                        <option value="">-- اختر اسمك --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-300 mb-2 font-semibold">رمز المرور</label>
+                    <div class="relative">
+                        <input type="password" id="loginPassword" placeholder="أدخل رمز المرور" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500 transition text-base pr-10">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-lg">👁️</button>
+                    </div>
+                </div>
+                <div id="loginError" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl p-3 text-sm text-center"></div>
+                <button onclick="employeeLogin()" class="w-full bg-gradient-to-l from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg text-lg">
+                    🚀 تسجيل الدخول
+                </button>
+                <!-- Admin Link -->
+                <button onclick="goToAdmin()" class="w-full text-slate-400 hover:text-cyan-400 text-sm transition mt-2 py-2">
+                    ⚙️ الدخول كمسؤول (النظام القديم)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================== EMPLOYEE INTERFACE ======================== -->
+    <div id="employeeScreen" class="hidden">
+        <!-- Employee Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 mb-6 gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold text-cyan-400 flex items-center gap-2">💧 جيت كلين</h1>
+                <p id="empInfo" class="text-slate-400 text-sm mt-1"></p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button onclick="logoutEmployee()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
+                    🚪 تسجيل خروج
+                </button>
+            </div>
+        </header>
+
+        <!-- Date Selector -->
+        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
+            <label class="text-sm text-slate-400 font-bold">التاريخ:</label>
+            <input type="date" id="empDatePicker" class="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500" onchange="renderEmployeeDashboard()">
+        </div>
+
+        <!-- Room Selection & Car Entry -->
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">🚗 تسجيل السيارات</h2>
+
+            <!-- Select Room -->
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-4">
+                <label class="block text-sm text-slate-300 mb-2 font-semibold">اختر الغرفة / المحطة:</label>
+                <select id="roomSelect" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-cyan-500 text-base" onchange="renderCarEntry()">
+                    <option value="">-- اختر غرفة --</option>
+                </select>
+            </div>
+
+            <!-- Car Entry Grid -->
+            <div id="carEntryArea" class="hidden">
+                <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+                    <h3 id="selectedRoomTitle" class="text-lg font-bold text-cyan-400 mb-4"></h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5" id="priceGrid">
+                        <!-- Price input cards rendered by JS -->
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="saveCarEntry()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm flex items-center justify-center gap-2">
+                            💾 حفظ التسجيل
+                        </button>
+                        <button onclick="clearCarEntry()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition text-sm">
+                            🗑️ مسح
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Summary -->
+        <div id="empSummarySection" class="mb-8">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">📊 ملخص اليوم</h2>
+            <div id="empSummaryGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Summary cards rendered by JS -->
+            </div>
+            <!-- Grand Total -->
+            <div id="grandTotalCard" class="hidden mt-6 bg-gradient-to-l from-emerald-600/20 to-cyan-600/20 border border-emerald-500/30 rounded-2xl p-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-slate-300 text-sm">إجمالي مبيعات جميع الغرف</p>
+                        <p id="grandTotalAmount" class="text-3xl font-black text-emerald-400 mt-1"></p>
+                    </div>
+                    <div class="p-4 bg-emerald-500/10 rounded-2xl text-3xl">💰</div>
+                </div>
+                <div class="flex justify-between items-center mt-3">
+                    <p class="text-slate-300 text-sm">إجمالي عدد السيارات</p>
+                    <p id="grandTotalCars" class="text-lg font-bold text-cyan-400"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================== ADMIN INTERFACE (Original) ======================== -->
+    <div id="adminScreen" class="hidden">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-cyan-400">💧 جيت كلين (Get Clean)</h1>
+                <p class="text-slate-400 text-sm mt-1">نظام تتبع سحوبات وعجوزات الموظفين بالفروع</p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <button id="closingBtn" onclick="openClosingModal()" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    🔒 الإغلاق اليومي
+                </button>
+                <button id="exportPdfBtn" onclick="openExportModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    📄 تصدير تقرير PDF
+                </button>
+                <button onclick="openBranchModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    ➕ إضافة فرع
+                </button>
+                <button onclick="openEmpModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    👤 إضافة موظف
+                </button>
+                <button onclick="goToLogin()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    🔙 الرجوع لتسجيل الدخول
+                </button>
+            </div>
+        </header>
+
+        <!-- Filters & Stats Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col justify-center">
+                <label class="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
+                <input type="date" id="datePicker" class="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500" onchange="renderApp()">
+            </div>
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex justify-between items-center">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold">إجمالي سحوبات اليوم</p>
+                    <h2 id="totalWithdrawals" class="text-2xl font-black text-amber-400 mt-1">0 د.ل</h2>
+                </div>
+                <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
+            </div>
+            <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex justify-between items-center">
+                <div>
+                    <p class="text-slate-400 text-xs font-bold">إجمالي عجوزات اليوم</p>
+                    <h2 id="totalShortages" class="text-2xl font-black text-rose-400 mt-1">0 د.ل</h2>
+                </div>
+                <div class="p-3 bg-rose-500/10 text-rose-400 rounded-xl text-2xl">📉</div>
+            </div>
+        </div>
+
+        <!-- Day Status Banner -->
+        <div id="dayStatusBanner" class="mb-6"></div>
+
+        <!-- Branches Container -->
+        <div id="branchesContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+    </div>
+
+    <!-- ======================== MODALS ======================== -->
+
+    <!-- Modal: Add Record -->
+    <div id="recordModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-cyan-400" id="modalTitle">إضافة حركة مالية</h3>
+            <input type="hidden" id="recordEmpId">
+            <input type="hidden" id="recordId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">نوع الحركة:</label>
+                    <select id="recordType" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                        <option value="withdrawal">سحبيات (سلفة/مصروف)</option>
+                        <option value="shortage">عجز في الصندوق</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">تاريخ الحركة:</label>
+                    <input type="date" id="recordDate" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">المبلغ (د.ل):</label>
+                    <input type="number" id="recordAmount" placeholder="0.00" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">ملاحظة / السبب (اختياري):</label>
+                    <input type="text" id="recordNote" placeholder="مثال: سلفة شخصية" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="saveRecord()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl">حفظ</button>
+                    <button onclick="closeModal('recordModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Branch -->
+    <div id="branchModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-cyan-400">إضافة فرع جديد</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">اسم الفرع:</label>
+                    <input type="text" id="branchName" placeholder="مثال: فرع طرابلس" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="saveBranch()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl">إضافة الفرع</button>
+                    <button onclick="closeModal('branchModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Add Employee (with password) -->
+    <div id="empModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-cyan-400">إضافة موظف جديد</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">اسم الموظف:</label>
+                    <input type="text" id="empName" placeholder="اسم الموظف" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">الفرع:</label>
+                    <select id="empBranch" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white"></select>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">الفترة:</label>
+                    <select id="empShift" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                        <option value="الفترة الصباحية">الفترة الصباحية</option>
+                        <option value="الفترة المسائية">الفترة المسائية</option>
+                        <option value="الفترة كاملة">الفترة كاملة</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">رمز المرور:</label>
+                    <input type="text" id="empPassword" placeholder="رمز مرور (4 أرقام مثلاً)" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="saveEmployee()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl">إضافة الموظف</button>
+                    <button onclick="closeModal('empModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Export PDF -->
+    <div id="exportModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4 text-emerald-400">📄 تصدير تقرير PDF</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">نوع الفترة:</label>
+                    <select id="exportRangeType" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white" onchange="toggleExportRangeInputs()">
+                        <option value="month">شهر كامل</option>
+                        <option value="day">يوم واحد</option>
+                        <option value="range">فترة مخصصة (من - إلى)</option>
+                    </select>
+                </div>
+                <div id="exportMonthField">
+                    <label class="block text-sm text-slate-400 mb-1">اختر الشهر:</label>
+                    <input type="month" id="exportMonth" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div id="exportDayField" class="hidden">
+                    <label class="block text-sm text-slate-400 mb-1">اختر اليوم:</label>
+                    <input type="date" id="exportDay" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                </div>
+                <div id="exportRangeFields" class="hidden space-y-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">من تاريخ:</label>
+                        <input type="date" id="exportFrom" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">إلى تاريخ:</label>
+                        <input type="date" id="exportTo" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button id="exportConfirmBtn" onclick="exportPDF()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">تصدير</button>
+                    <button onclick="closeModal('exportModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Daily Closing -->
+    <div id="closingModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-violet-400 flex items-center gap-2">🔒 الإغلاق اليومي</h3>
+                <button onclick="closeModal('closingModal')" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div id="closingModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Hidden Report Area -->
+    <div id="pdfReportArea" dir="rtl"></div>
+
+    <!-- ======================== JAVASCRIPT ======================== -->
+    <script>
+        // ==================== DATA ====================
+        const ROOMS = ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'غرفة 6', 'مكينة الغسيل'];
+        const PRICES = [5, 10, 15, 20, 30, 35, 45];
+        const PRICE_COLORS = {
+            5: 'from-blue-500 to-blue-600',
+            10: 'from-cyan-500 to-cyan-600',
+            15: 'from-teal-500 to-teal-600',
+            20: 'from-emerald-500 to-emerald-600',
+            30: 'from-amber-500 to-amber-600',
+            35: 'from-orange-500 to-orange-600',
+            45: 'from-rose-500 to-rose-600'
+        };
+        const PRICE_BG = {
+            5: 'bg-blue-500/10 border-blue-500/30',
+            10: 'bg-cyan-500/10 border-cyan-500/30',
+            15: 'bg-teal-500/10 border-teal-500/30',
+            20: 'bg-emerald-500/10 border-emerald-500/30',
+            30: 'bg-amber-500/10 border-amber-500/30',
+            35: 'bg-orange-500/10 border-orange-500/30',
+            45: 'bg-rose-500/10 border-rose-500/30'
+        };
+        const ROOM_ICONS = {
+            'غرفة 1': '🚿', 'غرفة 2': '🚿', 'غرفة 3': '🚿',
+            'غرفة 4': '🚿', 'غرفة 5': '🚿', 'غرفة 6': '🚿',
+            'مكينة الغسيل': '⚙️'
+        };
+
+        const initialBranches = [
+            { id: 'b1', name: 'بن غرسه' },
+            { id: 'b2', name: 'ابونواس' },
+            { id: 'b3', name: 'المنصور' },
+            { id: 'b4', name: 'عين زاره' }
+        ];
+
+        const initialEmployees = [
+            { id: 'e1', branchId: 'b1', name: 'أحمد', shift: 'الفترة الصباحية', password: '1234' },
+            { id: 'e2', branchId: 'b1', name: 'هاشم', shift: 'الفترة المسائية', password: '1234' },
+            { id: 'e3', branchId: 'b2', name: 'هيثم', shift: 'الفترة الصباحية', password: '1234' },
+            { id: 'e4', branchId: 'b2', name: 'اياد', shift: 'الفترة المسائية', password: '1234' },
+            { id: 'e5', branchId: 'b3', name: 'وسام', shift: 'الفترة كاملة', password: '1234' },
+            { id: 'e6', branchId: 'b4', name: 'اسامه', shift: 'الفترة الصباحية', password: '1234' },
+            { id: 'e7', branchId: 'b4', name: 'اياد', shift: 'الفترة المسائية', password: '1234' }
+        ];
+
+        // Application State
+        let branches = JSON.parse(localStorage.getItem('gc_branches')) || initialBranches;
+        let employees = JSON.parse(localStorage.getItem('gc_employees')) || initialEmployees;
+        let records = JSON.parse(localStorage.getItem('gc_records')) || [];
+        let closedDays = JSON.parse(localStorage.getItem('gc_closedDays')) || {};
+        let carEntries = JSON.parse(localStorage.getItem('gc_carEntries')) || [];
+
+        // Current logged-in employee
+        let currentEmployee = null;
+
+        // ==================== SCREEN MANAGEMENT ====================
+        function showScreen(screenId) {
+            ['loginScreen', 'employeeScreen', 'adminScreen'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function goToLogin() {
+            currentEmployee = null;
+            showScreen('loginScreen');
+            populateLoginDropdown();
+        }
+
+        function goToAdmin() {
+            showScreen('adminScreen');
+            document.getElementById('datePicker').value = todayISO();
+            renderApp();
+        }
+
+        // ==================== LOGIN ====================
+        function populateLoginDropdown() {
+            const select = document.getElementById('loginEmployee');
+            select.innerHTML = '<option value="">-- اختر اسمك --</option>';
+            employees.forEach(emp => {
+                const branch = branches.find(b => b.id === emp.branchId);
+                select.innerHTML += `<option value="${emp.id}">${emp.name} (${branch ? branch.name : 'غير معروف'}) - ${emp.shift}</option>`;
+            });
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('loginPassword');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function employeeLogin() {
+            const empId = document.getElementById('loginEmployee').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (!empId) {
+                errorDiv.textContent = 'الرجاء اختيار اسم الموظف';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (!password) {
+                errorDiv.textContent = 'الرجاء إدخال رمز المرور';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const emp = employees.find(e => e.id === empId);
+            if (!emp) {
+                errorDiv.textContent = 'الموظف غير موجود';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (emp.password !== password) {
+                errorDiv.textContent = 'رمز المرور غير صحيح';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Success
+            errorDiv.classList.add('hidden');
+            currentEmployee = emp;
+            const branch = branches.find(b => b.id === emp.branchId);
+
+            document.getElementById('empInfo').textContent = `مرحباً ${emp.name} | ${branch ? branch.name : ''} | ${emp.shift}`;
+            document.getElementById('empDatePicker').value = todayISO();
+
+            // Populate room dropdown
+            const roomSelect = document.getElementById('roomSelect');
+            roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
+            ROOMS.forEach(room => {
+                roomSelect.innerHTML += `<option value="${room}">${ROOM_ICONS[room] || '🏠'} ${room}</option>`;
+            });
+
+            document.getElementById('carEntryArea').classList.add('hidden');
+
+            showScreen('employeeScreen');
+            renderEmployeeDashboard();
+        }
+
+        function logoutEmployee() {
+            if (confirm('هل تريد تسجيل الخروج؟')) {
+                goToLogin();
+                document.getElementById('loginPassword').value = '';
+            }
+        }
+
+        // ==================== CAR ENTRY ====================
+        function renderCarEntry() {
+            const room = document.getElementById('roomSelect').value;
+            const area = document.getElementById('carEntryArea');
+            const title = document.getElementById('selectedRoomTitle');
+            const grid = document.getElementById('priceGrid');
+
+            if (!room) {
+                area.classList.add('hidden');
+                return;
+            }
+
+            area.classList.remove('hidden');
+            title.innerHTML = `${ROOM_ICONS[room] || '🏠'} ${room}`;
+
+            grid.innerHTML = '';
+            PRICES.forEach(price => {
+                grid.innerHTML += `
+                    <div class="room-card ${PRICE_BG[price]} border rounded-xl p-4 text-center">
+                        <p class="text-xs text-slate-400 mb-2">تسعيرة</p>
+                        <p class="text-2xl font-black text-white mb-3">${price} د.ل</p>
+                        <input type="number" min="0" value="0" data-price="${price}"
+                               class="price-input w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-cyan-500"
+                               id="carCount_${price}" onfocus="this.select()">
+                    </div>
+                `;
+            });
+        }
+
+        function clearCarEntry() {
+            PRICES.forEach(price => {
+                document.getElementById('carCount_' + price).value = 0;
+            });
+        }
+
+        function saveCarEntry() {
+            if (!currentEmployee) return;
+
+            const room = document.getElementById('roomSelect').value;
+            const date = document.getElementById('empDatePicker').value;
+
+            if (!room) return alert('الرجاء اختيار الغرفة');
+            if (!date) return alert('الرجاء تحديد التاريخ');
+
+            const priceCounts = {};
+            let totalCars = 0;
+            let totalAmount = 0;
+
+            PRICES.forEach(price => {
+                const count = parseInt(document.getElementById('carCount_' + price).value) || 0;
+                if (count > 0) {
+                    priceCounts[price] = count;
+                    totalCars += count;
+                    totalAmount += price * count;
+                }
+            });
+
+            if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل');
+
+            // Check if entry already exists for this employee+room+date, update it
+            const existingIdx = carEntries.findIndex(e =>
+                e.empId === currentEmployee.id && e.room === room && e.date === date
+            );
+
+            const entry = {
+                id: existingIdx >= 0 ? carEntries[existingIdx].id : 'car_' + Date.now(),
+                empId: currentEmployee.id,
+                empName: currentEmployee.name,
+                branchId: currentEmployee.branchId,
+                room: room,
+                date: date,
+                month: date.slice(0, 7),
+                priceCounts: priceCounts,
+                totalCars: totalCars,
+                totalAmount: totalAmount,
+                timestamp: Date.now()
+            };
+
+            if (existingIdx >= 0) {
+                carEntries[existingIdx] = entry;
+            } else {
+                carEntries.push(entry);
+            }
+
+            saveData();
+            clearCarEntry();
+            renderEmployeeDashboard();
+
+            // Show success message
+            const msg = `تم الحفظ بنجاح!\n${room} - ${totalCars} سيارات - ${totalAmount} د.ل`;
+            alert(msg);
+        }
+
+        // ==================== EMPLOYEE DASHBOARD ====================
+        function renderEmployeeDashboard() {
+            if (!currentEmployee) return;
+
+            const date = document.getElementById('empDatePicker').value;
+            const empEntries = carEntries.filter(e => e.empId === currentEmployee.id && e.date === date);
+            const grid = document.getElementById('empSummaryGrid');
+            const grandCard = document.getElementById('grandTotalCard');
+
+            let grandTotalAmount = 0;
+            let grandTotalCars = 0;
+
+            if (empEntries.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+                        <div class="text-4xl mb-3">📋</div>
+                        <p class="text-slate-400">لا توجد تسجيلات لهذا اليوم بعد</p>
+                        <p class="text-slate-500 text-sm mt-1">اختر غرفة وسجل عدد السيارات</p>
+                    </div>
+                `;
+                grandCard.classList.add('hidden');
+                return;
+            }
+
+            let html = '';
+
+            ROOMS.forEach(room => {
+                const entry = empEntries.find(e => e.room === room);
+                if (!entry) return;
+
+                grandTotalAmount += entry.totalAmount;
+                grandTotalCars += entry.totalCars;
+
+                let detailsHtml = '';
+                PRICES.forEach(price => {
+                    const count = entry.priceCounts[price] || 0;
+                    if (count > 0) {
+                        const subtotal = price * count;
+                        detailsHtml += `
+                            <div class="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
+                                <span class="text-slate-300">تسعيرة ${price} د.ل:</span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-white font-bold">${count} سيارة</span>
+                                    <span class="text-emerald-400 font-bold">${subtotal} د.ل</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                html += `
+                    <div class="room-card bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
+                        <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                            <h3 class="text-lg font-bold text-cyan-400 flex items-center gap-2">
+                                ${ROOM_ICONS[room] || '🏠'} ${room}
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">${entry.totalCars} سيارة</span>
+                                <button onclick="deleteCarEntry('${entry.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            ${detailsHtml}
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-700 flex justify-between items-center">
+                            <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
+                            <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+
+            // Show grand total
+            document.getElementById('grandTotalAmount').textContent = grandTotalAmount + ' د.ل';
+            document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
+            grandCard.classList.remove('hidden');
+        }
+
+        function deleteCarEntry(entryId) {
+            if (!confirm('هل تريد حذف هذا التسجيل؟')) return;
+            carEntries = carEntries.filter(e => e.id !== entryId);
+            saveData();
+            renderEmployeeDashboard();
+        }
+
+        // ==================== ADMIN: ORIGINAL FUNCTIONS ====================
+        window.onload = () => {
+            // Migrate old employees that don't have passwords
+            let migrated = false;
+            employees.forEach(emp => {
+                if (!emp.password) {
+                    emp.password = '1234';
+                    migrated = true;
+                }
+            });
+            if (migrated) saveData();
+
+            showScreen('loginScreen');
+            populateLoginDropdown();
+            document.getElementById('datePicker').value = todayISO();
+        };
+
+        function saveData() {
+            localStorage.setItem('gc_branches', JSON.stringify(branches));
+            localStorage.setItem('gc_employees', JSON.stringify(employees));
+            localStorage.setItem('gc_records', JSON.stringify(records));
+            localStorage.setItem('gc_closedDays', JSON.stringify(closedDays));
+            localStorage.setItem('gc_carEntries', JSON.stringify(carEntries));
+        }
+
+        function isDayClosed(date) {
+            return !!closedDays[date];
+        }
+
+        function renderApp() {
+            const selectedDate = document.getElementById('datePicker').value;
+            const dayClosed = isDayClosed(selectedDate);
+            const container = document.getElementById('branchesContainer');
+            container.innerHTML = '';
+
+            const banner = document.getElementById('dayStatusBanner');
+            banner.innerHTML = dayClosed
+                ? `<div class="bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-xl p-4 flex justify-between items-center text-sm">
+                        <span>🔒 هذا اليوم (${formatDateShort(selectedDate)}) <strong>مغلق</strong> — لا يمكن إضافة أو تعديل أو حذف الحركات المالية له.</span>
+                        <button onclick="openClosingModal()" class="text-violet-300 hover:text-white underline text-xs">عرض تفاصيل الإغلاق</button>
+                   </div>`
+                : '';
+
+            let grandWithdrawals = 0;
+            let grandShortages = 0;
+
+            branches.forEach(branch => {
+                const branchEmps = employees.filter(e => e.branchId === branch.id);
+
+                let branchHtml = `
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
+                        <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
+                            <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">📍 ${branch.name}</h2>
+                            <button onclick="deleteBranch('${branch.id}')" class="text-rose-400 hover:text-rose-300 text-xs font-semibold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">حذف الفرع</button>
+                        </div>
+                        <div class="space-y-4">
+                `;
+
+                if (branchEmps.length === 0) {
+                    branchHtml += `<p class="text-slate-500 text-sm text-center py-4">لا يوجد موظفون بالفرع حالياً</p>`;
+                }
+
+                branchEmps.forEach(emp => {
+                    const empRecords = records.filter(r => r.empId === emp.id && r.date === selectedDate).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+
+                    grandWithdrawals += withdrawals;
+                    grandShortages += shortages;
+
+                    // Car entries for this employee today
+                    const empCarEntries = carEntries.filter(e => e.empId === emp.id && e.date === selectedDate);
+                    let carTotal = empCarEntries.reduce((s, e) => s + e.totalAmount, 0);
+                    let carCount = empCarEntries.reduce((s, e) => s + e.totalCars, 0);
+
+                    branchHtml += `
+                        <div class="bg-slate-900/70 border border-slate-700/60 rounded-xl p-4">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 class="font-bold text-white text-base">${emp.name}</h3>
+                                    <span class="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full mt-1 inline-block border border-indigo-500/20">${emp.shift}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    ${dayClosed
+                                        ? `<button disabled class="bg-slate-700 text-slate-500 text-xs px-2.5 py-1.5 rounded-lg border border-slate-600 cursor-not-allowed">🔒 مغلق</button>`
+                                        : `<button onclick="openRecordModal('${emp.id}', '${emp.name}')" class="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white text-xs px-2.5 py-1.5 rounded-lg border border-cyan-500/30 transition">+ حركة</button>`
+                                    }
+                                    <button onclick="deleteEmployee('${emp.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
+                                </div>
+                            </div>
+
+                            <!-- Car Sales Summary -->
+                            ${carCount > 0 ? `
+                            <div class="grid grid-cols-2 gap-3 bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-lg text-xs mb-3">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">🚗 السيارات:</span>
+                                    <span class="font-bold text-emerald-400">${carCount} سيارة</span>
+                                </div>
+                                <div class="flex justify-between border-r border-slate-700 pr-3">
+                                    <span class="text-slate-400">💰 المبيعات:</span>
+                                    <span class="font-bold text-emerald-400">${carTotal} د.ل</span>
+                                </div>
+                            </div>` : ''}
+
+                            <!-- Financial Totals -->
+                            <div class="grid grid-cols-2 gap-3 bg-slate-800/80 p-2.5 rounded-lg text-xs mb-3">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-400">السحبيات:</span>
+                                    <span class="font-bold text-amber-400">${withdrawals} د.ل</span>
+                                </div>
+                                <div class="flex justify-between border-r border-slate-700 pr-3">
+                                    <span class="text-slate-400">العجوزات:</span>
+                                    <span class="font-bold text-rose-400">${shortages} د.ل</span>
+                                </div>
+                            </div>
+
+                            <!-- Record History -->
+                            <div class="space-y-1">
+                                ${empRecords.map(r => `
+                                    <div class="flex justify-between items-center text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded">
+                                        <span>${r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} — ${formatDateShort(r.date)}: ${r.note || 'بدون ملاحظة'}</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}">${r.amount} د.ل</span>
+                                            ${dayClosed
+                                                ? ''
+                                                : `<button onclick="editRecord('${r.id}')" class="text-slate-600 hover:text-cyan-400">✏️</button>
+                                                   <button onclick="deleteRecord('${r.id}')" class="text-slate-600 hover:text-rose-400">×</button>`
+                                            }
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                branchHtml += `</div></div>`;
+                container.innerHTML += branchHtml;
+            });
+
+            document.getElementById('totalWithdrawals').innerText = `${grandWithdrawals} د.ل`;
+            document.getElementById('totalShortages').innerText = `${grandShortages} د.ل`;
+        }
+
+        // ==================== MODALS ====================
+        function todayISO() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return '';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function openRecordModal(empId, empName) {
+            if (isDayClosed(document.getElementById('datePicker').value)) {
+                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للتعديل.');
+            }
+            document.getElementById('recordId').value = '';
+            document.getElementById('recordEmpId').value = empId;
+            document.getElementById('modalTitle').innerText = `إضافة حركة لـ (${empName})`;
+            document.getElementById('recordType').value = 'withdrawal';
+            document.getElementById('recordDate').value = document.getElementById('datePicker').value || todayISO();
+            document.getElementById('recordAmount').value = '';
+            document.getElementById('recordNote').value = '';
+            document.getElementById('recordModal').classList.remove('hidden');
+            document.getElementById('recordModal').classList.add('flex');
+        }
+
+        function editRecord(recordId) {
+            const r = records.find(rec => rec.id === recordId);
+            if (!r) return;
+            if (isDayClosed(r.date)) {
+                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للتعديل.');
+            }
+            const emp = employees.find(e => e.id === r.empId);
+            document.getElementById('recordId').value = r.id;
+            document.getElementById('recordEmpId').value = r.empId;
+            document.getElementById('modalTitle').innerText = `تعديل حركة لـ (${emp ? emp.name : ''})`;
+            document.getElementById('recordType').value = r.type;
+            document.getElementById('recordDate').value = r.date || todayISO();
+            document.getElementById('recordAmount').value = r.amount;
+            document.getElementById('recordNote').value = r.note || '';
+            document.getElementById('recordModal').classList.remove('hidden');
+            document.getElementById('recordModal').classList.add('flex');
+        }
+
+        function openBranchModal() {
+            document.getElementById('branchModal').classList.remove('hidden');
+            document.getElementById('branchModal').classList.add('flex');
+        }
+
+        function openEmpModal() {
+            const select = document.getElementById('empBranch');
+            select.innerHTML = branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            document.getElementById('empName').value = '';
+            document.getElementById('empPassword').value = '';
+            document.getElementById('empShift').value = 'الفترة الصباحية';
+            document.getElementById('empModal').classList.remove('hidden');
+            document.getElementById('empModal').classList.add('flex');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('flex');
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // ==================== ACTIONS ====================
+        function saveRecord() {
+            const recordId = document.getElementById('recordId').value;
+            const empId = document.getElementById('recordEmpId').value;
+            const type = document.getElementById('recordType').value;
+            const amount = parseFloat(document.getElementById('recordAmount').value);
+            const note = document.getElementById('recordNote').value;
+            const date = document.getElementById('recordDate').value;
+
+            if (!amount || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح');
+            if (!date) return alert('الرجاء تحديد تاريخ الحركة');
+            if (isDayClosed(date)) return alert('لا يمكن حفظ حركة في يوم مغلق. الرجاء إعادة فتح اليوم أولاً.');
+
+            const month = date.slice(0, 7);
+
+            if (recordId) {
+                const idx = records.findIndex(r => r.id === recordId);
+                if (idx !== -1) {
+                    records[idx] = { ...records[idx], type, amount, note, date, month };
+                }
+            } else {
+                records.push({ id: 'r_' + Date.now(), empId, type, amount, note, date, month });
+            }
+
+            saveData();
+            closeModal('recordModal');
+            document.getElementById('recordAmount').value = '';
+            document.getElementById('recordNote').value = '';
+            document.getElementById('recordId').value = '';
+            document.getElementById('datePicker').value = date;
+            renderApp();
+        }
+
+        function saveBranch() {
+            const name = document.getElementById('branchName').value.trim();
+            if (!name) return alert('الرجاء كتابة اسم الفرع');
+            branches.push({ id: 'b_' + Date.now(), name });
+            saveData();
+            closeModal('branchModal');
+            document.getElementById('branchName').value = '';
+            renderApp();
+        }
+
+        function saveEmployee() {
+            const name = document.getElementById('empName').value.trim();
+            const branchId = document.getElementById('empBranch').value;
+            const shift = document.getElementById('empShift').value;
+            const password = document.getElementById('empPassword').value.trim();
+
+            if (!name) return alert('الرجاء كتابة اسم الموظف');
+            if (!password) return alert('الرجاء إدخال رمز المرور');
+
+            employees.push({ id: 'e_' + Date.now(), branchId, name, shift, password });
+            saveData();
+            closeModal('empModal');
+            document.getElementById('empName').value = '';
+            document.getElementById('empPassword').value = '';
+            renderApp();
+        }
+
+        function deleteRecord(id) {
+            const r = records.find(rec => rec.id === id);
+            if (r && isDayClosed(r.date)) {
+                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للحذف.');
+            }
+            records = records.filter(r => r.id !== id);
+            saveData();
+            renderApp();
+        }
+
+        function deleteEmployee(id) {
+            if (confirm('هل أنت تأكد من حذف الموظف؟ ستظل سجلاته محفوظة في النظام.')) {
+                employees = employees.filter(e => e.id !== id);
+                saveData();
+                renderApp();
+            }
+        }
+
+        function deleteBranch(id) {
+            if (confirm('هل أنت متاكد من حذف الفرع؟')) {
+                branches = branches.filter(b => b.id !== id);
+                employees = employees.filter(e => e.branchId !== id);
+                saveData();
+                renderApp();
+            }
+        }
+
+        // ==================== PDF EXPORT ====================
+        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+        function formatMonthLabel(monthValue) {
+            if (!monthValue) return '';
+            const [year, month] = monthValue.split('-');
+            return `${arabicMonths[parseInt(month, 10) - 1]} ${year}`;
+        }
+
+        function buildReportHTML(periodLabel, matchRecord) {
+            const now = new Date();
+            const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            let grandWithdrawals = 0;
+            let grandShortages = 0;
+            let branchesHtml = '';
+
+            branches.forEach(branch => {
+                const branchEmps = employees.filter(e => e.branchId === branch.id);
+                if (branchEmps.length === 0) return;
+
+                let branchWithdrawals = 0;
+                let branchShortages = 0;
+                let rowsHtml = '';
+                let branchHasRecords = false;
+
+                branchEmps.forEach(emp => {
+                    const empRecords = records.filter(r => r.empId === emp.id && matchRecord(r)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+                    branchWithdrawals += withdrawals;
+                    branchShortages += shortages;
+                    grandWithdrawals += withdrawals;
+                    grandShortages += shortages;
+                    if (empRecords.length > 0) branchHasRecords = true;
+
+                    const notes = empRecords.map(r => `${formatDateShort(r.date)} — ${r.type === 'withdrawal' ? 'سحب' : 'عجز'}: ${r.amount} د.ل${r.note ? ' (' + r.note + ')' : ''}`).join(' | ') || '—';
+
+                    rowsHtml += `
+                        <tr>
+                            <td style="padding:8px;border:1px solid #ddd;">${emp.name}</td>
+                            <td style="padding:8px;border:1px solid #ddd;">${emp.shift}</td>
+                            <td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">${withdrawals} د.ل</td>
+                            <td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">${shortages} د.ل</td>
+                            <td style="padding:8px;border:1px solid #ddd;font-size:11px;color:#555;">${notes}</td>
+                        </tr>`;
+                });
+
+                if (!branchHasRecords) return;
+
+                branchesHtml += `
+                    <div style="margin-bottom:24px;">
+                        <h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:15px;margin-bottom:8px;">
+                            📍 فرع: ${branch.name} — إجمالي السحبيات: ${branchWithdrawals} د.ل | إجمالي العجوزات: ${branchShortages} د.ل
+                        </h3>
+                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                            <thead>
+                                <tr style="background:#f1f5f9;">
+                                    <th style="padding:8px;border:1px solid #ddd;">الموظف</th>
+                                    <th style="padding:8px;border:1px solid #ddd;">الفترة</th>
+                                    <th style="padding:8px;border:1px solid #ddd;">السحبيات</th>
+                                    <th style="padding:8px;border:1px solid #ddd;">العجوزات</th>
+                                    <th style="padding:8px;border:1px solid #ddd;">تفاصيل الحركات</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>`;
+            });
+
+            return `
+                <div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:'Cairo',sans-serif;">
+                    <div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">
+                        <h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>
+                        <p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير سحوبات وعجوزات الموظفين</p>
+                        <p style="font-size:13px;color:#64748b;margin:4px 0 0;">${periodLabel} — تاريخ الإصدار: ${generatedOn}</p>
+                    </div>
+
+                    <div style="display:flex;gap:16px;margin-bottom:24px;">
+                        <div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">
+                            <p style="font-size:12px;color:#92400e;margin:0;">إجمالي السحبيات</p>
+                            <p style="font-size:20px;font-weight:800;color:#b45309;margin:4px 0 0;">${grandWithdrawals} د.ل</p>
+                        </div>
+                        <div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:12px;text-align:center;">
+                            <p style="font-size:12px;color:#9f1239;margin:0;">إجمالي العجوزات</p>
+                            <p style="font-size:20px;font-weight:800;color:#be123c;margin:4px 0 0;">${grandShortages} د.ل</p>
+                        </div>
+                    </div>
+
+                    ${branchesHtml || '<p style="text-align:center;color:#94a3b8;">لا توجد بيانات لعرضها لهذه الفترة</p>'}
+
+                    <div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">
+                        تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع
+                    </div>
+                </div>`;
+        }
+
+        // ==================== DAILY CLOSING ====================
+        function openClosingModal() {
+            renderClosingModalBody();
+            document.getElementById('closingModal').classList.remove('hidden');
+            document.getElementById('closingModal').classList.add('flex');
+        }
+
+        function renderClosingModalBody() {
+            const selectedDate = document.getElementById('datePicker').value;
+            const closed = isDayClosed(selectedDate);
+
+            let grandWithdrawals = 0;
+            let grandShortages = 0;
+            let branchesHtml = '';
+
+            branches.forEach(branch => {
+                const branchEmps = employees.filter(e => e.branchId === branch.id);
+                if (branchEmps.length === 0) return;
+
+                let branchWithdrawals = 0;
+                let branchShortages = 0;
+                let rowsHtml = '';
+
+                branchEmps.forEach(emp => {
+                    const empRecords = records.filter(r => r.empId === emp.id && r.date === selectedDate);
+                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+                    if (empRecords.length === 0) return;
+
+                    branchWithdrawals += withdrawals;
+                    branchShortages += shortages;
+                    grandWithdrawals += withdrawals;
+                    grandShortages += shortages;
+
+                    rowsHtml += `
+                        <div class="flex justify-between items-center text-xs bg-slate-900/70 px-3 py-2 rounded-lg">
+                            <span class="text-slate-200 font-semibold">${emp.name}</span>
+                            <span class="text-amber-400">سحب: ${withdrawals} د.ل</span>
+                            <span class="text-rose-400">عجز: ${shortages} د.ل</span>
+                        </div>`;
+                });
+
+                if (!rowsHtml) return;
+
+                branchesHtml += `
+                    <div class="mb-4">
+                        <p class="text-cyan-400 font-bold text-sm mb-2">📍 ${branch.name} — سحب: ${branchWithdrawals} د.ل | عجز: ${branchShortages} د.ل</p>
+                        <div class="space-y-1.5">${rowsHtml}</div>
+                    </div>`;
+            });
+
+            const body = document.getElementById('closingModalBody');
+            body.innerHTML = `
+                <div class="flex justify-between items-center mb-4 bg-slate-900/60 border border-slate-700 rounded-xl p-4">
+                    <div>
+                        <p class="text-slate-400 text-xs">التاريخ</p>
+                        <p class="text-white font-bold text-lg">${formatDateShort(selectedDate)}</p>
+                    </div>
+                    <span class="text-xs font-bold px-3 py-1.5 rounded-full ${closed ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}">
+                        ${closed ? '🔒 مغلق' : '🟢 مفتوح'}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-5">
+                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+                        <p class="text-xs text-amber-300">إجمالي السحبيات</p>
+                        <p class="text-xl font-black text-amber-400">${grandWithdrawals} د.ل</p>
+                    </div>
+                    <div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-center">
+                        <p class="text-xs text-rose-300">إجمالي العجوزات</p>
+                        <p class="text-xl font-black text-rose-400">${grandShortages} د.ل</p>
+                    </div>
+                </div>
+
+                <div class="mb-5 max-h-64 overflow-y-auto pr-1">
+                    ${branchesHtml || '<p class="text-slate-500 text-sm text-center py-4">لا توجد حركات مسجلة لهذا اليوم</p>'}
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    ${closed
+                        ? `<button onclick="reopenDay()" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl">🔓 إعادة فتح اليوم</button>`
+                        : `<button onclick="confirmCloseDay()" class="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl">✅ تأكيد إغلاق اليوم</button>`
+                    }
+                    <button onclick="exportClosingPDF()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">📄 تصدير PDF</button>
+                </div>
+            `;
+        }
+
+        function confirmCloseDay() {
+            const selectedDate = document.getElementById('datePicker').value;
+            if (!confirm(`هل أنت متأكد من إغلاق يوم ${formatDateShort(selectedDate)}؟ لن يمكن إضافة أو تعديل أو حذف حركات هذا اليوم إلا بعد إعادة فتحه.`)) return;
+            closedDays[selectedDate] = true;
+            saveData();
+            renderClosingModalBody();
+            renderApp();
+        }
+
+        function reopenDay() {
+            const selectedDate = document.getElementById('datePicker').value;
+            if (!confirm(`هل تريد إعادة فتح يوم ${formatDateShort(selectedDate)} للتعديل؟`)) return;
+            delete closedDays[selectedDate];
+            saveData();
+            renderClosingModalBody();
+            renderApp();
+        }
+
+        async function exportClosingPDF() {
+            const selectedDate = document.getElementById('datePicker').value;
+            const periodLabel = `إغلاق يومي: ${formatDateShort(selectedDate)}`;
+            const matchRecord = r => r.date === selectedDate;
+
+            try {
+                const reportArea = document.getElementById('pdfReportArea');
+                reportArea.innerHTML = buildReportHTML(periodLabel, matchRecord);
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                let heightLeft = imgHeight;
+                let position = 0;
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`إغلاق_يومي_${selectedDate}.pdf`);
+                reportArea.innerHTML = '';
+            } catch (err) {
+                console.error(err);
+                alert('حدث خطأ أثناء إنشاء ملف PDF. الرجاء المحاولة مرة أخرى.');
+            }
+        }
+
+        function openExportModal() {
+            const today = document.getElementById('datePicker').value || todayISO();
+            document.getElementById('exportRangeType').value = 'month';
+            document.getElementById('exportMonth').value = today.slice(0, 7);
+            document.getElementById('exportDay').value = today;
+            document.getElementById('exportFrom').value = today;
+            document.getElementById('exportTo').value = today;
+            toggleExportRangeInputs();
+            document.getElementById('exportModal').classList.remove('hidden');
+            document.getElementById('exportModal').classList.add('flex');
+        }
+
+        function toggleExportRangeInputs() {
+            const type = document.getElementById('exportRangeType').value;
+            document.getElementById('exportMonthField').classList.toggle('hidden', type !== 'month');
+            document.getElementById('exportDayField').classList.toggle('hidden', type !== 'day');
+            document.getElementById('exportRangeFields').classList.toggle('hidden', type !== 'range');
+        }
+
+        async function exportPDF() {
+            const type = document.getElementById('exportRangeType').value;
+
+            let periodLabel, matchRecord, fileSuffix;
+
+            if (type === 'month') {
+                const monthValue = document.getElementById('exportMonth').value;
+                if (!monthValue) return alert('الرجاء اختيار الشهر');
+                periodLabel = `الشهر: ${formatMonthLabel(monthValue)}`;
+                matchRecord = r => r.month === monthValue;
+                fileSuffix = formatMonthLabel(monthValue).replace(/\s+/g, '_');
+            } else if (type === 'day') {
+                const dayValue = document.getElementById('exportDay').value;
+                if (!dayValue) return alert('الرجاء اختيار اليوم');
+                periodLabel = `اليوم: ${formatDateShort(dayValue)}`;
+                matchRecord = r => r.date === dayValue;
+                fileSuffix = dayValue;
+            } else {
+                const from = document.getElementById('exportFrom').value;
+                const to = document.getElementById('exportTo').value;
+                if (!from || !to) return alert('الرجاء تحديد بداية ونهاية الفترة');
+                if (from > to) return alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+                periodLabel = `من ${formatDateShort(from)} إلى ${formatDateShort(to)}`;
+                matchRecord = r => r.date >= from && r.date <= to;
+                fileSuffix = `${from}_${to}`;
+            }
+
+            const confirmBtn = document.getElementById('exportConfirmBtn');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '⏳ جارٍ التصدير...';
+            confirmBtn.disabled = true;
+
+            try {
+                const reportArea = document.getElementById('pdfReportArea');
+                reportArea.innerHTML = buildReportHTML(periodLabel, matchRecord);
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(`تقرير_جيت_كلين_${fileSuffix}.pdf`);
+                reportArea.innerHTML = '';
+                closeModal('exportModal');
+            } catch (err) {
+                console.error(err);
+                alert('حدث خطأ أثناء إنشاء ملف PDF. الرجاء المحاولة مرة أخرى.');
+            } finally {
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
