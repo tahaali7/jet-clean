@@ -172,6 +172,9 @@
                 <button onclick="openEmpModal()" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                     👤 إضافة موظف
                 </button>
+                <button onclick="openPasswordsModal()" class="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                    🔑 تعديل كلمات المرور
+                </button>
                 <button onclick="goToLogin()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
                     🚪 تسجيل خروج
                 </button>
@@ -332,6 +335,17 @@
         </div>
     </div>
 
+    <!-- Modal: Password Management -->
+    <div id="passwordsModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-xl font-bold text-teal-400 flex items-center gap-2">🔑 تعديل كلمات المرور</h3>
+                <button onclick="closeModal('passwordsModal')" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div id="passwordsModalBody"></div>
+        </div>
+    </div>
+
     <!-- Modal: Daily Closing -->
     <div id="closingModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -455,7 +469,8 @@
         let adminSelectedBranch = null;
         let adminCustomPricesData = {};
         // Admin account
-        const ADMIN_ACCOUNT = { name: 'طه علي', password: '19970880528' };
+        const ADMIN_ACCOUNT_DEFAULT = { name: 'طه علي', password: '19970880528' };
+        let ADMIN_ACCOUNT = JSON.parse(localStorage.getItem('gc_adminAccount')) || { ...ADMIN_ACCOUNT_DEFAULT };
 
         // ==================== SCREEN MANAGEMENT ====================
         function showScreen(screenId) {
@@ -1309,6 +1324,7 @@
             localStorage.setItem('gc_records', JSON.stringify(records));
             localStorage.setItem('gc_closedDays', JSON.stringify(closedDays));
             localStorage.setItem('gc_carEntries', JSON.stringify(carEntries));
+            localStorage.setItem('gc_adminAccount', JSON.stringify(ADMIN_ACCOUNT));
         }
 
         function isDayClosed(date) {
@@ -1580,6 +1596,89 @@
                 saveData();
                 renderApp();
             }
+        }
+
+        // ==================== PASSWORD MANAGEMENT ====================
+        function openPasswordsModal() {
+            renderPasswordsModalBody();
+            document.getElementById('passwordsModal').classList.remove('hidden');
+            document.getElementById('passwordsModal').classList.add('flex');
+        }
+
+        function renderPasswordsModalBody() {
+            const body = document.getElementById('passwordsModalBody');
+            let html = '';
+
+            // Admin section
+            html += `
+                <div class="mb-5 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-bold text-amber-400 text-base flex items-center gap-2">👨‍💼 المسؤول: ${ADMIN_ACCOUNT.name}</h4>
+                        <span class="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded-full">الحساب الرئيسي</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="adminNewPassword" placeholder="كلمة المرور الجديدة" value="${ADMIN_ACCOUNT.password}"
+                               class="flex-1 bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500 text-sm">
+                        <button onclick="saveAdminPassword()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition">💾 حفظ</button>
+                    </div>
+                </div>
+            `;
+
+            // Group employees by branch
+            branches.forEach(branch => {
+                const branchEmps = employees.filter(e => e.branchId === branch.id);
+                if (branchEmps.length === 0) return;
+
+                html += `
+                    <div class="mb-4 bg-slate-900/50 border border-slate-700/50 rounded-xl p-4">
+                        <h4 class="font-bold text-cyan-400 text-sm mb-3 flex items-center gap-2">📍 ${branch.name}</h4>
+                        <div class="space-y-3">
+                `;
+
+                branchEmps.forEach(emp => {
+                    html += `
+                        <div class="bg-slate-800/80 border border-slate-700/40 rounded-lg p-3">
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-white font-semibold text-sm">${emp.name}</span>
+                                    <span class="text-[11px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">${emp.shift}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="text" id="empPass_${emp.id}" placeholder="كلمة المرور" value="${emp.password}"
+                                           class="flex-1 sm:w-40 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-teal-500">
+                                    <button onclick="saveEmpPassword('${emp.id}')" class="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-lg text-xs transition">💾</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+            });
+
+            body.innerHTML = html;
+        }
+
+        function saveAdminPassword() {
+            const newPass = document.getElementById('adminNewPassword').value.trim();
+            if (!newPass) return alert('الرجاء إدخال كلمة المرور');
+            if (!confirm('هل تريد تغيير كلمة مرور المسؤول؟')) return;
+            ADMIN_ACCOUNT.password = newPass;
+            saveData();
+            alert('تم تغيير كلمة مرور المسؤول بنجاح ✅');
+        }
+
+        function saveEmpPassword(empId) {
+            const input = document.getElementById('empPass_' + empId);
+            if (!input) return;
+            const newPass = input.value.trim();
+            if (!newPass) return alert('الرجاء إدخال كلمة المرور');
+            const emp = employees.find(e => e.id === empId);
+            if (!emp) return;
+            if (!confirm(`هل تريد تغيير كلمة مرور الموظف (${emp.name})؟`)) return;
+            emp.password = newPass;
+            saveData();
+            alert(`تم تغيير كلمة مرور ${emp.name} بنجاح ✅`);
         }
 
         // ==================== PDF EXPORT ====================
