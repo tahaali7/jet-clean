@@ -67,11 +67,31 @@
                 <p id="empInfo" class="text-slate-400 text-sm mt-1"></p>
             </div>
             <div class="flex flex-wrap gap-3">
+                <!-- Admin-only buttons -->
+                <div id="adminButtons" class="hidden flex flex-wrap gap-3">
+                    <button id="exportPdfBtn2" onclick="openExportModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                        📄 تصدير PDF
+                    </button>
+                    <button onclick="openBranchModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                        ➕ إضافة فرع
+                    </button>
+                    <button onclick="openEmpModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                        👤 إضافة موظف
+                    </button>
+                </div>
                 <button onclick="logoutEmployee()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
                     🚪 تسجيل خروج
                 </button>
             </div>
         </header>
+
+        <!-- Branch Selector (Admin only) -->
+        <div id="adminBranchSelector" class="hidden bg-slate-800 p-5 rounded-2xl border border-amber-500/20 mb-6">
+            <label class="block text-sm text-amber-300 mb-2 font-semibold">📍 اختر الفرع:</label>
+            <select id="adminBranchSelect2" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white focus:outline-none focus:border-amber-500 text-base" onchange="onAdminBranchChange2()">
+                <option value="">-- اختر فرع --</option>
+            </select>
+        </div>
 
         <!-- Date Selector -->
         <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
@@ -502,6 +522,8 @@
 
         // Current logged-in employee
         let currentEmployee = null;
+        // Admin mode flag
+        let isAdminMode = false;
         // Admin account
         const ADMIN_ACCOUNT = { name: 'طه علي', password: '19970880528' };
 
@@ -515,27 +537,71 @@
 
         function goToLogin() {
             currentEmployee = null;
+            isAdminMode = false;
+            adminSelectedBranch = null;
+            // Hide admin-only elements
+            document.getElementById('adminButtons').classList.add('hidden');
+            document.getElementById('adminBranchSelector').classList.add('hidden');
             showScreen('loginScreen');
             populateLoginDropdown();
         }
 
         function goToAdmin() {
-            showScreen('adminScreen');
-            document.getElementById('datePicker').value = todayISO();
-            document.getElementById('adminDatePicker').value = todayISO();
+            // Admin uses the employee screen but with branch selector
+            isAdminMode = true;
+            adminSelectedBranch = null;
+            currentEmployee = null;
+            adminCustomPricesData = {};
+
+            document.getElementById('empInfo').textContent = 'مرحباً المسؤول طه علي 👨‍💼';
+            document.getElementById('empDatePicker').value = todayISO();
+
+            // Show admin-only elements
+            document.getElementById('adminButtons').classList.remove('hidden');
+            document.getElementById('adminBranchSelector').classList.remove('hidden');
 
             // Populate admin branch select
-            const adminBranchSelect = document.getElementById('adminBranchSelect');
+            const adminBranchSelect = document.getElementById('adminBranchSelect2');
             adminBranchSelect.innerHTML = '<option value="">-- اختر فرع --</option>';
             branches.forEach(b => {
                 adminBranchSelect.innerHTML += `<option value="${b.id}">📍 ${b.name}</option>`;
             });
             adminBranchSelect.value = '';
-            adminSelectedBranch = null;
-            document.getElementById('adminCarEntrySection').classList.add('hidden');
-            document.getElementById('adminCarSummarySection').classList.add('hidden');
 
-            renderApp();
+            // Hide room entry until branch is selected
+            const roomSelect = document.getElementById('roomSelect');
+            roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
+            document.getElementById('carEntryArea').classList.add('hidden');
+
+            showScreen('employeeScreen');
+            renderEmployeeDashboard();
+        }
+
+        // Admin branch change handler (new version using employeeScreen)
+        function onAdminBranchChange2() {
+            const branchId = document.getElementById('adminBranchSelect2').value;
+            if (!branchId) {
+                adminSelectedBranch = null;
+                const roomSelect = document.getElementById('roomSelect');
+                roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
+                document.getElementById('carEntryArea').classList.add('hidden');
+                renderEmployeeDashboard();
+                return;
+            }
+            adminSelectedBranch = branchId;
+            const branch = branches.find(b => b.id === branchId);
+            const branchName = branch ? branch.name : '';
+
+            // Populate rooms for this branch
+            const branchRooms = getRoomsForBranch(branchName);
+            const roomSelect = document.getElementById('roomSelect');
+            roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
+            branchRooms.forEach(room => {
+                roomSelect.innerHTML += `<option value="${room}">${ROOM_ICONS[room] || '🏠'} ${room}</option>`;
+            });
+            document.getElementById('carEntryArea').classList.add('hidden');
+            adminCustomPricesData = {};
+            renderEmployeeDashboard();
         }
 
         // ==================== LOGIN ====================
@@ -599,10 +665,15 @@
 
             // Success
             errorDiv.classList.add('hidden');
+            isAdminMode = false;
             currentEmployee = emp;
             const branch = branches.find(b => b.id === emp.branchId);
 
             document.getElementById('empInfo').textContent = `مرحباً ${emp.name} | ${branch ? branch.name : ''} | ${emp.shift}`;
+
+            // Hide admin-only elements
+            document.getElementById('adminButtons').classList.add('hidden');
+            document.getElementById('adminBranchSelector').classList.add('hidden');
             document.getElementById('empDatePicker').value = todayISO();
 
             // Populate room dropdown (branch-specific)
@@ -680,23 +751,32 @@
         let customPricesData = {};
 
         function addCustomPrice() {
-            const price = parseFloat(document.getElementById('customPrice').value);
-            const count = parseInt(document.getElementById('customCount').value) || 0;
+            const priceEl = document.getElementById('customPrice');
+            const countEl = document.getElementById('customCount');
+            if (!priceEl || !countEl) return;
+            const price = parseFloat(priceEl.value);
+            const count = parseInt(countEl.value) || 0;
             if (!price || price <= 0) return alert('الرجاء إدخال سعر صحيح');
             if (count <= 0) return alert('الرجاء إدخال عدد سيارات صحيح');
             const key = 'custom_' + price;
-            customPricesData[key] = { price: price, count: count };
-            renderCustomPricesList();
-            document.getElementById('customPrice').value = '';
-            document.getElementById('customCount').value = 0;
+            if (isAdminMode) {
+                adminCustomPricesData[key] = { price: price, count: count };
+                renderAdminCustomPricesList();
+            } else {
+                customPricesData[key] = { price: price, count: count };
+                renderCustomPricesList();
+            }
+            priceEl.value = '';
+            countEl.value = 0;
         }
 
         function renderCustomPricesList() {
             const list = document.getElementById('customPricesList');
             if (!list) return;
+            const data = isAdminMode ? adminCustomPricesData : customPricesData;
             list.innerHTML = '';
-            Object.keys(customPricesData).forEach(key => {
-                const item = customPricesData[key];
+            Object.keys(data).forEach(key => {
+                const item = data[key];
                 list.innerHTML += `
                     <div class="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
                         <span class="text-violet-300">${item.price} د.ل × ${item.count}</span>
@@ -710,8 +790,13 @@
         }
 
         function removeCustomPrice(key) {
-            delete customPricesData[key];
-            renderCustomPricesList();
+            if (isAdminMode) {
+                delete adminCustomPricesData[key];
+                renderAdminCustomPricesList();
+            } else {
+                delete customPricesData[key];
+                renderCustomPricesList();
+            }
         }
 
         function clearCarEntry() {
@@ -722,7 +807,11 @@
                 if (el) el.value = 0;
             });
             // Clear custom prices
-            customPricesData = {};
+            if (isAdminMode) {
+                adminCustomPricesData = {};
+            } else {
+                customPricesData = {};
+            }
             const list = document.getElementById('customPricesList');
             if (list) list.innerHTML = '';
             const cp = document.getElementById('customPrice');
@@ -732,20 +821,19 @@
         }
 
         function saveCarEntry() {
-            if (!currentEmployee) return;
-
             const room = document.getElementById('roomSelect').value;
             const date = document.getElementById('empDatePicker').value;
 
             if (!room) return alert('الرجاء اختيار الغرفة');
             if (!date) return alert('الرجاء تحديد التاريخ');
+            if (!currentEmployee && !isAdminMode) return;
 
             const prices = getPricesForRoom(room);
             const priceCounts = {};
             let totalCars = 0;
             let totalAmount = 0;
-            let extraCars = 0; // عدد السيارات التي عليها إكسترا
-            let extraAmount = 0; // إجمالي الإكسترا
+            let extraCars = 0;
+            let extraAmount = 0;
 
             prices.forEach(price => {
                 const count = parseInt(document.getElementById('carCount_' + price).value) || 0;
@@ -753,7 +841,6 @@
                     priceCounts[price] = count;
                     totalCars += count;
                     if (EXTRA_PRICES.includes(price)) {
-                        // سعر فعلي = السعر - 5 إكسترا
                         totalAmount += (price - 5) * count;
                         extraCars += count;
                         extraAmount += 5 * count;
@@ -765,8 +852,9 @@
 
             // Add custom prices
             let customPricesSaved = {};
-            Object.keys(customPricesData).forEach(key => {
-                const item = customPricesData[key];
+            const cpData = isAdminMode ? adminCustomPricesData : customPricesData;
+            Object.keys(cpData).forEach(key => {
+                const item = cpData[key];
                 priceCounts['custom_' + item.price] = item.count;
                 customPricesSaved['custom_' + item.price] = { price: item.price, count: item.count };
                 totalCars += item.count;
@@ -775,16 +863,28 @@
 
             if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل');
 
-            // Check if entry already exists for this employee+room+date, update it
+            // Determine empId and empName based on mode
+            let empId, empName, branchId;
+            if (isAdminMode) {
+                branchId = adminSelectedBranch;
+                empId = 'admin_' + adminSelectedBranch;
+                empName = 'المسؤول';
+            } else {
+                empId = currentEmployee.id;
+                empName = currentEmployee.name;
+                branchId = currentEmployee.branchId;
+            }
+
+            // Check if entry already exists
             const existingIdx = carEntries.findIndex(e =>
-                e.empId === currentEmployee.id && e.room === room && e.date === date
+                e.empId === empId && e.room === room && e.date === date
             );
 
             const entry = {
                 id: existingIdx >= 0 ? carEntries[existingIdx].id : 'car_' + Date.now(),
-                empId: currentEmployee.id,
-                empName: currentEmployee.name,
-                branchId: currentEmployee.branchId,
+                empId: empId,
+                empName: empName,
+                branchId: branchId,
                 room: room,
                 date: date,
                 month: date.slice(0, 7),
@@ -809,11 +909,23 @@
             }
 
             saveData();
-            customPricesData = {};
+            if (isAdminMode) {
+                adminCustomPricesData = {};
+            } else {
+                customPricesData = {};
+            }
             clearCarEntry();
             renderEmployeeDashboard();
 
             // الانتقال التلقائي للغرفة التالية
+            let currentBranchName = '';
+            if (isAdminMode) {
+                const br = branches.find(b => b.id === adminSelectedBranch);
+                currentBranchName = br ? br.name : '';
+            } else {
+                const br = branches.find(b => b.id === currentEmployee.branchId);
+                currentBranchName = br ? br.name : '';
+            }
             const branchRooms = getRoomsForBranch(currentBranchName);
             const currentRoomIdx = branchRooms.indexOf(room);
             if (currentRoomIdx >= 0 && currentRoomIdx < branchRooms.length - 1) {
@@ -822,22 +934,169 @@
                 renderCarEntry();
             }
 
-            // Show success message
             alert(successMsg);
         }
 
         // ==================== EMPLOYEE DASHBOARD ====================
         function renderEmployeeDashboard() {
-            if (!currentEmployee) return;
-
             const date = document.getElementById('empDatePicker').value;
-            const empEntries = carEntries.filter(e => e.empId === currentEmployee.id && e.date === date);
             const grid = document.getElementById('empSummaryGrid');
             const grandCard = document.getElementById('grandTotalCard');
 
             let grandTotalAmount = 0;
             let grandTotalCars = 0;
             let grandTotalNet = 0;
+
+            if (isAdminMode) {
+                // === ADMIN MODE: show all entries for selected branch + date ===
+                if (!adminSelectedBranch || !date) {
+                    grid.innerHTML = `
+                        <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+                            <div class="text-4xl mb-3">📋</div>
+                            <p class="text-slate-400">${!adminSelectedBranch ? 'اختر الفرع لعرض البيانات' : 'اختر التاريخ لعرض البيانات'}</p>
+                        </div>
+                    `;
+                    grandCard.classList.add('hidden');
+                    return;
+                }
+
+                const branch = branches.find(b => b.id === adminSelectedBranch);
+                const branchName = branch ? branch.name : '';
+                const availableRooms = getRoomsForBranch(branchName);
+
+                // Get ALL entries for this branch+date (from employees + admin)
+                const branchEntries = carEntries.filter(e => e.branchId === adminSelectedBranch && e.date === date);
+
+                // Also get entries where admin previously saved with 'admin_' prefix empId
+                const adminEmpId = 'admin_' + adminSelectedBranch;
+                const allEntries = carEntries.filter(e => {
+                    return (e.branchId === adminSelectedBranch || e.empId === adminEmpId) && e.date === date;
+                });
+
+                if (allEntries.length === 0) {
+                    grid.innerHTML = `
+                        <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+                            <div class="text-4xl mb-3">📋</div>
+                            <p class="text-slate-400">لا توجد تسجيلات لهذا اليوم في فرع ${branchName}</p>
+                            <p class="text-slate-500 text-sm mt-1">اختر غرفة وسجل عدد السيارات</p>
+                        </div>
+                    `;
+                    grandCard.classList.add('hidden');
+                    return;
+                }
+
+                // Group entries by room (show latest per room, could be from employee or admin)
+                let html = '';
+                availableRooms.forEach(room => {
+                    // Find entries for this room (from any employee or admin)
+                    const roomEntries = allEntries.filter(e => e.room === room);
+                    if (roomEntries.length === 0) return;
+
+                    // Show all entries for this room (grouped by who entered)
+                    roomEntries.forEach(entry => {
+                        grandTotalAmount += entry.totalAmount;
+                        grandTotalCars += entry.totalCars;
+                        grandTotalNet += getNetAmount(entry.totalAmount, branchName, room);
+
+                        let detailsHtml = '';
+                        const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
+                        entryPrices.forEach(price => {
+                            const count = entry.priceCounts[price] || 0;
+                            if (count > 0) {
+                                let subtotal = price * count;
+                                let priceLabel = `${price} د.ل`;
+                                if (EXTRA_PRICES.includes(price)) {
+                                    subtotal = (price - 5) * count;
+                                    priceLabel = `${price} د.ل <span class="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = ${price - 5} د.ل)</span>`;
+                                }
+                                detailsHtml += `
+                                    <div class="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
+                                        <span class="text-slate-300">تسعيرة ${priceLabel}:</span>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-white font-bold">${count} سيارة</span>
+                                            <span class="text-emerald-400 font-bold">${subtotal} د.ل</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+
+                        // عرض التسعيرات المخصصة
+                        if (entry.customPrices) {
+                            Object.keys(entry.customPrices).forEach(key => {
+                                const item = entry.customPrices[key];
+                                detailsHtml += `
+                                    <div class="flex justify-between items-center text-sm bg-violet-500/10 border border-violet-500/20 px-3 py-2 rounded-lg">
+                                        <span class="text-violet-300">تسعيرة مخصصة ${item.price} د.ل:</span>
+                                        <div class="flex items-center gap-3">
+                                            <span class="text-white font-bold">${item.count} سيارة</span>
+                                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        // إضافة صف الإكسترا لو فيه
+                        if (entry.extraCars && entry.extraCars > 0) {
+                            detailsHtml += `
+                                <div class="flex justify-between items-center text-sm bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg mt-1">
+                                    <span class="text-amber-300 font-semibold">⭐ إكسترا:</span>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-amber-200 font-bold">${entry.extraCars} سيارة × 5 د.ل</span>
+                                        <span class="text-amber-400 font-bold">${entry.extraAmount} د.ل</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        const entryLabel = entry.empName === 'المسؤول' ? '👨‍💼 المسؤول' : entry.empName;
+                        const labelColor = entry.empName === 'المسؤول' ? 'text-amber-400' : 'text-cyan-400';
+                        const borderColor = entry.empName === 'المسؤول' ? 'border-amber-500/20' : 'border-slate-700';
+
+                        html += `
+                            <div class="room-card bg-slate-800 border ${borderColor} rounded-2xl p-5 shadow-lg">
+                                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+                                    <h3 class="text-lg font-bold ${labelColor} flex items-center gap-2">
+                                        ${ROOM_ICONS[room] || '🏠'} ${room} <span class="text-xs text-slate-400 font-normal">(${entryLabel})</span>
+                                    </h3>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">${entry.totalCars} سيارة</span>
+                                        <button onclick="editAdminCarEntry2('${entry.id}', '${room}')" class="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️ تعديل</button>
+                                        <button onclick="deleteCarEntry('${entry.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
+                                    </div>
+                                </div>
+                                <div class="space-y-1.5">
+                                    ${detailsHtml}
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-slate-700">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
+                                        <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
+                                    </div>
+                                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
+                                        <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
+                                        <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, branchName, room)} د.ل</span>
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(branchName, room)})</p>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+
+                grid.innerHTML = html;
+                document.getElementById('grandTotalAmount').textContent = grandTotalAmount + ' د.ل';
+                document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
+                document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
+                grandCard.classList.remove('hidden');
+                return;
+            }
+
+            // === EMPLOYEE MODE ===
+            if (!currentEmployee) return;
+
+            const empEntries = carEntries.filter(e => e.empId === currentEmployee.id && e.date === date);
 
             if (empEntries.length === 0) {
                 grid.innerHTML = `
@@ -965,9 +1224,17 @@
         }
 
         function editCarEntry(roomName) {
-            if (!currentEmployee) return;
+            if (!currentEmployee && !isAdminMode) return;
             const date = document.getElementById('empDatePicker').value;
-            const entry = carEntries.find(e => e.empId === currentEmployee.id && e.room === roomName && e.date === date);
+
+            let empId;
+            if (isAdminMode) {
+                empId = 'admin_' + adminSelectedBranch;
+            } else {
+                empId = currentEmployee.id;
+            }
+
+            const entry = carEntries.find(e => e.empId === empId && e.room === roomName && e.date === date);
             if (!entry) return;
 
             // Select the room in dropdown and trigger render
@@ -984,16 +1251,56 @@
                 });
 
                 // Fill custom prices
-                customPricesData = {};
+                if (isAdminMode) {
+                    adminCustomPricesData = {};
+                } else {
+                    customPricesData = {};
+                }
                 if (entry.customPrices) {
                     Object.keys(entry.customPrices).forEach(key => {
                         const item = entry.customPrices[key];
-                        customPricesData[key] = { price: item.price, count: item.count };
+                        if (isAdminMode) {
+                            adminCustomPricesData[key] = { price: item.price, count: item.count };
+                        } else {
+                            customPricesData[key] = { price: item.price, count: item.count };
+                        }
                     });
                 }
-                renderCustomPricesList();
+                if (isAdminMode) {
+                    renderAdminCustomPricesList();
+                } else {
+                    renderCustomPricesList();
+                }
 
                 // Scroll to the entry area
+                document.getElementById('carEntryArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+
+        // Admin edit any entry (by entry ID) - for editing employee entries too
+        function editAdminCarEntry2(entryId, roomName) {
+            const entry = carEntries.find(e => e.id === entryId);
+            if (!entry) return;
+
+            // Select the room in dropdown and trigger render
+            document.getElementById('roomSelect').value = roomName;
+            renderCarEntry();
+
+            setTimeout(() => {
+                const prices = getPricesForRoom(roomName);
+                prices.forEach(price => {
+                    const el = document.getElementById('carCount_' + price);
+                    if (el) el.value = entry.priceCounts[price] || 0;
+                });
+
+                adminCustomPricesData = {};
+                if (entry.customPrices) {
+                    Object.keys(entry.customPrices).forEach(key => {
+                        const item = entry.customPrices[key];
+                        adminCustomPricesData[key] = { price: item.price, count: item.count };
+                    });
+                }
+                renderAdminCustomPricesList();
                 document.getElementById('carEntryArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 100);
         }
@@ -1089,7 +1396,8 @@
         }
 
         function renderAdminCustomPricesList() {
-            const list = document.getElementById('adminCustomPricesList');
+            // Try both containers - adminCarEntryArea and shared carEntryArea
+            const list = document.getElementById('adminCustomPricesList') || document.getElementById('customPricesList');
             if (!list) return;
             list.innerHTML = '';
             Object.keys(adminCustomPricesData).forEach(key => {
