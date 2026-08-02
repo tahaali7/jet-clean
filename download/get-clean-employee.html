@@ -1782,169 +1782,300 @@
         }
 
         // ==================== CAR ENTRY PDF EXPORT ====================
-        function buildCarReportHTML(selectedDate, branchId, branchName, entries, empLabel) {
-            const now = new Date();
-            const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' });
-            const availableRooms = getRoomsForBranch(branchName);
+        function buildRoomTableHTML(room, roomEntries, branchName) {
+            var prices = getPricesForRoom(room);
+            var roomTotalAmount = 0;
+            var roomTotalCars = 0;
+            var roomTotalExtra = 0;
+            var entryLabels = [];
 
-            let grandTotalAmount = 0;
-            let grandTotalCars = 0;
-            let grandTotalNet = 0;
+            // Merge all entries for this room
+            var mergedCounts = {};
+            var mergedCustoms = {};
+            var mergedExtraCars = 0;
+            var mergedExtraAmount = 0;
 
-            let roomsHtml = '';
-            let roomHasData = false;
+            roomEntries.forEach(function(entry) {
+                var lbl = entry.empName === 'المسؤول' ? 'المسؤول' : entry.empName;
+                if (entryLabels.indexOf(lbl) === -1) entryLabels.push(lbl);
 
-            availableRooms.forEach(room => {
-                const roomEntries = entries.filter(e => e.room === room);
-                if (roomEntries.length === 0) return;
-                roomHasData = true;
-
-                let roomTotalAmount = 0;
-                let roomTotalCars = 0;
-                let rowsHtml = '';
-
-                roomEntries.forEach(entry => {
-                    const entryLabel = entry.empName === 'المسؤول' ? 'المسؤول' : entry.empName;
-
-                    // Standard prices
-                    const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
-                    entryPrices.forEach(price => {
-                        const count = entry.priceCounts[price] || 0;
-                        if (count > 0) {
-                            let subtotal = price * count;
-                            let priceText = price + ' د.ل';
-                            if (EXTRA_PRICES.includes(price)) {
-                                subtotal = (price - 5) * count;
-                                priceText = price + ' د.ل <span style="font-size:10px;color:#b45309;">(بعد خصم 5 إكسترا = ' + (price - 5) + ' د.ل)</span>';
-                            }
-                            rowsHtml += '<tr>' +
-                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;">' + priceText + '</td>' +
-                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;">' + count + ' سيارة</td>' +
-                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#047857;">' + subtotal + ' د.ل</td>' +
-                                '</tr>';
+                prices.forEach(function(price) {
+                    var count = (entry.priceCounts && entry.priceCounts[price]) || 0;
+                    mergedCounts[price] = (mergedCounts[price] || 0) + count;
+                });
+                if (entry.customPrices) {
+                    Object.keys(entry.customPrices).forEach(function(key) {
+                        var item = entry.customPrices[key];
+                        if (mergedCustoms[key]) {
+                            mergedCustoms[key].count += item.count;
+                        } else {
+                            mergedCustoms[key] = { price: item.price, count: item.count };
                         }
                     });
-
-                    // Custom prices
-                    if (entry.customPrices) {
-                        Object.keys(entry.customPrices).forEach(key => {
-                            const item = entry.customPrices[key];
-                            rowsHtml += '<tr style="background:#faf5ff;">' +
-                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;color:#7c3aed;">مخصصة ' + item.price + ' د.ل</td>' +
-                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;">' + item.count + ' سيارة</td>' +
-                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#047857;">' + (item.price * item.count) + ' د.ل</td>' +
-                                '</tr>';
-                        });
-                    }
-
-                    // Extra row
-                    if (entry.extraCars && entry.extraCars > 0) {
-                        rowsHtml += '<tr style="background:#fffbeb;">' +
-                            '<td colspan="2" style="padding:6px 8px;border:1px solid #ddd;text-align:right;color:#b45309;font-weight:bold;">⭐ إكسترا: ' + entry.extraCars + ' سيارة × 5 د.ل</td>' +
-                            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#b45309;">' + entry.extraAmount + ' د.ل</td>' +
-                            '</tr>';
-                    }
-
-                    // Subtotal row for this entry
-                    rowsHtml += '<tr style="background:#f0fdf4;border-top:2px solid #0e7490;">' +
-                        '<td colspan="2" style="padding:6px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;font-size:13px;">إجمالي ' + room + ' (' + entryLabel + '):</td>' +
-                        '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:800;font-size:14px;color:#047857;">' + entry.totalAmount + ' د.ل</td>' +
-                        '</tr>';
-
-                    roomTotalAmount += entry.totalAmount;
-                    roomTotalCars += entry.totalCars;
-                });
-
-                const roomNet = getNetAmount(roomTotalAmount, branchName, room);
-                grandTotalAmount += roomTotalAmount;
-                grandTotalCars += roomTotalCars;
-                grandTotalNet += roomNet;
-
-                roomsHtml += '<div style="margin-bottom:20px;">' +
-                    '<h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:14px;margin-bottom:6px;">' +
-                    (ROOM_ICONS[room] || '') + ' ' + room + ' — ' + roomTotalCars + ' سيارة | الإجمالي: ' + roomTotalAmount + ' د.ل | الصافي: ' + roomNet + ' د.ل (' + getNetFormulaText(branchName, room) + ')</h3>' +
-                    '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-                    '<thead><tr style="background:#f1f5f9;">' +
-                    '<th style="padding:6px 8px;border:1px solid #ddd;">التسعيرة</th>' +
-                    '<th style="padding:6px 8px;border:1px solid #ddd;">عدد السيارات</th>' +
-                    '<th style="padding:6px 8px;border:1px solid #ddd;">المبلغ</th>' +
-                    '</tr></thead>' +
-                    '<tbody>' + rowsHtml + '</tbody>' +
-                    '</table></div>';
+                }
+                mergedExtraCars += (entry.extraCars || 0);
+                mergedExtraAmount += (entry.extraAmount || 0);
+                roomTotalAmount += entry.totalAmount;
+                roomTotalCars += entry.totalCars;
             });
 
-            if (!roomHasData) {
-                roomsHtml = '<p style="text-align:center;color:#94a3b8;padding:20px;">لا توجد تسجيلات لهذا اليوم</p>';
+            var roomNet = getNetAmount(roomTotalAmount, branchName, room);
+            var empLabelStr = entryLabels.join(' / ');
+
+            // Build price rows
+            var rowsHtml = '';
+            prices.forEach(function(price, idx) {
+                var count = mergedCounts[price] || 0;
+                var subtotal = price * count;
+                var amountAfterExtra = subtotal;
+                if (EXTRA_PRICES.includes(price) && count > 0) {
+                    amountAfterExtra = (price - 5) * count;
+                }
+                var countStyle = count > 0 ? 'font-weight:bold;' : '';
+                rowsHtml += '<tr>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + (idx + 1) + '</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;">' + price + ' د.ل</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;' + countStyle + '">' + (count > 0 ? count : '') + '</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;">' + (count > 0 ? amountAfterExtra + ' د.ل' : '') + '</td>' +
+                    '</tr>';
+            });
+
+            // Custom price rows
+            var customKeys = Object.keys(mergedCustoms);
+            customKeys.forEach(function(key, idx) {
+                var item = mergedCustoms[key];
+                var rowNum = prices.length + idx + 1;
+                rowsHtml += '<tr>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + rowNum + '</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;color:#7c3aed;">مخصصة ' + item.price + '</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + item.count + '</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;">' + (item.price * item.count) + ' د.ل</td>' +
+                    '</tr>';
+                roomTotalAmount += item.price * item.count;
+                roomTotalCars += item.count;
+            });
+
+            var html = '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+                // Room header
+                '<tr><td colspan="4" style="border:1px solid #333;padding:4px 8px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;">' + room + '</td></tr>' +
+                // Employee & date row
+                '<tr>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;">العامل: ' + empLabelStr + '</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;">التاريخ: ' + formatDateShort(document.getElementById('empDatePicker').value) + '</td>' +
+                '</tr>' +
+                // Column headers
+                '<tr style="background:#f0f0f0;">' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:30px;">م</td>' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:50px;">السعر</td>' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;">العدد</td>' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:60px;">الإجمالي</td>' +
+                '</tr>' +
+                rowsHtml +
+                // Summary rows
+                '<tr style="background:#f0f0f0;">' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">عدد السيارات</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:12px;font-weight:bold;">' + roomTotalCars + '</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;" rowspan="2"></td>' +
+                '</tr>' +
+                '<tr style="background:#f0f0f0;">' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">نسبة الغرفة</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalAmount + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;color:#555;">الصافي (' + getNetFormulaText(branchName, room) + ')</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;text-align:center;font-size:11px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
+                '</tr>' +
+                '</table>';
+
+            return { html: html, totalAmount: roomTotalAmount, totalCars: roomTotalCars, net: roomNet };
+        }
+
+        function buildCarReportHTML(selectedDate, branchId, branchName, entries, empLabel) {
+            var availableRooms = getRoomsForBranch(branchName);
+            var grandTotalAmount = 0;
+            var grandTotalCars = 0;
+            var grandTotalNet = 0;
+
+            // Separate regular rooms and machine room
+            var regularRooms = availableRooms.filter(function(r) { return r !== 'مكينة الغسيل'; });
+            var hasMachine = availableRooms.indexOf('مكينة الغسيل') !== -1;
+
+            // Build rooms in pairs (2 per row)
+            var roomsGridHtml = '';
+
+            // Process rooms 2 at a time
+            for (var i = 0; i < regularRooms.length; i += 2) {
+                var room1 = regularRooms[i];
+                var room2 = regularRooms[i + 1] || null;
+                var room1Entries = entries.filter(function(e) { return e.room === room1; });
+                var room1Data = room1Entries.length > 0 ? buildRoomTableHTML(room1, room1Entries, branchName) : null;
+                var room2Data = null;
+
+                if (room2) {
+                    var room2Entries = entries.filter(function(e) { return e.room === room2; });
+                    room2Data = room2Entries.length > 0 ? buildRoomTableHTML(room2, room2Entries, branchName) : null;
+                }
+
+                var col1 = room1Data ? room1Data.html : buildEmptyRoomTableHTML(room1);
+                var col2 = room2 ? (room2Data ? room2Data.html : buildEmptyRoomTableHTML(room2)) : '';
+
+                if (room1Data) {
+                    grandTotalAmount += room1Data.totalAmount;
+                    grandTotalCars += room1Data.totalCars;
+                    grandTotalNet += room1Data.net;
+                }
+                if (room2Data) {
+                    grandTotalAmount += room2Data.totalAmount;
+                    grandTotalCars += room2Data.totalCars;
+                    grandTotalNet += room2Data.net;
+                }
+
+                roomsGridHtml += '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+                    '<div style="flex:1;">' + col1 + '</div>' +
+                    (col2 ? '<div style="flex:1;">' + col2 + '</div>' : '') +
+                    '</div>';
             }
 
-            return '<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;" dir="rtl">' +
-                '<div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
-                '<h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>' +
-                '<p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير تسجيل السيارات — فرع ' + branchName + '</p>' +
-                '<p style="font-size:13px;color:#64748b;margin:4px 0 0;">يوم: ' + formatDateShort(selectedDate) + (empLabel ? ' — ' + empLabel : '') + ' | تاريخ الإصدار: ' + generatedOn + '</p>' +
+            // Machine section (if exists)
+            var machineHtml = '';
+            if (hasMachine) {
+                var machineEntries = entries.filter(function(e) { return e.room === 'مكينة الغسيل'; });
+                var machineData = machineEntries.length > 0 ? buildRoomTableHTML('مكينة الغسيل', machineEntries, branchName) : null;
+                if (machineData) {
+                    grandTotalAmount += machineData.totalAmount;
+                    grandTotalCars += machineData.totalCars;
+                    grandTotalNet += machineData.net;
+                }
+                machineHtml = '<div style="margin-top:8px;">' +
+                    (machineData ? machineData.html : buildEmptyRoomTableHTML('مكينة الغسيل')) +
+                    '</div>';
+            }
+
+            // Grand totals row
+            var totalsHtml = '<div style="display:flex;gap:0;margin-top:8px;border:2px solid #333;">' +
+                '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
+                '<div style="font-size:11px;color:#555;">إجمالي عدد السيارات</div>' +
+                '<div style="font-size:18px;font-weight:bold;">' + grandTotalCars + '</div>' +
                 '</div>' +
-                '<div style="display:flex;gap:16px;margin-bottom:24px;">' +
-                '<div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;text-align:center;">' +
-                '<p style="font-size:12px;color:#166534;margin:0;">إجمالي المبيعات</p>' +
-                '<p style="font-size:20px;font-weight:800;color:#047857;margin:4px 0 0;">' + grandTotalAmount + ' د.ل</p>' +
+                '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
+                '<div style="font-size:11px;color:#555;">إجمالي المبيعات</div>' +
+                '<div style="font-size:18px;font-weight:bold;">' + grandTotalAmount + ' د.ل</div>' +
                 '</div>' +
-                '<div style="flex:1;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:12px;text-align:center;">' +
-                '<p style="font-size:12px;color:#155e75;margin:0;">إجمالي السيارات</p>' +
-                '<p style="font-size:20px;font-weight:800;color:#0e7490;margin:4px 0 0;">' + grandTotalCars + ' سيارة</p>' +
+                '<div style="flex:1;text-align:center;padding:8px;">' +
+                '<div style="font-size:11px;color:#555;">إجمالي الصافي</div>' +
+                '<div style="font-size:18px;font-weight:bold;">' + grandTotalNet + ' د.ل</div>' +
                 '</div>' +
-                '<div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;text-align:center;">' +
-                '<p style="font-size:12px;color:#1e40af;margin:0;">إجمالي الصافي</p>' +
-                '<p style="font-size:20px;font-weight:800;color:#1d4ed8;margin:4px 0 0;">' + grandTotalNet + ' د.ل</p>' +
+                '</div>';
+
+            // Get all unique employee labels
+            var allEmpNames = [];
+            entries.forEach(function(e) {
+                var lbl = e.empName === 'المسؤول' ? 'المسؤول' : e.empName;
+                if (allEmpNames.indexOf(lbl) === -1) allEmpNames.push(lbl);
+            });
+
+            return '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+                // Title
+                '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+                '<h1 style="font-size:18px;font-weight:bold;margin:0;">نموذج مغاسل جيت كلين</h1>' +
                 '</div>' +
+                // Header info row
+                '<div style="display:flex;gap:0;border:1px solid #000;margin-bottom:10px;">' +
+                '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">المسؤول: ' + ADMIN_ACCOUNT.name + '</div>' +
+                '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">الموظف: ' + (empLabel || allEmpNames.join(' / ')) + '</div>' +
+                '<div style="flex:1;padding:4px 8px;font-size:11px;">التاريخ: ' + formatDateShort(selectedDate) + '</div>' +
                 '</div>' +
-                roomsHtml +
-                '<div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">' +
-                'تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع' +
-                '</div></div>';
+                // Rooms grid
+                roomsGridHtml +
+                // Machine
+                machineHtml +
+                // Grand totals
+                totalsHtml +
+                '</div>';
+        }
+
+        function buildEmptyRoomTableHTML(room) {
+            var prices = getPricesForRoom(room);
+            var rowsHtml = '';
+            prices.forEach(function(price, idx) {
+                rowsHtml += '<tr>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + (idx + 1) + '</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;">' + price + ' د.ل</td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;"></td>' +
+                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;"></td>' +
+                    '</tr>';
+            });
+            return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+                '<tr><td colspan="4" style="border:1px solid #333;padding:4px 8px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;">' + room + '</td></tr>' +
+                '<tr>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;">العامل: ............</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;">التاريخ: / / </td>' +
+                '</tr>' +
+                '<tr style="background:#f0f0f0;">' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:30px;">م</td>' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:50px;">السعر</td>' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;">العدد</td>' +
+                '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:60px;">الإجمالي</td>' +
+                '</tr>' +
+                rowsHtml +
+                '<tr style="background:#f0f0f0;">' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">عدد السيارات</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:12px;font-weight:bold;"></td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;" rowspan="2"></td>' +
+                '</tr>' +
+                '<tr style="background:#f0f0f0;">' +
+                '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">نسبة الغرفة</td>' +
+                '<td style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;font-size:10px;color:#555;">الصافي</td>' +
+                '<td colspan="2" style="border:1px solid #333;padding:3px 6px;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+                '</tr>' +
+                '</table>';
         }
 
         async function exportCarEntryPDF() {
-            const date = document.getElementById('empDatePicker').value;
+            var date = document.getElementById('empDatePicker').value;
             if (!date) return alert('الرجاء تحديد التاريخ أولاً');
 
-            let branchId, branchName, entries, empLabel;
+            var branchId, branchName, entries, empLabel;
 
             if (isAdminMode) {
                 if (!adminSelectedBranch) return alert('الرجاء اختيار الفرع أولاً');
                 branchId = adminSelectedBranch;
-                const branch = branches.find(b => b.id === branchId);
+                var branch = branches.find(function(b) { return b.id === branchId; });
                 branchName = branch ? branch.name : '';
                 empLabel = 'المسؤول';
-                const adminEmpId = 'admin_' + branchId;
-                entries = carEntries.filter(e => (e.branchId === branchId || e.empId === adminEmpId) && e.date === date);
+                var adminEmpId = 'admin_' + branchId;
+                entries = carEntries.filter(function(e) { return (e.branchId === branchId || e.empId === adminEmpId) && e.date === date; });
             } else {
                 if (!currentEmployee) return;
                 branchId = currentEmployee.branchId;
-                const branch = branches.find(b => b.id === branchId);
+                var branch = branches.find(function(b) { return b.id === branchId; });
                 branchName = branch ? branch.name : '';
                 empLabel = currentEmployee.name + ' (' + currentEmployee.shift + ')';
-                entries = carEntries.filter(e => e.empId === currentEmployee.id && e.date === date);
+                entries = carEntries.filter(function(e) { return e.empId === currentEmployee.id && e.date === date; });
             }
 
             if (entries.length === 0) return alert('لا توجد تسجيلات في هذا التاريخ للتصدير');
 
             try {
-                const reportArea = document.getElementById('pdfReportArea');
+                var reportArea = document.getElementById('pdfReportArea');
                 reportArea.innerHTML = buildCarReportHTML(date, branchId, branchName, entries, empLabel);
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(function(resolve) { setTimeout(resolve, 200); });
 
-                const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-                const imgData = canvas.toDataURL('image/png');
+                var canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                var imgData = canvas.toDataURL('image/png');
 
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const imgWidth = pageWidth;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                var jsPDF = window.jspdf.jsPDF;
+                var pdf = new jsPDF('p', 'mm', 'a4');
+                var pageWidth = pdf.internal.pageSize.getWidth();
+                var pageHeight = pdf.internal.pageSize.getHeight();
+                var imgWidth = pageWidth;
+                var imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                let heightLeft = imgHeight;
-                let position = 0;
+                var heightLeft = imgHeight;
+                var position = 0;
 
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
@@ -1956,7 +2087,7 @@
                     heightLeft -= pageHeight;
                 }
 
-                const fileName = 'تقرير_سيارات_' + branchName + '_' + date + '.pdf';
+                var fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf';
                 pdf.save(fileName);
                 reportArea.innerHTML = '';
             } catch (err) {
