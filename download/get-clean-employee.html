@@ -1352,10 +1352,10 @@
             if (branchName) renderWorkerExpenses(branchName, date, roomNetMap);
         }
 
-        // ==================== TREASURY (الخزينة) - بن غرسه فقط ====================
+        // ==================== TREASURY (الخزينة) ====================
         function renderTreasury(branchName, date, salesAmount, workerExpTotal) {
             var section = document.getElementById('treasurySection');
-            if (branchName !== 'بن غرسه' || !date || salesAmount === 0) {
+            if (!date || salesAmount === 0) {
                 section.classList.add('hidden');
                 return;
             }
@@ -2245,67 +2245,56 @@
                 '</table>' +
                 '</div>';
 
-            // الخزينة - بن غرسه فقط
-            var treasuryHtml = '';
-            if (branchName === 'بن غرسه') {
-                var treasSaved = (workerExpenses[workerExpKey] && workerExpenses[workerExpKey].treasury) || {};
-                var tCancelled = treasSaved.cancelled || 0;
-                var tBankCardReplace = treasSaved.bankCardReplace || 0;
-                var tBankCardSale = treasSaved.bankCardSale || 0;
-                var tCoupons = treasSaved.coupons || 0;
-                var tTransferDone = treasSaved.transferDone || 0;
-                var tSurplus = grandTotalAmount - tCancelled - finalTotalAfterExpenses - tBankCardReplace - tBankCardSale - tCoupons;
+            // الخزينة - جميع الفروع
+            var treasSaved = (workerExpenses[workerExpKey] && workerExpenses[workerExpKey].treasury) || {};
+            var tCancelled = treasSaved.cancelled || 0;
+            var tBankCardReplace = treasSaved.bankCardReplace || 0;
+            var tBankCardSale = treasSaved.bankCardSale || 0;
+            var tCoupons = treasSaved.coupons || 0;
+            var tTransferDone = treasSaved.transferDone || 0;
+            var tSurplus = grandTotalAmount - tCancelled - finalTotalAfterExpenses - tBankCardReplace - tBankCardSale - tCoupons;
 
-                var tCellPad = 'padding:4px 8px;border:1px solid #333;';
-                var tLabelStyle = tCellPad + 'font-size:11px;';
-                var tValueStyle = tCellPad + 'text-align:center;font-size:12px;font-weight:bold;';
+            var tCellPad = 'padding:4px 8px;border:1px solid #333;';
+            var tLabelStyle = tCellPad + 'font-size:11px;';
+            var tValueStyle = tCellPad + 'text-align:center;font-size:12px;font-weight:bold;';
 
-                treasuryHtml = '<div style="margin-top:8px;border:2px solid #333;">' +
-                    '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-                    '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
-                    // المبيعات
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">المبيعات</td>' +
-                    '<td style="' + tValueStyle + '">' + grandTotalAmount + ' د.ل</td>' +
-                    '</tr>' +
-                    // ملغي
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">ملغي</td>' +
-                    '<td style="' + tValueStyle + 'color:#dc2626;">' + tCancelled + ' د.ل</td>' +
-                    '</tr>' +
-                    // مصاريف العمال
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">مصاريف العمال</td>' +
-                    '<td style="' + tValueStyle + 'color:#b45309;">' + finalTotalAfterExpenses + ' د.ل</td>' +
-                    '</tr>' +
-                    // بدل البطاقة المصرفية
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">بدل البطاقة المصرفية</td>' +
-                    '<td style="' + tValueStyle + '">' + tBankCardReplace + ' د.ل</td>' +
-                    '</tr>' +
-                    // بيع البطاقة المصرفية
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">بيع البطاقة المصرفية</td>' +
-                    '<td style="' + tValueStyle + '">' + tBankCardSale + ' د.ل</td>' +
-                    '</tr>' +
-                    // الكوبونات
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">الكوبونات</td>' +
-                    '<td style="' + tValueStyle + '">' + tCoupons + ' د.ل</td>' +
-                    '</tr>' +
-                    // الفائض
-                    '<tr style="background:#e8f5e9;">' +
-                    '<td style="' + tCellPad + 'font-size:12px;font-weight:bold;border:1px solid #333;">الفائض</td>' +
-                    '<td style="' + tCellPad + 'text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;border:1px solid #333;">' + tSurplus + ' د.ل</td>' +
-                    '</tr>' +
-                    // تم التحويل
-                    '<tr>' +
-                    '<td style="' + tLabelStyle + '">تم التحويل</td>' +
-                    '<td style="' + tValueStyle + 'color:#1d4ed8;">' + tTransferDone + ' د.ل</td>' +
-                    '</tr>' +
-                    '</table>' +
-                    '</div>';
-            }
+            var treasuryHtml = '<div style="margin-top:8px;border:2px solid #333;">' +
+                '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+                '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">المبيعات</td>' +
+                '<td style="' + tValueStyle + '">' + grandTotalAmount + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">ملغي</td>' +
+                '<td style="' + tValueStyle + 'color:#dc2626;">' + tCancelled + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">مصاريف العمال</td>' +
+                '<td style="' + tValueStyle + 'color:#b45309;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">بدل البطاقة المصرفية</td>' +
+                '<td style="' + tValueStyle + '">' + tBankCardReplace + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">بيع البطاقة المصرفية</td>' +
+                '<td style="' + tValueStyle + '">' + tBankCardSale + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">الكوبونات</td>' +
+                '<td style="' + tValueStyle + '">' + tCoupons + ' د.ل</td>' +
+                '</tr>' +
+                '<tr style="background:#e8f5e9;">' +
+                '<td style="' + tCellPad + 'font-size:12px;font-weight:bold;border:1px solid #333;">الفائض</td>' +
+                '<td style="' + tCellPad + 'text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;border:1px solid #333;">' + tSurplus + ' د.ل</td>' +
+                '</tr>' +
+                '<tr>' +
+                '<td style="' + tLabelStyle + '">تم التحويل</td>' +
+                '<td style="' + tValueStyle + 'color:#1d4ed8;">' + tTransferDone + ' د.ل</td>' +
+                '</tr>' +
+                '</table>' +
+                '</div>';
 
             // أسماء الموظفين
             var allEmpNames = [];
