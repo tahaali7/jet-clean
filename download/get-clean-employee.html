@@ -1786,7 +1786,6 @@
             var prices = getPricesForRoom(room);
             var roomTotalAmount = 0;
             var roomTotalCars = 0;
-            var roomTotalExtra = 0;
             var entryLabels = [];
 
             // Merge all entries for this room
@@ -1815,6 +1814,7 @@
                 }
                 mergedExtraCars += (entry.extraCars || 0);
                 mergedExtraAmount += (entry.extraAmount || 0);
+                // Use the pre-calculated totalAmount from the saved entry
                 roomTotalAmount += entry.totalAmount;
                 roomTotalCars += entry.totalCars;
             });
@@ -1822,38 +1822,54 @@
             var roomNet = getNetAmount(roomTotalAmount, branchName, room);
             var empLabelStr = entryLabels.join(' / ');
 
-            // Build price rows
+            // Build price rows - only include rows that have data (count > 0)
+            // For rooms with no data at all, show all price rows
+            var hasData = false;
+            prices.forEach(function(price) { if ((mergedCounts[price] || 0) > 0) hasData = true; });
+            if (Object.keys(mergedCustoms).length > 0) hasData = true;
+
             var rowsHtml = '';
-            prices.forEach(function(price, idx) {
+            var rowNum = 0;
+            prices.forEach(function(price) {
                 var count = mergedCounts[price] || 0;
-                var subtotal = price * count;
-                var amountAfterExtra = subtotal;
-                if (EXTRA_PRICES.includes(price) && count > 0) {
-                    amountAfterExtra = (price - 5) * count;
+                if (!hasData || count > 0) {
+                    rowNum++;
+                    var countStyle = count > 0 ? 'font-weight:bold;' : '';
+                    var isExtraPrice = EXTRA_PRICES.includes(price) && count > 0;
+                    var displayPrice = isExtraPrice ? price : price;
+                    rowsHtml += '<tr>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + rowNum + '</td>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;">' + displayPrice + ' د.ل</td>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;' + countStyle + '">' + (count > 0 ? count : '') + '</td>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;">' + (count > 0 ? (isExtraPrice ? (price - 5) : price) * count + ' د.ل' : '') + '</td>' +
+                        '</tr>';
                 }
-                var countStyle = count > 0 ? 'font-weight:bold;' : '';
-                rowsHtml += '<tr>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + (idx + 1) + '</td>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;">' + price + ' د.ل</td>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;' + countStyle + '">' + (count > 0 ? count : '') + '</td>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;">' + (count > 0 ? amountAfterExtra + ' د.ل' : '') + '</td>' +
-                    '</tr>';
             });
 
             // Custom price rows
             var customKeys = Object.keys(mergedCustoms);
-            customKeys.forEach(function(key, idx) {
+            customKeys.forEach(function(key) {
                 var item = mergedCustoms[key];
-                var rowNum = prices.length + idx + 1;
+                rowNum++;
                 rowsHtml += '<tr>' +
                     '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + rowNum + '</td>' +
                     '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;color:#7c3aed;">مخصصة ' + item.price + '</td>' +
                     '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + item.count + '</td>' +
                     '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;">' + (item.price * item.count) + ' د.ل</td>' +
                     '</tr>';
-                roomTotalAmount += item.price * item.count;
-                roomTotalCars += item.count;
             });
+
+            // If no rows were generated (room exists in entries but no counts), add all price rows empty
+            if (rowNum === 0) {
+                prices.forEach(function(price, idx) {
+                    rowsHtml += '<tr>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + (idx + 1) + '</td>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;">' + price + ' د.ل</td>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;"></td>' +
+                        '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;"></td>' +
+                        '</tr>';
+                });
+            }
 
             var html = '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
                 // Room header
@@ -1871,7 +1887,7 @@
                 '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:60px;">الإجمالي</td>' +
                 '</tr>' +
                 rowsHtml +
-                // Extra row (before total)
+                // Extra row (before total) - only show if there are extra cars
                 (mergedExtraCars > 0 ? (
                 '<tr style="background:#fffbe6;">' +
                 '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;color:#b45309;">إكسترا</td>' +
@@ -1904,40 +1920,32 @@
             var regularRooms = availableRooms.filter(function(r) { return r !== 'مكينة الغسيل'; });
             var hasMachine = availableRooms.indexOf('مكينة الغسيل') !== -1;
 
-            // Build rooms in pairs (2 per row)
+            // Build room data for all regular rooms
+            var roomCells = [];
+            regularRooms.forEach(function(room) {
+                var roomEntries = entries.filter(function(e) { return e.room === room; });
+                var roomData = roomEntries.length > 0 ? buildRoomTableHTML(room, roomEntries, branchName) : null;
+                var cellHtml = roomData ? roomData.html : buildEmptyRoomTableHTML(room);
+
+                if (roomData) {
+                    grandTotalAmount += roomData.totalAmount;
+                    grandTotalCars += roomData.totalCars;
+                    grandTotalNet += roomData.net;
+                }
+                roomCells.push(cellHtml);
+            });
+
+            // Build 3-column grid for regular rooms
             var roomsGridHtml = '';
-
-            // Process rooms 2 at a time
-            for (var i = 0; i < regularRooms.length; i += 2) {
-                var room1 = regularRooms[i];
-                var room2 = regularRooms[i + 1] || null;
-                var room1Entries = entries.filter(function(e) { return e.room === room1; });
-                var room1Data = room1Entries.length > 0 ? buildRoomTableHTML(room1, room1Entries, branchName) : null;
-                var room2Data = null;
-
-                if (room2) {
-                    var room2Entries = entries.filter(function(e) { return e.room === room2; });
-                    room2Data = room2Entries.length > 0 ? buildRoomTableHTML(room2, room2Entries, branchName) : null;
+            var colsCount = 3;
+            for (var i = 0; i < roomCells.length; i += colsCount) {
+                roomsGridHtml += '<div style="display:flex;gap:6px;margin-bottom:6px;">';
+                for (var j = 0; j < colsCount; j++) {
+                    if (i + j < roomCells.length) {
+                        roomsGridHtml += '<div style="flex:1;min-width:0;">' + roomCells[i + j] + '</div>';
+                    }
                 }
-
-                var col1 = room1Data ? room1Data.html : buildEmptyRoomTableHTML(room1);
-                var col2 = room2 ? (room2Data ? room2Data.html : buildEmptyRoomTableHTML(room2)) : '';
-
-                if (room1Data) {
-                    grandTotalAmount += room1Data.totalAmount;
-                    grandTotalCars += room1Data.totalCars;
-                    grandTotalNet += room1Data.net;
-                }
-                if (room2Data) {
-                    grandTotalAmount += room2Data.totalAmount;
-                    grandTotalCars += room2Data.totalCars;
-                    grandTotalNet += room2Data.net;
-                }
-
-                roomsGridHtml += '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
-                    '<div style="flex:1;">' + col1 + '</div>' +
-                    (col2 ? '<div style="flex:1;">' + col2 + '</div>' : '') +
-                    '</div>';
+                roomsGridHtml += '</div>';
             }
 
             // Machine section (if exists)
@@ -1950,7 +1958,7 @@
                     grandTotalCars += machineData.totalCars;
                     grandTotalNet += machineData.net;
                 }
-                machineHtml = '<div style="margin-top:8px;">' +
+                machineHtml = '<div style="margin-top:6px;">' +
                     (machineData ? machineData.html : buildEmptyRoomTableHTML('مكينة الغسيل')) +
                     '</div>';
             }
@@ -1985,7 +1993,7 @@
                 '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">الموظف: ' + (empLabel || allEmpNames.join(' / ')) + '</div>' +
                 '<div style="flex:1;padding:4px 8px;font-size:11px;">التاريخ: ' + formatDateShort(selectedDate) + '</div>' +
                 '</div>' +
-                // Rooms grid
+                // Rooms 3-column grid
                 roomsGridHtml +
                 // Machine
                 machineHtml +
@@ -1995,16 +2003,6 @@
         }
 
         function buildEmptyRoomTableHTML(room) {
-            var prices = getPricesForRoom(room);
-            var rowsHtml = '';
-            prices.forEach(function(price, idx) {
-                rowsHtml += '<tr>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:30px;">' + (idx + 1) + '</td>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:50px;">' + price + ' د.ل</td>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:12px;"></td>' +
-                    '<td style="padding:4px 6px;border:1px solid #333;text-align:center;font-size:11px;width:60px;"></td>' +
-                    '</tr>';
-            });
             return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
                 '<tr><td colspan="4" style="border:1px solid #333;padding:4px 8px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;">' + room + '</td></tr>' +
                 '<tr>' +
@@ -2017,7 +2015,7 @@
                 '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;">العدد</td>' +
                 '<td style="padding:3px 6px;border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;width:60px;">الإجمالي</td>' +
                 '</tr>' +
-                rowsHtml +
+                '<tr><td colspan="4" style="border:1px solid #333;padding:20px 6px;text-align:center;font-size:10px;color:#999;height:60px;"></td></tr>' +
                 '<tr style="background:#f0f0f0;">' +
                 '<td colspan="2" style="border:1px solid #333;padding:4px 6px;font-size:11px;font-weight:bold;">إجمالي الغرفة</td>' +
                 '<td colspan="2" style="border:1px solid #333;padding:4px 6px;text-align:center;font-size:11px;font-weight:bold;"></td>' +
