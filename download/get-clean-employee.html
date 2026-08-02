@@ -150,18 +150,23 @@
                     <p class="text-slate-300 text-sm font-semibold">إجمالي الصافي لكل الغرف:</p>
                     <p id="grandTotalNet" class="text-2xl font-black text-cyan-400"></p>
                 </div>
-                <!-- مصاريف العمال -->
-                <div id="workerExpensesSection" class="hidden mt-4 pt-4 border-t border-amber-500/30">
-                    <h3 class="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
-                    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                        <div id="workerExpensesContent"></div>
-                    </div>
-                </div>
-                <!-- الخزينة - بن غرسه فقط -->
-                <div id="treasurySection" class="hidden mt-4 pt-4 border-t border-blue-500/30">
-                    <h3 class="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
-                    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                        <div id="treasuryContent"></div>
+                <!-- مصاريف العمال + الخزينة في صف واحد -->
+                <div id="workerExpTreasuryRow" class="hidden mt-4 pt-4 border-t border-amber-500/30">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <!-- مصاريف العمال -->
+                        <div>
+                            <h3 class="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                                <div id="workerExpensesContent"></div>
+                            </div>
+                        </div>
+                        <!-- الخزينة -->
+                        <div>
+                            <h3 class="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                                <div id="treasuryContent"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1256,16 +1261,14 @@
         }
 
         function renderWorkerExpenses(branchName, date, roomNetMap) {
-            var section = document.getElementById('workerExpensesSection');
             var content = document.getElementById('workerExpensesContent');
             var cleanness = BRANCH_CLEANLINESS[branchName];
 
             if (!cleanness || Object.keys(roomNetMap).length === 0) {
-                section.classList.add('hidden');
-                return;
+                content.innerHTML = '';
+                return 0;
             }
 
-            section.classList.remove('hidden');
             var key = getWorkerExpenseKey(branchName, date);
             var saved = workerExpenses[key] || {};
             var selectedCleanliness = saved.cleanliness || 0;
@@ -1353,8 +1356,27 @@
         }
 
         // ==================== TREASURY (الخزينة) ====================
+        // عناصر الخزينة الثابتة
+        var TREASURY_ITEMS = [
+            { key: 'المبيعات', label: 'المبيعات' },
+            { key: 'ملغي', label: 'ملغي' },
+            { key: 'مصاريف_العمال', label: 'مصاريف العمال' },
+            { key: 'بدل_البطاقة', label: 'بدل البطاقة المصرفية' },
+            { key: 'بيع_البطاقة', label: 'بيع البطاقة المصرفية' },
+            { key: 'كوبونات', label: 'كوبونات', branchOnly: 'بن غرسه' },
+            { key: 'فائض', label: 'فائض' },
+            { key: 'تم_التحويل', label: 'تم التحويل' }
+        ];
+
+        function getTreasuryItems(branchName) {
+            return TREASURY_ITEMS.filter(function(item) {
+                if (item.branchOnly && item.branchOnly !== branchName) return false;
+                return true;
+            });
+        }
+
         function renderTreasury(branchName, date, salesAmount, workerExpTotal) {
-            var section = document.getElementById('treasurySection');
+            var section = document.getElementById('workerExpTreasuryRow');
             if (!date || salesAmount === 0) {
                 section.classList.add('hidden');
                 return;
@@ -1363,85 +1385,80 @@
 
             var key = getWorkerExpenseKey(branchName, date);
             var saved = (workerExpenses[key] && workerExpenses[key].treasury) || {};
-            var cancelled = saved.cancelled || 0;
-            var bankCardReplace = saved.bankCardReplace || 0;
-            var bankCardSale = saved.bankCardSale || 0;
-            var coupons = saved.coupons || 0;
-            var transferDone = saved.transferDone || 0;
+            var items = getTreasuryItems(branchName);
 
-            var surplus = salesAmount - cancelled - workerExpTotal - bankCardReplace - bankCardSale - coupons;
-
-            var inputStyle = 'background:#0f172a;border:1px solid rgba(96,165,250,0.3);color:#93c5fd;border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;outline:none;width:90px;text-align:center;font-family:Cairo,sans-serif;';
-            var rowStyle = 'display:flex;justify-content:space-between;align-items:center;padding:10px 16px;';
+            var cellPad = 'padding:8px 10px;';
             var borderB = 'border-bottom:1px solid rgba(51,65,85,0.5);';
+            var inputStyle = 'background:#0f172a;border:1px solid rgba(96,165,250,0.3);color:#93c5fd;border-radius:6px;padding:5px 4px;font-size:13px;font-weight:700;outline:none;width:80px;text-align:center;font-family:Cairo,sans-serif;';
+            var balanceStyle = 'font-size:13px;font-weight:900;min-width:70px;text-align:center;';
 
             var html = '';
-            // المبيعات
-            html += '<div style="' + rowStyle + 'background:rgba(16,185,129,0.05);' + borderB + '">';
-            html += '<span style="color:#6ee7b7;font-size:14px;font-weight:600;">📊 المبيعات</span>';
-            html += '<span style="color:#34d399;font-size:16px;font-weight:900;">' + salesAmount + ' د.ل</span>';
+            // رأس الجدول
+            html += '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;background:rgba(30,41,59,0.8);' + cellPad + borderB + '">';
+            html += '<span style="color:#93c5fd;font-size:12px;font-weight:700;">البيان</span>';
+            html += '<span style="color:#34d399;font-size:12px;font-weight:700;text-align:center;">دخل</span>';
+            html += '<span style="color:#fca5a5;font-size:12px;font-weight:700;text-align:center;">خرج</span>';
+            html += '<span style="color:#fcd34d;font-size:12px;font-weight:700;text-align:center;">الرصيد</span>';
             html += '</div>';
-            // ملغي
-            html += '<div style="' + rowStyle + borderB + '">';
-            html += '<span style="color:#fca5a5;font-size:14px;font-weight:600;">❌ ملغي</span>';
-            html += '<input type="number" value="' + cancelled + '" data-field="cancelled" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + 'color:#fca5a5;" />';
-            html += '</div>';
-            // مصاريف العمال
-            html += '<div style="' + rowStyle + 'background:rgba(245,158,11,0.05);' + borderB + '">';
-            html += '<span style="color:#fcd34d;font-size:14px;font-weight:600;">🧹 مصاريف العمال</span>';
-            html += '<span style="color:#fbbf24;font-size:16px;font-weight:900;">' + workerExpTotal + ' د.ل</span>';
-            html += '</div>';
-            // بدل البطاقة المصرفية
-            html += '<div style="' + rowStyle + borderB + '">';
-            html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">💳 بدل البطاقة المصرفية</span>';
-            html += '<input type="number" value="' + bankCardReplace + '" data-field="bankCardReplace" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + '" />';
-            html += '</div>';
-            // بيع البطاقة المصرفية
-            html += '<div style="' + rowStyle + borderB + '">';
-            html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">💳 بيع البطاقة المصرفية</span>';
-            html += '<input type="number" value="' + bankCardSale + '" data-field="bankCardSale" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + '" />';
-            html += '</div>';
-            // الكوبونات
-            html += '<div style="' + rowStyle + borderB + '">';
-            html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">🎫 الكوبونات</span>';
-            html += '<input type="number" value="' + coupons + '" data-field="coupons" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + '" />';
-            html += '</div>';
-            // الفائض
-            html += '<div style="' + rowStyle + 'background:rgba(16,185,129,0.1);border-top:1px solid rgba(16,185,129,0.3);border-bottom:1px solid rgba(16,185,129,0.3);">';
-            html += '<span style="color:#6ee7b7;font-size:15px;font-weight:700;">✨ الفائض</span>';
-            html += '<span id="treasurySurplus" style="color:#34d399;font-size:18px;font-weight:900;">' + surplus + ' د.ل</span>';
-            html += '</div>';
-            // تم التحويل
-            html += '<div style="' + rowStyle + '">';
-            html += '<span style="color:#93c5fd;font-size:14px;font-weight:600;">💸 تم التحويل</span>';
-            html += '<input type="number" value="' + transferDone + '" data-field="transferDone" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + 'color:#93c5fd;" />';
-            html += '</div>';
+
+            var runningBalance = 0;
+            var rowIdx = 0;
+            items.forEach(function(item) {
+                var rowSaved = saved[item.key] || {};
+                var income = rowSaved.income || 0;
+                var expense = rowSaved.expense || 0;
+                runningBalance = runningBalance + income - expense;
+
+                var rowBg = rowIdx % 2 === 0 ? 'background:rgba(15,23,42,0.4);' : 'background:rgba(15,23,42,0.2);';
+
+                html += '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;' + rowBg + cellPad + borderB + '">';
+                // البيان
+                html += '<span style="color:#cbd5e1;font-size:13px;font-weight:600;">' + item.label + '</span>';
+                // دخل
+                html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" onchange="onTreasuryFieldChange(\'' + key + '\', \'' + branchName + '\')" style="' + inputStyle + 'color:#34d399;" /></div>';
+                // خرج
+                html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" onchange="onTreasuryFieldChange(\'' + key + '\', \'' + branchName + '\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
+                // الرصيد
+                var balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171';
+                html += '<span data-balance-for="' + item.key + '" style="' + balanceStyle + 'color:' + balColor + ';">' + runningBalance + '</span>';
+                html += '</div>';
+                rowIdx++;
+            });
 
             document.getElementById('treasuryContent').innerHTML = html;
         }
 
-        function onTreasuryFieldChange(key) {
-            var inputs = document.querySelectorAll('#treasuryContent input[data-field]');
+        function onTreasuryFieldChange(key, branchName) {
+            var inputs = document.querySelectorAll('#treasuryContent input[data-key]');
             if (!workerExpenses[key]) workerExpenses[key] = {};
             if (!workerExpenses[key].treasury) workerExpenses[key].treasury = {};
 
-            var salesAmount = parseInt(document.getElementById('grandTotalAmount').textContent) || 0;
-            var workerExpEl = document.getElementById('workerGrandTotal');
-            var workerExpTotal = workerExpEl ? parseInt(workerExpEl.textContent) || 0 : 0;
-
-            var totalDeductions = 0;
+            // حفظ جميع القيم
             inputs.forEach(function(input) {
-                var field = input.getAttribute('data-field');
+                var itemKey = input.getAttribute('data-key');
+                var type = input.getAttribute('data-type');
                 var value = parseInt(input.value) || 0;
-                workerExpenses[key].treasury[field] = value;
-                totalDeductions += value;
+                if (!workerExpenses[key].treasury[itemKey]) workerExpenses[key].treasury[itemKey] = { income: 0, expense: 0 };
+                workerExpenses[key].treasury[itemKey][type] = value;
             });
 
             saveData();
 
-            var surplus = salesAmount - workerExpTotal - totalDeductions;
-            var surplusEl = document.getElementById('treasurySurplus');
-            if (surplusEl) surplusEl.textContent = surplus + ' د.ل';
+            // إعادة حساب الأرصدة
+            var items = getTreasuryItems(branchName);
+            var saved = workerExpenses[key].treasury;
+            var runningBalance = 0;
+            items.forEach(function(item) {
+                var rowSaved = saved[item.key] || {};
+                var income = rowSaved.income || 0;
+                var expense = rowSaved.expense || 0;
+                runningBalance = runningBalance + income - expense;
+                var balEl = document.querySelector('[data-balance-for="' + item.key + '"]');
+                if (balEl) {
+                    balEl.textContent = runningBalance;
+                    balEl.style.color = runningBalance >= 0 ? '#fcd34d' : '#f87171';
+                }
+            });
         }
 
         function collectRoomNetMap() {
@@ -2245,54 +2262,43 @@
                 '</table>' +
                 '</div>';
 
-            // الخزينة - جميع الفروع
+            // الخزينة - جميع الفروع - 4 أعمدة
             var treasSaved = (workerExpenses[workerExpKey] && workerExpenses[workerExpKey].treasury) || {};
-            var tCancelled = treasSaved.cancelled || 0;
-            var tBankCardReplace = treasSaved.bankCardReplace || 0;
-            var tBankCardSale = treasSaved.bankCardSale || 0;
-            var tCoupons = treasSaved.coupons || 0;
-            var tTransferDone = treasSaved.transferDone || 0;
-            var tSurplus = grandTotalAmount - tCancelled - finalTotalAfterExpenses - tBankCardReplace - tBankCardSale - tCoupons;
+            var pdfTreasuryItems = getTreasuryItems(branchName);
 
-            var tCellPad = 'padding:4px 8px;border:1px solid #333;';
-            var tLabelStyle = tCellPad + 'font-size:11px;';
-            var tValueStyle = tCellPad + 'text-align:center;font-size:12px;font-weight:bold;';
+            var tCellPad = 'padding:4px 6px;border:1px solid #333;';
+            var tLabelStyle = tCellPad + 'font-size:10px;';
+            var tValueStyle = tCellPad + 'text-align:center;font-size:11px;font-weight:bold;';
+
+            var treasuryRowsHtml = '';
+            // رأس
+            treasuryRowsHtml += '<tr style="background:#dbeafe;">' +
+                '<td style="' + tLabelStyle + 'font-weight:bold;">البيان</td>' +
+                '<td style="' + tValueStyle + '">دخل</td>' +
+                '<td style="' + tValueStyle + '">خرج</td>' +
+                '<td style="' + tValueStyle + '">الرصيد</td>' +
+                '</tr>';
+
+            var tRunningBalance = 0;
+            pdfTreasuryItems.forEach(function(item) {
+                var rowS = treasSaved[item.key] || {};
+                var tIncome = rowS.income || 0;
+                var tExpense = rowS.expense || 0;
+                tRunningBalance = tRunningBalance + tIncome - tExpense;
+                var balColor = tRunningBalance >= 0 ? '#1b7a3d' : '#dc2626';
+
+                treasuryRowsHtml += '<tr>' +
+                    '<td style="' + tLabelStyle + '">' + item.label + '</td>' +
+                    '<td style="' + tValueStyle + 'color:#16a34a;">' + (tIncome > 0 ? tIncome : '') + '</td>' +
+                    '<td style="' + tValueStyle + 'color:#dc2626;">' + (tExpense > 0 ? tExpense : '') + '</td>' +
+                    '<td style="' + tValueStyle + 'color:' + balColor + ';">' + tRunningBalance + '</td>' +
+                    '</tr>';
+            });
 
             var treasuryHtml = '<div style="flex:1;border:2px solid #333;">' +
                 '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-                '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">المبيعات</td>' +
-                '<td style="' + tValueStyle + '">' + grandTotalAmount + ' د.ل</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">ملغي</td>' +
-                '<td style="' + tValueStyle + 'color:#dc2626;">' + tCancelled + ' د.ل</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">مصاريف العمال</td>' +
-                '<td style="' + tValueStyle + 'color:#b45309;">' + finalTotalAfterExpenses + ' د.ل</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">بدل البطاقة المصرفية</td>' +
-                '<td style="' + tValueStyle + '">' + tBankCardReplace + ' د.ل</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">بيع البطاقة المصرفية</td>' +
-                '<td style="' + tValueStyle + '">' + tBankCardSale + ' د.ل</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">الكوبونات</td>' +
-                '<td style="' + tValueStyle + '">' + tCoupons + ' د.ل</td>' +
-                '</tr>' +
-                '<tr style="background:#e8f5e9;">' +
-                '<td style="' + tCellPad + 'font-size:12px;font-weight:bold;border:1px solid #333;">الفائض</td>' +
-                '<td style="' + tCellPad + 'text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;border:1px solid #333;">' + tSurplus + ' د.ل</td>' +
-                '</tr>' +
-                '<tr>' +
-                '<td style="' + tLabelStyle + '">تم التحويل</td>' +
-                '<td style="' + tValueStyle + 'color:#1d4ed8;">' + tTransferDone + ' د.ل</td>' +
-                '</tr>' +
+                '<tr><td colspan="4" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
+                treasuryRowsHtml +
                 '</table>' +
                 '</div>';
 
