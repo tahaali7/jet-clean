@@ -157,6 +157,13 @@
                         <div id="workerExpensesContent"></div>
                     </div>
                 </div>
+                <!-- الخزينة - بن غرسه فقط -->
+                <div id="treasurySection" class="hidden mt-4 pt-4 border-t border-blue-500/30">
+                    <h3 class="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                        <div id="treasuryContent"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1108,7 +1115,8 @@
                 document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
                 document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
                 // مصاريف العمال
-                renderWorkerExpenses(branchName, date, roomNetMap);
+                var workerExpTotal = renderWorkerExpenses(branchName, date, roomNetMap) || 0;
+                renderTreasury(branchName, date, grandTotalAmount, workerExpTotal);
                 grandCard.classList.remove('hidden');
                 return;
             }
@@ -1237,7 +1245,8 @@
             document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
             document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
             // مصاريف العمال
-            renderWorkerExpenses(currentBranchName, date, roomNetMap);
+            var workerExpTotal = renderWorkerExpenses(currentBranchName, date, roomNetMap) || 0;
+            renderTreasury(currentBranchName, date, grandTotalAmount, workerExpTotal);
             grandCard.classList.remove('hidden');
         }
 
@@ -1319,6 +1328,7 @@
             html += '</div>';
 
             content.innerHTML = html;
+            return grandTotal;
         }
 
         function onCleanlinessChange(key) {
@@ -1340,6 +1350,98 @@
                 branchName = branch ? branch.name : '';
             }
             if (branchName) renderWorkerExpenses(branchName, date, roomNetMap);
+        }
+
+        // ==================== TREASURY (الخزينة) - بن غرسه فقط ====================
+        function renderTreasury(branchName, date, salesAmount, workerExpTotal) {
+            var section = document.getElementById('treasurySection');
+            if (branchName !== 'بن غرسه' || !date || salesAmount === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            section.classList.remove('hidden');
+
+            var key = getWorkerExpenseKey(branchName, date);
+            var saved = (workerExpenses[key] && workerExpenses[key].treasury) || {};
+            var cancelled = saved.cancelled || 0;
+            var bankCardReplace = saved.bankCardReplace || 0;
+            var bankCardSale = saved.bankCardSale || 0;
+            var coupons = saved.coupons || 0;
+            var transferDone = saved.transferDone || 0;
+
+            var surplus = salesAmount - cancelled - workerExpTotal - bankCardReplace - bankCardSale - coupons;
+
+            var inputStyle = 'background:#0f172a;border:1px solid rgba(96,165,250,0.3);color:#93c5fd;border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;outline:none;width:90px;text-align:center;font-family:Cairo,sans-serif;';
+            var rowStyle = 'display:flex;justify-content:space-between;align-items:center;padding:10px 16px;';
+            var borderB = 'border-bottom:1px solid rgba(51,65,85,0.5);';
+
+            var html = '';
+            // المبيعات
+            html += '<div style="' + rowStyle + 'background:rgba(16,185,129,0.05);' + borderB + '">';
+            html += '<span style="color:#6ee7b7;font-size:14px;font-weight:600;">📊 المبيعات</span>';
+            html += '<span style="color:#34d399;font-size:16px;font-weight:900;">' + salesAmount + ' د.ل</span>';
+            html += '</div>';
+            // ملغي
+            html += '<div style="' + rowStyle + borderB + '">';
+            html += '<span style="color:#fca5a5;font-size:14px;font-weight:600;">❌ ملغي</span>';
+            html += '<input type="number" value="' + cancelled + '" data-field="cancelled" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + 'color:#fca5a5;" />';
+            html += '</div>';
+            // مصاريف العمال
+            html += '<div style="' + rowStyle + 'background:rgba(245,158,11,0.05);' + borderB + '">';
+            html += '<span style="color:#fcd34d;font-size:14px;font-weight:600;">🧹 مصاريف العمال</span>';
+            html += '<span style="color:#fbbf24;font-size:16px;font-weight:900;">' + workerExpTotal + ' د.ل</span>';
+            html += '</div>';
+            // بدل البطاقة المصرفية
+            html += '<div style="' + rowStyle + borderB + '">';
+            html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">💳 بدل البطاقة المصرفية</span>';
+            html += '<input type="number" value="' + bankCardReplace + '" data-field="bankCardReplace" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + '" />';
+            html += '</div>';
+            // بيع البطاقة المصرفية
+            html += '<div style="' + rowStyle + borderB + '">';
+            html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">💳 بيع البطاقة المصرفية</span>';
+            html += '<input type="number" value="' + bankCardSale + '" data-field="bankCardSale" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + '" />';
+            html += '</div>';
+            // الكوبونات
+            html += '<div style="' + rowStyle + borderB + '">';
+            html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">🎫 الكوبونات</span>';
+            html += '<input type="number" value="' + coupons + '" data-field="coupons" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + '" />';
+            html += '</div>';
+            // الفائض
+            html += '<div style="' + rowStyle + 'background:rgba(16,185,129,0.1);border-top:1px solid rgba(16,185,129,0.3);border-bottom:1px solid rgba(16,185,129,0.3);">';
+            html += '<span style="color:#6ee7b7;font-size:15px;font-weight:700;">✨ الفائض</span>';
+            html += '<span id="treasurySurplus" style="color:#34d399;font-size:18px;font-weight:900;">' + surplus + ' د.ل</span>';
+            html += '</div>';
+            // تم التحويل
+            html += '<div style="' + rowStyle + '">';
+            html += '<span style="color:#93c5fd;font-size:14px;font-weight:600;">💸 تم التحويل</span>';
+            html += '<input type="number" value="' + transferDone + '" data-field="transferDone" onchange="onTreasuryFieldChange(\'' + key + '\')" style="' + inputStyle + 'color:#93c5fd;" />';
+            html += '</div>';
+
+            document.getElementById('treasuryContent').innerHTML = html;
+        }
+
+        function onTreasuryFieldChange(key) {
+            var inputs = document.querySelectorAll('#treasuryContent input[data-field]');
+            if (!workerExpenses[key]) workerExpenses[key] = {};
+            if (!workerExpenses[key].treasury) workerExpenses[key].treasury = {};
+
+            var salesAmount = parseInt(document.getElementById('grandTotalAmount').textContent) || 0;
+            var workerExpEl = document.getElementById('workerGrandTotal');
+            var workerExpTotal = workerExpEl ? parseInt(workerExpEl.textContent) || 0 : 0;
+
+            var totalDeductions = 0;
+            inputs.forEach(function(input) {
+                var field = input.getAttribute('data-field');
+                var value = parseInt(input.value) || 0;
+                workerExpenses[key].treasury[field] = value;
+                totalDeductions += value;
+            });
+
+            saveData();
+
+            var surplus = salesAmount - workerExpTotal - totalDeductions;
+            var surplusEl = document.getElementById('treasurySurplus');
+            if (surplusEl) surplusEl.textContent = surplus + ' د.ل';
         }
 
         function collectRoomNetMap() {
@@ -2114,6 +2216,7 @@
                 var roomAmt = 0;
                 roomEnts.forEach(function(entry) { roomAmt += entry.totalAmount; });
                 var roomNet = getNetAmount(roomAmt, branchName, room);
+                if (roomNet === 0) return;
                 var icon = ROOM_ICONS[room] || '\u{1F3E0}';
 
                 workerRowsHtml += '<tr>' +
@@ -2142,6 +2245,68 @@
                 '</table>' +
                 '</div>';
 
+            // الخزينة - بن غرسه فقط
+            var treasuryHtml = '';
+            if (branchName === 'بن غرسه') {
+                var treasSaved = (workerExpenses[workerExpKey] && workerExpenses[workerExpKey].treasury) || {};
+                var tCancelled = treasSaved.cancelled || 0;
+                var tBankCardReplace = treasSaved.bankCardReplace || 0;
+                var tBankCardSale = treasSaved.bankCardSale || 0;
+                var tCoupons = treasSaved.coupons || 0;
+                var tTransferDone = treasSaved.transferDone || 0;
+                var tSurplus = grandTotalAmount - tCancelled - finalTotalAfterExpenses - tBankCardReplace - tBankCardSale - tCoupons;
+
+                var tCellPad = 'padding:4px 8px;border:1px solid #333;';
+                var tLabelStyle = tCellPad + 'font-size:11px;';
+                var tValueStyle = tCellPad + 'text-align:center;font-size:12px;font-weight:bold;';
+
+                treasuryHtml = '<div style="margin-top:8px;border:2px solid #333;">' +
+                    '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+                    '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
+                    // المبيعات
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">المبيعات</td>' +
+                    '<td style="' + tValueStyle + '">' + grandTotalAmount + ' د.ل</td>' +
+                    '</tr>' +
+                    // ملغي
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">ملغي</td>' +
+                    '<td style="' + tValueStyle + 'color:#dc2626;">' + tCancelled + ' د.ل</td>' +
+                    '</tr>' +
+                    // مصاريف العمال
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">مصاريف العمال</td>' +
+                    '<td style="' + tValueStyle + 'color:#b45309;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+                    '</tr>' +
+                    // بدل البطاقة المصرفية
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">بدل البطاقة المصرفية</td>' +
+                    '<td style="' + tValueStyle + '">' + tBankCardReplace + ' د.ل</td>' +
+                    '</tr>' +
+                    // بيع البطاقة المصرفية
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">بيع البطاقة المصرفية</td>' +
+                    '<td style="' + tValueStyle + '">' + tBankCardSale + ' د.ل</td>' +
+                    '</tr>' +
+                    // الكوبونات
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">الكوبونات</td>' +
+                    '<td style="' + tValueStyle + '">' + tCoupons + ' د.ل</td>' +
+                    '</tr>' +
+                    // الفائض
+                    '<tr style="background:#e8f5e9;">' +
+                    '<td style="' + tCellPad + 'font-size:12px;font-weight:bold;border:1px solid #333;">الفائض</td>' +
+                    '<td style="' + tCellPad + 'text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;border:1px solid #333;">' + tSurplus + ' د.ل</td>' +
+                    '</tr>' +
+                    // تم التحويل
+                    '<tr>' +
+                    '<td style="' + tLabelStyle + '">تم التحويل</td>' +
+                    '<td style="' + tValueStyle + 'color:#1d4ed8;">' + tTransferDone + ' د.ل</td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div>';
+            }
+
             // أسماء الموظفين
             var allEmpNames = [];
             entries.forEach(function(e) {
@@ -2161,6 +2326,7 @@
                 roomsGridHtml +
                 totalsHtml +
                 workerExpensesHtml +
+                treasuryHtml +
                 '</div>';
         }
 
