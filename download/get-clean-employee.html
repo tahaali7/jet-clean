@@ -335,7 +335,17 @@
     <script>
         // ==================== DATA ====================
         const ROOMS = ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'غرفة 6', 'مكينة الغسيل'];
-        const PRICES = [5, 10, 15, 20, 30, 35, 45];
+        const ALL_PRICES = [5, 10, 15, 20, 30, 35, 45];
+        const PRICES = ALL_PRICES;
+        // Prices that have 5 د.ل إكسترا deducted
+        const EXTRA_PRICES = [30, 35, 45];
+        // Room-specific prices
+        const ROOM_PRICES = {
+            'مكينة الغسيل': [10, 15]
+        };
+        function getPricesForRoom(room) {
+            return ROOM_PRICES[room] || ALL_PRICES;
+        }
         const PRICE_COLORS = {
             5: 'from-blue-500 to-blue-600',
             10: 'from-cyan-500 to-cyan-600',
@@ -494,12 +504,16 @@
             area.classList.remove('hidden');
             title.innerHTML = `${ROOM_ICONS[room] || '🏠'} ${room}`;
 
+            const prices = getPricesForRoom(room);
             grid.innerHTML = '';
-            PRICES.forEach(price => {
+            prices.forEach(price => {
+                const isExtraPrice = EXTRA_PRICES.includes(price);
+                const extraNote = isExtraPrice ? `<p class="text-[10px] text-amber-400 mt-1">(شامل 5 د.ل إكسترا)</p>` : '';
                 grid.innerHTML += `
-                    <div class="room-card ${PRICE_BG[price]} border rounded-xl p-4 text-center">
+                    <div class="room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center">
                         <p class="text-xs text-slate-400 mb-2">تسعيرة</p>
-                        <p class="text-2xl font-black text-white mb-3">${price} د.ل</p>
+                        <p class="text-2xl font-black text-white mb-1">${price} د.ل</p>
+                        ${extraNote}
                         <input type="number" min="0" value="0" data-price="${price}"
                                class="price-input w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-cyan-500"
                                id="carCount_${price}" onfocus="this.select()">
@@ -509,8 +523,11 @@
         }
 
         function clearCarEntry() {
-            PRICES.forEach(price => {
-                document.getElementById('carCount_' + price).value = 0;
+            const room = document.getElementById('roomSelect').value;
+            const prices = getPricesForRoom(room);
+            prices.forEach(price => {
+                const el = document.getElementById('carCount_' + price);
+                if (el) el.value = 0;
             });
         }
 
@@ -523,16 +540,26 @@
             if (!room) return alert('الرجاء اختيار الغرفة');
             if (!date) return alert('الرجاء تحديد التاريخ');
 
+            const prices = getPricesForRoom(room);
             const priceCounts = {};
             let totalCars = 0;
             let totalAmount = 0;
+            let extraCars = 0; // عدد السيارات التي عليها إكسترا
+            let extraAmount = 0; // إجمالي الإكسترا
 
-            PRICES.forEach(price => {
+            prices.forEach(price => {
                 const count = parseInt(document.getElementById('carCount_' + price).value) || 0;
                 if (count > 0) {
                     priceCounts[price] = count;
                     totalCars += count;
-                    totalAmount += price * count;
+                    if (EXTRA_PRICES.includes(price)) {
+                        // سعر فعلي = السعر - 5 إكسترا
+                        totalAmount += (price - 5) * count;
+                        extraCars += count;
+                        extraAmount += 5 * count;
+                    } else {
+                        totalAmount += price * count;
+                    }
                 }
             });
 
@@ -554,8 +581,15 @@
                 priceCounts: priceCounts,
                 totalCars: totalCars,
                 totalAmount: totalAmount,
+                extraCars: extraCars,
+                extraAmount: extraAmount,
                 timestamp: Date.now()
             };
+
+            let successMsg = `تم الحفظ بنجاح!\n${room} - ${totalCars} سيارات - ${totalAmount} د.ل`;
+            if (extraAmount > 0) {
+                successMsg += `\nإكسترا: ${extraCars} سيارة × 5 د.ل = ${extraAmount} د.ل`;
+            }
 
             if (existingIdx >= 0) {
                 carEntries[existingIdx] = entry;
@@ -568,8 +602,7 @@
             renderEmployeeDashboard();
 
             // Show success message
-            const msg = `تم الحفظ بنجاح!\n${room} - ${totalCars} سيارات - ${totalAmount} د.ل`;
-            alert(msg);
+            alert(successMsg);
         }
 
         // ==================== EMPLOYEE DASHBOARD ====================
@@ -606,13 +639,19 @@
                 grandTotalCars += entry.totalCars;
 
                 let detailsHtml = '';
-                PRICES.forEach(price => {
+                const entryPrices = Object.keys(entry.priceCounts).map(Number);
+                entryPrices.forEach(price => {
                     const count = entry.priceCounts[price] || 0;
                     if (count > 0) {
-                        const subtotal = price * count;
+                        let subtotal = price * count;
+                        let priceLabel = `${price} د.ل`;
+                        if (EXTRA_PRICES.includes(price)) {
+                            subtotal = (price - 5) * count;
+                            priceLabel = `${price} د.ل <span class=\"text-amber-400 text-[11px]\">(بعد خصم 5 إكسترا = ${price - 5} د.ل)</span>`;
+                        }
                         detailsHtml += `
                             <div class="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
-                                <span class="text-slate-300">تسعيرة ${price} د.ل:</span>
+                                <span class="text-slate-300">تسعيرة ${priceLabel}:</span>
                                 <div class="flex items-center gap-3">
                                     <span class="text-white font-bold">${count} سيارة</span>
                                     <span class="text-emerald-400 font-bold">${subtotal} د.ل</span>
@@ -621,6 +660,19 @@
                         `;
                     }
                 });
+
+                // إضافة صف الإكسترا لو فيه
+                if (entry.extraCars && entry.extraCars > 0) {
+                    detailsHtml += `
+                        <div class="flex justify-between items-center text-sm bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg mt-1">
+                            <span class="text-amber-300 font-semibold">⭐ إكسترا:</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-amber-200 font-bold">${entry.extraCars} سيارة × 5 د.ل</span>
+                                <span class="text-amber-400 font-bold">${entry.extraAmount} د.ل</span>
+                            </div>
+                        </div>
+                    `;
+                }
 
                 html += `
                     <div class="room-card bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
