@@ -371,17 +371,28 @@
         };
 
         // Branch-specific net formula: الصافي = (الإجمالي ÷ 2) - deduction
+        // مكينة الغسيل في بن غرسه و ابونواس = بدون خصم
         const BRANCH_NET_DEDUCTION = {
             'بن غرسه': 10,
             'ابونواس': 5,
             'المنصور': 0,
             'عين زاره': 0
         };
-        function getNetAmount(totalAmount, branchName) {
+        const MACHINE_NO_DEDUCTION_BRANCHES = ['بن غرسه', 'ابونواس'];
+
+        function getNetAmount(totalAmount, branchName, roomName) {
+            // مكينة الغسيل في بن غرسه و ابونواس = الإجمالي ÷ 2 بدون خصم
+            if (roomName === 'مكينة الغسيل' && MACHINE_NO_DEDUCTION_BRANCHES.includes(branchName)) {
+                return Math.floor(totalAmount / 2);
+            }
             const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0;
             return Math.floor(totalAmount / 2) - deduction;
         }
-        function getNetFormulaText(branchName) {
+        function getNetFormulaText(branchName, roomName) {
+            // مكينة الغسيل في بن غرسه و ابونواس = الإجمالي ÷ 2 بدون خصم
+            if (roomName === 'مكينة الغسيل' && MACHINE_NO_DEDUCTION_BRANCHES.includes(branchName)) {
+                return 'الإجمالي ÷ 2';
+            }
             const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0;
             if (deduction === 0) return 'الإجمالي ÷ 2';
             return `الإجمالي ÷ 2 - ${deduction}`;
@@ -807,9 +818,9 @@
                             </div>
                             <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
                                 <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
-                                <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, currentBranchName)} د.ل</span>
+                                <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, currentBranchName, room)} د.ل</span>
                             </div>
-                            <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(currentBranchName)})</p>
+                            <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(currentBranchName, room)})</p>
                         </div>
                     </div>
                 `;
