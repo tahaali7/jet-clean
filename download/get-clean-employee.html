@@ -370,6 +370,23 @@
             'مكينة الغسيل': '⚙️'
         };
 
+        // Branch-specific net formula: الصافي = (الإجمالي ÷ 2) - deduction
+        const BRANCH_NET_DEDUCTION = {
+            'بن غرسه': 10,
+            'ابونواس': 5,
+            'المنصور': 0,
+            'عين زاره': 0
+        };
+        function getNetAmount(totalAmount, branchName) {
+            const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0;
+            return Math.floor(totalAmount / 2) - deduction;
+        }
+        function getNetFormulaText(branchName) {
+            const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0;
+            if (deduction === 0) return 'الإجمالي ÷ 2';
+            return `الإجمالي ÷ 2 - ${deduction}`;
+        }
+
         const initialBranches = [
             { id: 'b1', name: 'بن غرسه' },
             { id: 'b2', name: 'ابونواس' },
@@ -705,6 +722,8 @@
             }
 
             let html = '';
+            const currentBranch = branches.find(b => b.id === currentEmployee.branchId);
+            const currentBranchName = currentBranch ? currentBranch.name : '';
 
             ROOMS.forEach(room => {
                 const entry = empEntries.find(e => e.room === room);
@@ -774,6 +793,7 @@
                             </h3>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">${entry.totalCars} سيارة</span>
+                                <button onclick="editCarEntry('${entry.room}')" class="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️ تعديل</button>
                                 <button onclick="deleteCarEntry('${entry.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
                             </div>
                         </div>
@@ -787,9 +807,9 @@
                             </div>
                             <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
                                 <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
-                                <span class="text-lg font-black text-cyan-400">${Math.floor(entry.totalAmount / 2) - 10} د.ل</span>
+                                <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, currentBranchName)} د.ل</span>
                             </div>
-                            <p class="text-[10px] text-slate-500 mt-1 text-left">(الإجمالي ÷ 2 - 10)</p>
+                            <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(currentBranchName)})</p>
                         </div>
                     </div>
                 `;
@@ -808,6 +828,40 @@
             carEntries = carEntries.filter(e => e.id !== entryId);
             saveData();
             renderEmployeeDashboard();
+        }
+
+        function editCarEntry(roomName) {
+            if (!currentEmployee) return;
+            const date = document.getElementById('empDatePicker').value;
+            const entry = carEntries.find(e => e.empId === currentEmployee.id && e.room === roomName && e.date === date);
+            if (!entry) return;
+
+            // Select the room in dropdown and trigger render
+            document.getElementById('roomSelect').value = roomName;
+            renderCarEntry();
+
+            // Small delay to ensure inputs are rendered, then fill them
+            setTimeout(() => {
+                // Fill standard prices
+                const prices = getPricesForRoom(roomName);
+                prices.forEach(price => {
+                    const el = document.getElementById('carCount_' + price);
+                    if (el) el.value = entry.priceCounts[price] || 0;
+                });
+
+                // Fill custom prices
+                customPricesData = {};
+                if (entry.customPrices) {
+                    Object.keys(entry.customPrices).forEach(key => {
+                        const item = entry.customPrices[key];
+                        customPricesData[key] = { price: item.price, count: item.count };
+                    });
+                }
+                renderCustomPricesList();
+
+                // Scroll to the entry area
+                document.getElementById('carEntryArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
 
         // ==================== ADMIN: ORIGINAL FUNCTIONS ====================
