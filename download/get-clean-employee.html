@@ -150,6 +150,21 @@
                     <p class="text-slate-300 text-sm font-semibold">إجمالي الصافي لكل الغرف:</p>
                     <p id="grandTotalNet" class="text-2xl font-black text-cyan-400"></p>
                 </div>
+                <!-- مصاريف العمال -->
+                <div id="workerExpensesSection" class="hidden mt-4 pt-4 border-t border-amber-500/30">
+                    <h3 class="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
+                    <div class="bg-slate-900/50 rounded-xl p-4 space-y-3">
+                        <div id="workerExpensesContent"></div>
+                        <div class="flex justify-between items-center pt-3 border-t border-dashed border-amber-500/20">
+                            <span class="text-amber-300 font-semibold text-sm">مجموع مصاريف العمال:</span>
+                            <span id="totalWorkerExpenses" class="text-lg font-black text-amber-400">0 د.ل</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-3 pt-3 border-t-2 border-slate-600">
+                        <span class="text-white font-bold">الصافي بعد المصاريف:</span>
+                        <span id="netAfterExpenses" class="text-2xl font-black text-emerald-400">0 د.ل</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -422,6 +437,14 @@
         };
         const MACHINE_NO_DEDUCTION_BRANCHES = ['بن غرسه', 'ابونواس'];
 
+        // مصاريف النظافة حسب الفرع
+        const BRANCH_CLEANLINESS = {
+            'بن غرسه': { type: 'fixed', value: 100 },
+            'ابونواس': { type: 'fixed', value: 50 },
+            'المنصور': { type: 'select', options: [10, 20] },
+            'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
+        };
+
         function getNetAmount(totalAmount, branchName, roomName) {
             // مكينة الغسيل في بن غرسه و ابونواس = الإجمالي ÷ 2 بدون خصم
             if (roomName === 'مكينة الغسيل' && MACHINE_NO_DEDUCTION_BRANCHES.includes(branchName)) {
@@ -463,6 +486,7 @@
         let records = JSON.parse(localStorage.getItem('gc_records')) || [];
         let closedDays = JSON.parse(localStorage.getItem('gc_closedDays')) || {};
         let carEntries = JSON.parse(localStorage.getItem('gc_carEntries')) || [];
+        let workerExpenses = JSON.parse(localStorage.getItem('gc_workerExpenses')) || {};
 
         // Current logged-in employee
         let currentEmployee = null;
@@ -1088,6 +1112,8 @@
                 document.getElementById('grandTotalAmount').textContent = grandTotalAmount + ' د.ل';
                 document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
                 document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
+                // مصاريف العمال
+                renderWorkerExpenses(branchName, date, grandTotalNet);
                 grandCard.classList.remove('hidden');
                 return;
             }
@@ -1212,7 +1238,78 @@
             document.getElementById('grandTotalAmount').textContent = grandTotalAmount + ' د.ل';
             document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
             document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
+            // مصاريف العمال
+            renderWorkerExpenses(currentBranchName, date, grandTotalNet);
             grandCard.classList.remove('hidden');
+        }
+
+        // ==================== WORKER EXPENSES ====================
+        function getWorkerExpenseKey(branchName, date) {
+            return branchName + '_' + date;
+        }
+
+        function renderWorkerExpenses(branchName, date, totalNet) {
+            var section = document.getElementById('workerExpensesSection');
+            var content = document.getElementById('workerExpensesContent');
+            var cleanness = BRANCH_CLEANLINESS[branchName];
+
+            if (!cleanness) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+            var key = getWorkerExpenseKey(branchName, date);
+            var saved = workerExpenses[key] || {};
+            var selectedCleanliness = saved.cleanliness || 0;
+
+            var html = '';
+
+            // صف النظافة
+            html += '<div class="flex justify-between items-center">';
+            html += '<span class="text-slate-300 text-sm">🧹 النظافة:</span>';
+            if (cleanness.type === 'fixed') {
+                html += '<div class="flex items-center gap-2">';
+                html += '<span class="bg-amber-500/10 text-amber-300 px-3 py-1 rounded-lg font-bold text-sm border border-amber-500/20">' + cleanness.value + ' د.ل</span>';
+                html += '<input type="hidden" id="cleanlinessValue" value="' + cleanness.value + '">';
+                html += '</div>';
+                selectedCleanliness = cleanness.value;
+            } else {
+                html += '<select id="cleanlinessSelect" onchange="onCleanlinessChange(\'' + key + '\')" class="bg-slate-800 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-amber-500">';
+                html += '<option value="0">-- اختر --</option>';
+                cleanness.options.forEach(function(opt) {
+                    var sel = selectedCleanliness === opt ? ' selected' : '';
+                    html += '<option value="' + opt + '"' + sel + '>' + opt + ' د.ل</option>';
+                });
+                html += '</select>';
+            }
+            html += '</div>';
+
+            content.innerHTML = html;
+
+            // حساب المجموع
+            updateWorkerExpensesTotal(key, selectedCleanliness, totalNet);
+        }
+
+        function onCleanlinessChange(key) {
+            var sel = document.getElementById('cleanlinessSelect');
+            if (!sel) return;
+            var value = parseInt(sel.value) || 0;
+            var netText = document.getElementById('grandTotalNet').textContent;
+            var totalNet = parseInt(netText) || 0;
+            // حفظ القيمة
+            if (!workerExpenses[key]) workerExpenses[key] = {};
+            workerExpenses[key].cleanliness = value;
+            saveData();
+            // تحديث المجموع
+            updateWorkerExpensesTotal(key, value, totalNet);
+        }
+
+        function updateWorkerExpensesTotal(key, cleanlinessVal, totalNet) {
+            var totalExpenses = cleanlinessVal;
+            document.getElementById('totalWorkerExpenses').textContent = totalExpenses + ' د.ل';
+            var netAfter = totalNet - totalExpenses;
+            document.getElementById('netAfterExpenses').textContent = netAfter + ' د.ل';
         }
 
         function deleteCarEntry(entryId) {
@@ -1328,6 +1425,7 @@
             localStorage.setItem('gc_closedDays', JSON.stringify(closedDays));
             localStorage.setItem('gc_carEntries', JSON.stringify(carEntries));
             localStorage.setItem('gc_adminAccount', JSON.stringify(ADMIN_ACCOUNT));
+            localStorage.setItem('gc_workerExpenses', JSON.stringify(workerExpenses));
         }
 
         function isDayClosed(date) {
