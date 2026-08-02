@@ -1829,12 +1829,13 @@
             prices.forEach(function(price, idx) {
                 var count = mergedCounts[price] || 0;
                 var countStyle = count > 0 ? 'font-weight:bold;' : '';
-                // للأسعار الإكسترا: عرض المبلغ بعد خصم 5 (مثل الموقع)
-                var isExtra = EXTRA_PRICES.includes(price) && count > 0;
-                var rowAmount = count > 0 ? (isExtra ? (price - 5) * count : price * count) : 0;
+                // للأسعار الإكسترا: عرض السعر بعد خصم 5 د.ل (مثل الموقع)
+                var isExtra = EXTRA_PRICES.includes(price);
+                var displayPrice = isExtra ? (price - 5) : price;
+                var rowAmount = count > 0 ? displayPrice * count : 0;
                 rowsHtml += '<tr>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + (idx + 1) + '</td>' +
-                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + price + ' د.ل</td>' +
+                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;' + countStyle + '">' + (count > 0 ? count : '') + '</td>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + (count > 0 ? rowAmount + ' د.ل' : '') + '</td>' +
                     '</tr>';
@@ -1894,13 +1895,20 @@
             var grandTotalCars = 0;
             var grandTotalNet = 0;
 
-            // Separate regular rooms and machine room
+            // ترتيب الغرف: الغرف العادية أولاً ثم مكينة الغسيل آخر صف
+            // الصف 1: غرفة 1 / غرفة 2
+            // الصف 2: غرفة 3 / غرفة 4
+            // الصف 3: غرفة 5 / مكينة الغسيل (إن وجدت)
+            var orderedRooms = [];
             var regularRooms = availableRooms.filter(function(r) { return r !== 'مكينة الغسيل'; });
             var hasMachine = availableRooms.indexOf('مكينة الغسيل') !== -1;
 
-            // Build room data for all regular rooms
+            regularRooms.forEach(function(r) { orderedRooms.push(r); });
+            if (hasMachine) orderedRooms.push('مكينة الغسيل');
+
+            // بناء بيانات كل غرفة
             var roomCells = [];
-            regularRooms.forEach(function(room) {
+            orderedRooms.forEach(function(room) {
                 var roomEntries = entries.filter(function(e) { return e.room === room; });
                 var roomData = roomEntries.length > 0 ? buildRoomTableHTML(room, roomEntries, branchName) : null;
                 var cellHtml = roomData ? roomData.html : buildEmptyRoomTableHTML(room);
@@ -1913,35 +1921,16 @@
                 roomCells.push(cellHtml);
             });
 
-            // Build 3-column grid for regular rooms
+            // شبكة غرفتين لكل صف
             var roomsGridHtml = '';
-            var colsCount = 3;
-            for (var i = 0; i < roomCells.length; i += colsCount) {
-                roomsGridHtml += '<div style="display:flex;gap:6px;margin-bottom:6px;">';
-                for (var j = 0; j < colsCount; j++) {
-                    if (i + j < roomCells.length) {
-                        roomsGridHtml += '<div style="flex:1;min-width:0;">' + roomCells[i + j] + '</div>';
-                    }
-                }
-                roomsGridHtml += '</div>';
-            }
-
-            // Machine section (if exists)
-            var machineHtml = '';
-            if (hasMachine) {
-                var machineEntries = entries.filter(function(e) { return e.room === 'مكينة الغسيل'; });
-                var machineData = machineEntries.length > 0 ? buildRoomTableHTML('مكينة الغسيل', machineEntries, branchName) : null;
-                if (machineData) {
-                    grandTotalAmount += machineData.totalAmount;
-                    grandTotalCars += machineData.totalCars;
-                    grandTotalNet += machineData.net;
-                }
-                machineHtml = '<div style="margin-top:6px;">' +
-                    (machineData ? machineData.html : buildEmptyRoomTableHTML('مكينة الغسيل')) +
+            for (var i = 0; i < roomCells.length; i += 2) {
+                roomsGridHtml += '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+                    '<div style="flex:1;min-width:0;">' + roomCells[i] + '</div>' +
+                    (roomCells[i + 1] ? '<div style="flex:1;min-width:0;">' + roomCells[i + 1] + '</div>' : '') +
                     '</div>';
             }
 
-            // Grand totals row
+            // إجمالي الصف
             var totalsHtml = '<div style="display:flex;gap:0;margin-top:8px;border:2px solid #333;">' +
                 '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
                 '<div style="font-size:11px;color:#555;">إجمالي المبيعات</div>' +
@@ -1953,7 +1942,7 @@
                 '</div>' +
                 '</div>';
 
-            // Get all unique employee labels
+            // أسماء الموظفين
             var allEmpNames = [];
             entries.forEach(function(e) {
                 var lbl = e.empName === 'المسؤول' ? 'المسؤول' : e.empName;
@@ -1961,21 +1950,15 @@
             });
 
             return '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
-                // Title
                 '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
                 '<h1 style="font-size:18px;font-weight:bold;margin:0;">نموذج مغاسل جيت كلين</h1>' +
                 '</div>' +
-                // Header info row
                 '<div style="display:flex;gap:0;border:1px solid #000;margin-bottom:10px;">' +
                 '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">المسؤول: ' + ADMIN_ACCOUNT.name + '</div>' +
                 '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">الموظف: ' + (empLabel || allEmpNames.join(' / ')) + '</div>' +
                 '<div style="flex:1;padding:4px 8px;font-size:11px;">التاريخ: ' + formatDateShort(selectedDate) + '</div>' +
                 '</div>' +
-                // Rooms 3-column grid
                 roomsGridHtml +
-                // Machine
-                machineHtml +
-                // Grand totals
                 totalsHtml +
                 '</div>';
         }
@@ -1986,9 +1969,11 @@
             var cellFs = 'font-size:10px;';
             var rowsHtml = '';
             prices.forEach(function(price, idx) {
+                var isExtra = EXTRA_PRICES.includes(price);
+                var displayPrice = isExtra ? (price - 5) : price;
                 rowsHtml += '<tr>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + (idx + 1) + '</td>' +
-                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + price + ' د.ل</td>' +
+                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;"></td>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
                     '</tr>';
