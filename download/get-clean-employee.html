@@ -2238,7 +2238,7 @@
                 '<td style="padding:5px 8px;border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;">' + finalTotalAfterExpenses + ' د.ل</td>' +
                 '</tr>';
 
-            var workerExpensesHtml = '<div style="margin-top:8px;border:2px solid #333;">' +
+            var workerExpensesHtml = '<div style="flex:1;border:2px solid #333;">' +
                 '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
                 '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;border:1px solid #333;">مصاريف العمال</td></tr>' +
                 workerRowsHtml +
@@ -2258,7 +2258,7 @@
             var tLabelStyle = tCellPad + 'font-size:11px;';
             var tValueStyle = tCellPad + 'text-align:center;font-size:12px;font-weight:bold;';
 
-            var treasuryHtml = '<div style="margin-top:8px;border:2px solid #333;">' +
+            var treasuryHtml = '<div style="flex:1;border:2px solid #333;">' +
                 '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
                 '<tr><td colspan="2" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
                 '<tr>' +
@@ -2296,6 +2296,12 @@
                 '</table>' +
                 '</div>';
 
+            // صف واحد: مصاريف العمال + الخزينة جنب بعض
+            var sideBySideHtml = '<div style="display:flex;gap:8px;">' +
+                workerExpensesHtml +
+                treasuryHtml +
+                '</div>';
+
             // أسماء الموظفين
             var allEmpNames = [];
             entries.forEach(function(e) {
@@ -2303,7 +2309,8 @@
                 if (allEmpNames.indexOf(lbl) === -1) allEmpNames.push(lbl);
             });
 
-            return '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+            // الصفحة الأولى: الغرف + الإجماليات
+            var page1Html = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
                 '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
                 '<h1 style="font-size:18px;font-weight:bold;margin:0;">نموذج مغاسل جيت كلين</h1>' +
                 '</div>' +
@@ -2314,9 +2321,22 @@
                 '</div>' +
                 roomsGridHtml +
                 totalsHtml +
-                workerExpensesHtml +
-                treasuryHtml +
                 '</div>';
+
+            // الصفحة الثانية: مصاريف العمال + الخزينة جنب بعض
+            var page2Html = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+                '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+                '<h1 style="font-size:16px;font-weight:bold;margin:0;">مصاريف العمال والخزينة</h1>' +
+                '</div>' +
+                '<div style="display:flex;gap:0;border:1px solid #000;margin-bottom:10px;">' +
+                '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">المسؤول: ' + ADMIN_ACCOUNT.name + '</div>' +
+                '<div style="flex:1;padding:4px 8px;border-left:1px solid #000;font-size:11px;">الموظف: ' + (empLabel || allEmpNames.join(' / ')) + '</div>' +
+                '<div style="flex:1;padding:4px 8px;font-size:11px;">التاريخ: ' + formatDateShort(selectedDate) + '</div>' +
+                '</div>' +
+                sideBySideHtml +
+                '</div>';
+
+            return { page1: page1Html, page2: page2Html };
         }
 
         function buildEmptyRoomTableHTML(room) {
@@ -2385,31 +2405,29 @@
 
             try {
                 var reportArea = document.getElementById('pdfReportArea');
-                reportArea.innerHTML = buildCarReportHTML(date, branchId, branchName, entries, empLabel);
-                await new Promise(function(resolve) { setTimeout(resolve, 200); });
-
-                var canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-                var imgData = canvas.toDataURL('image/png');
+                var pages = buildCarReportHTML(date, branchId, branchName, entries, empLabel);
 
                 var jsPDF = window.jspdf.jsPDF;
                 var pdf = new jsPDF('p', 'mm', 'a4');
                 var pageWidth = pdf.internal.pageSize.getWidth();
                 var pageHeight = pdf.internal.pageSize.getHeight();
-                var imgWidth = pageWidth;
-                var imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                var heightLeft = imgHeight;
-                var position = 0;
+                // الصفحة الأولى
+                reportArea.innerHTML = pages.page1;
+                await new Promise(function(resolve) { setTimeout(resolve, 200); });
+                var canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                var imgData1 = canvas1.toDataURL('image/png');
+                var imgHeight1 = (canvas1.height * pageWidth) / canvas1.width;
+                pdf.addImage(imgData1, 'PNG', 0, 0, pageWidth, imgHeight1);
 
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft > 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
+                // الصفحة الثانية
+                pdf.addPage();
+                reportArea.innerHTML = pages.page2;
+                await new Promise(function(resolve) { setTimeout(resolve, 200); });
+                var canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                var imgData2 = canvas2.toDataURL('image/png');
+                var imgHeight2 = (canvas2.height * pageWidth) / canvas2.width;
+                pdf.addImage(imgData2, 'PNG', 0, 0, pageWidth, imgHeight2);
 
                 var fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf';
                 pdf.save(fileName);
