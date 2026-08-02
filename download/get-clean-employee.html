@@ -520,6 +520,61 @@
                     </div>
                 `;
             });
+
+            // Custom price card (تسعيرة مخصصة من المستخدم)
+            grid.innerHTML += `
+                <div class="room-card bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center col-span-full sm:col-span-1">
+                    <p class="text-xs text-violet-300 mb-2 font-semibold">➕ تسعيرة مخصصة</p>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" min="0" value="" placeholder="السعر"
+                               class="price-input flex-1 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-base font-bold focus:outline-none focus:border-violet-500"
+                               id="customPrice" onfocus="this.select()">
+                        <input type="number" min="0" value="0" placeholder="العدد"
+                               class="price-input w-20 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-violet-500"
+                               id="customCount" onfocus="this.select()">
+                    </div>
+                    <button onclick="addCustomPrice()" class="mt-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition w-full">إضافة</button>
+                    <div id="customPricesList" class="mt-2 space-y-1"></div>
+                </div>
+            `;
+        }
+
+        // Custom prices storage (temporary during entry)
+        let customPricesData = {};
+
+        function addCustomPrice() {
+            const price = parseFloat(document.getElementById('customPrice').value);
+            const count = parseInt(document.getElementById('customCount').value) || 0;
+            if (!price || price <= 0) return alert('الرجاء إدخال سعر صحيح');
+            if (count <= 0) return alert('الرجاء إدخال عدد سيارات صحيح');
+            const key = 'custom_' + price;
+            customPricesData[key] = { price: price, count: count };
+            renderCustomPricesList();
+            document.getElementById('customPrice').value = '';
+            document.getElementById('customCount').value = 0;
+        }
+
+        function renderCustomPricesList() {
+            const list = document.getElementById('customPricesList');
+            if (!list) return;
+            list.innerHTML = '';
+            Object.keys(customPricesData).forEach(key => {
+                const item = customPricesData[key];
+                list.innerHTML += `
+                    <div class="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
+                        <span class="text-violet-300">${item.price} د.ل × ${item.count}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+                            <button onclick="removeCustomPrice('${key}')" class="text-rose-400 hover:text-rose-300">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function removeCustomPrice(key) {
+            delete customPricesData[key];
+            renderCustomPricesList();
         }
 
         function clearCarEntry() {
@@ -529,6 +584,14 @@
                 const el = document.getElementById('carCount_' + price);
                 if (el) el.value = 0;
             });
+            // Clear custom prices
+            customPricesData = {};
+            const list = document.getElementById('customPricesList');
+            if (list) list.innerHTML = '';
+            const cp = document.getElementById('customPrice');
+            const cc = document.getElementById('customCount');
+            if (cp) cp.value = '';
+            if (cc) cc.value = 0;
         }
 
         function saveCarEntry() {
@@ -563,6 +626,16 @@
                 }
             });
 
+            // Add custom prices
+            let customPricesSaved = {};
+            Object.keys(customPricesData).forEach(key => {
+                const item = customPricesData[key];
+                priceCounts['custom_' + item.price] = item.count;
+                customPricesSaved['custom_' + item.price] = { price: item.price, count: item.count };
+                totalCars += item.count;
+                totalAmount += item.price * item.count;
+            });
+
             if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل');
 
             // Check if entry already exists for this employee+room+date, update it
@@ -583,6 +656,7 @@
                 totalAmount: totalAmount,
                 extraCars: extraCars,
                 extraAmount: extraAmount,
+                customPrices: customPricesSaved,
                 timestamp: Date.now()
             };
 
@@ -598,6 +672,7 @@
             }
 
             saveData();
+            customPricesData = {};
             clearCarEntry();
             renderEmployeeDashboard();
 
@@ -639,7 +714,8 @@
                 grandTotalCars += entry.totalCars;
 
                 let detailsHtml = '';
-                const entryPrices = Object.keys(entry.priceCounts).map(Number);
+                // عرض التسعيرات العادية (فقط الأرقام، بدون الـ custom_)
+                const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
                 entryPrices.forEach(price => {
                     const count = entry.priceCounts[price] || 0;
                     if (count > 0) {
@@ -647,7 +723,7 @@
                         let priceLabel = `${price} د.ل`;
                         if (EXTRA_PRICES.includes(price)) {
                             subtotal = (price - 5) * count;
-                            priceLabel = `${price} د.ل <span class=\"text-amber-400 text-[11px]\">(بعد خصم 5 إكسترا = ${price - 5} د.ل)</span>`;
+                            priceLabel = `${price} د.ل <span class="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = ${price - 5} د.ل)</span>`;
                         }
                         detailsHtml += `
                             <div class="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
@@ -660,6 +736,22 @@
                         `;
                     }
                 });
+
+                // عرض التسعيرات المخصصة
+                if (entry.customPrices) {
+                    Object.keys(entry.customPrices).forEach(key => {
+                        const item = entry.customPrices[key];
+                        detailsHtml += `
+                            <div class="flex justify-between items-center text-sm bg-violet-500/10 border border-violet-500/20 px-3 py-2 rounded-lg">
+                                <span class="text-violet-300">تسعيرة مخصصة ${item.price} د.ل:</span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-white font-bold">${item.count} سيارة</span>
+                                    <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
 
                 // إضافة صف الإكسترا لو فيه
                 if (entry.extraCars && entry.extraCars > 0) {
@@ -688,9 +780,16 @@
                         <div class="space-y-1.5">
                             ${detailsHtml}
                         </div>
-                        <div class="mt-4 pt-3 border-t border-slate-700 flex justify-between items-center">
-                            <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
-                            <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
+                        <div class="mt-4 pt-3 border-t border-slate-700">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
+                                <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
+                                <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
+                                <span class="text-lg font-black text-cyan-400">${Math.floor(entry.totalAmount / 2) - 10} د.ل</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1 text-left">(الإجمالي ÷ 2 - 10)</p>
                         </div>
                     </div>
                 `;
