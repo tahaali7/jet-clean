@@ -518,6 +518,7 @@
             // Hide admin-only elements
             document.getElementById('adminModeToggleBtn').classList.add('hidden');
             document.getElementById('adminBranchSelector').classList.add('hidden');
+            document.getElementById('empExportPdfBtn').classList.add('hidden');
             showScreen('loginScreen');
             populateLoginDropdown();
         }
@@ -550,6 +551,7 @@
             // Show admin-only elements in employee screen
             document.getElementById('adminModeToggleBtn').classList.remove('hidden');
             document.getElementById('adminBranchSelector').classList.remove('hidden');
+            document.getElementById('empExportPdfBtn').classList.remove('hidden');
 
             // Populate admin branch select
             const adminBranchSelect = document.getElementById('adminBranchSelect2');
@@ -677,6 +679,7 @@
             // Hide admin-only elements
             document.getElementById('adminModeToggleBtn').classList.add('hidden');
             document.getElementById('adminBranchSelector').classList.add('hidden');
+            document.getElementById('empExportPdfBtn').classList.add('hidden');
             document.getElementById('empDatePicker').value = todayISO();
 
             // Populate room dropdown (branch-specific)
@@ -1122,6 +1125,10 @@
                 // مصاريف العمال
                 var workerExpTotal = renderWorkerExpenses(branchName, date, roomNetMap) || 0;
                 renderTreasury(branchName, date, grandTotalAmount, workerExpTotal);
+                // إظهار الخزينة للمسؤول
+                document.getElementById('workerExpTreasuryRow').classList.remove('hidden');
+                var treasurySection = document.querySelector('#workerExpTreasuryRow > div > div:nth-child(2)');
+                if (treasurySection) treasurySection.style.display = '';
                 grandCard.classList.remove('hidden');
                 return;
             }
@@ -1129,7 +1136,11 @@
             // === EMPLOYEE MODE ===
             if (!currentEmployee) return;
 
-            const empEntries = carEntries.filter(e => e.empId === currentEmployee.id && e.date === date);
+            // الموظف يرى مدخلاته + مدخلات المسؤول لنفس الفرع والتاريخ
+            var adminEmpId = 'admin_' + currentEmployee.branchId;
+            const empEntries = carEntries.filter(e =>
+                (e.empId === currentEmployee.id || e.empId === adminEmpId) && e.date === date
+            );
 
             if (empEntries.length === 0) {
                 grid.innerHTML = `
@@ -1150,15 +1161,23 @@
 
             const branchAvailableRooms = getRoomsForBranch(currentBranchName);
 
-            branchAvailableRooms.forEach(room => {
-                const entry = empEntries.find(e => e.room === room);
-                if (!entry) return;
+            // تجميع المدخلات حسب الغرفة (مدخلات الموظف + المسؤول)
+            var empRoomEntries = {};
+            empEntries.forEach(function(entry) {
+                if (!empRoomEntries[entry.room]) empRoomEntries[entry.room] = [];
+                empRoomEntries[entry.room].push(entry);
+            });
 
+            branchAvailableRooms.forEach(room => {
+                var roomEntries = empRoomEntries[room];
+                if (!roomEntries || roomEntries.length === 0) return;
+
+                roomEntries.forEach(function(entry) {
                 grandTotalAmount += entry.totalAmount;
                 grandTotalCars += entry.totalCars;
                 var net = getNetAmount(entry.totalAmount, currentBranchName, room);
                 grandTotalNet += net;
-                roomNetMap[room] = net;
+                roomNetMap[room] = (roomNetMap[room] || 0) + net;
 
                 let detailsHtml = '';
                 // عرض التسعيرات العادية (فقط الأرقام، بدون الـ custom_)
@@ -1213,34 +1232,38 @@
                     `;
                 }
 
-                html += `
-                    <div class="room-card bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
-                        <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
-                            <h3 class="text-lg font-bold text-cyan-400 flex items-center gap-2">
-                                ${ROOM_ICONS[room] || '🏠'} ${room}
-                            </h3>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">${entry.totalCars} سيارة</span>
-                                <button onclick="editCarEntry('${entry.room}')" class="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️ تعديل</button>
-                                <button onclick="deleteCarEntry('${entry.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
-                            </div>
-                        </div>
-                        <div class="space-y-1.5">
-                            ${detailsHtml}
-                        </div>
-                        <div class="mt-4 pt-3 border-t border-slate-700">
-                            <div class="flex justify-between items-center">
-                                <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
-                                <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
-                            </div>
-                            <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
-                                <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
-                                <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, currentBranchName, room)} د.ل</span>
-                            </div>
-                            <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(currentBranchName, room)})</p>
-                        </div>
-                    </div>
-                `;
+                var isAdminEntry = entry.empId === adminEmpId;
+                var entryLabel = isAdminEntry ? '👨‍💼 المسؤول' : entry.empName;
+                var labelColor = isAdminEntry ? 'text-amber-400' : 'text-cyan-400';
+                var borderColor = isAdminEntry ? 'border-amber-500/20' : 'border-slate-700';
+
+                html += '<div class="room-card bg-slate-800 border ' + borderColor + ' rounded-2xl p-5 shadow-lg">';
+                html += '<div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">';
+                html += '<h3 class="text-lg font-bold ' + labelColor + ' flex items-center gap-2">';
+                html += (ROOM_ICONS[room] || '🏠') + ' ' + room + ' <span style="font-size:11px;color:#94a3b8;font-weight:400;">(' + entryLabel + ')</span>';
+                html += '</h3>';
+                html += '<div class="flex items-center gap-2">';
+                html += '<span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">' + entry.totalCars + ' سيارة</span>';
+                if (!isAdminEntry) {
+                    html += '<button onclick="editCarEntry(\'' + entry.room + '\')" class="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️ تعديل</button>';
+                    html += '<button onclick="deleteCarEntry(\'' + entry.id + '\')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>';
+                }
+                html += '</div></div>';
+                        html += '<div class="space-y-1.5">';
+                html += detailsHtml;
+                html += '</div>';
+                html += '<div class="mt-4 pt-3 border-t border-slate-700">';
+                html += '<div class="flex justify-between items-center">';
+                html += '<span class="text-slate-300 font-semibold text-sm">إجمالي ' + room + ':</span>';
+                html += '<span class="text-xl font-black text-emerald-400">' + entry.totalAmount + ' د.ل</span>';
+                html += '</div>';
+                html += '<div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">';
+                html += '<span class="text-cyan-300 font-semibold text-sm">الصافي:</span>';
+                html += '<span class="text-lg font-black text-cyan-400">' + getNetAmount(entry.totalAmount, currentBranchName, room) + ' د.ل</span>';
+                html += '</div>';
+                html += '<p class="text-[10px] text-slate-500 mt-1 text-left">(' + getNetFormulaText(currentBranchName, room) + ')</p>';
+                html += '</div></div>';
+                }); // نهاية حلقة المدخلات لكل غرفة
             });
 
             grid.innerHTML = html;
@@ -1249,9 +1272,12 @@
             document.getElementById('grandTotalAmount').textContent = grandTotalAmount + ' د.ل';
             document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
             document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
-            // مصاريف العمال
+            // مصاريف العمال (للموظف - بدون خزينة)
             var workerExpTotal = renderWorkerExpenses(currentBranchName, date, roomNetMap) || 0;
-            renderTreasury(currentBranchName, date, grandTotalAmount, workerExpTotal);
+            // إخفاء الخزينة للموظف - تظهر للمسؤول فقط
+            document.getElementById('workerExpTreasuryRow').classList.remove('hidden');
+            var treasurySection = document.querySelector('#workerExpTreasuryRow > div > div:nth-child(2)');
+            if (treasurySection) treasurySection.style.display = 'none';
             grandCard.classList.remove('hidden');
         }
 
@@ -1441,13 +1467,13 @@
                 } else if (item.key === 'بيع_البطاقة') {
                     html += '<div style="text-align:center;"></div>';
                 } else {
-                    html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" oninput="onTreasuryFieldChange(\'' + key + ', \'' + branchName + '\')" style="' + inputStyle + 'color:#34d399;" /></div>';
+                    html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" oninput="onTreasuryFieldChange(\'' + key + '\',\'' + branchName + '\')" style="' + inputStyle + 'color:#34d399;" /></div>';
                 }
                 // خرج
                 if (isAutoCalc && (item.key === 'مصاريف_العمال' || item.key === 'بدل_البطاقة')) {
                     html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense"' + readOnlyAttr + ' style="' + autoStyle + '" /></div>';
                 } else {
-                    html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" oninput="onTreasuryFieldChange(\'' + key + ', \'' + branchName + '\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
+                    html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" oninput="onTreasuryFieldChange(\'' + key + '\',\'' + branchName + '\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
                 }
                 // الرصيد
                 var balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171';
