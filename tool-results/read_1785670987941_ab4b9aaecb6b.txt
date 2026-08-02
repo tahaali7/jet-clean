@@ -1,0 +1,402 @@
+   200→   200→   200→                <button onclick="closeModal('closingModal')" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+   201→   201→   201→            </div>
+   202→   202→   202→            <div id="closingModalBody"></div>
+   203→   203→   203→        </div>
+   204→   204→   204→    </div>
+   205→   205→   205→
+   206→   206→   206→    <!-- Hidden Report Area (used to render the PDF content off-screen) -->
+   207→   207→   207→    <div id="pdfReportArea" dir="rtl"></div>
+   208→   208→   208→
+   209→   209→   209→    <!-- JavaScript Application Logic -->
+   210→   210→   210→    <script>
+   211→   211→   211→        // Initial Default Data setup
+   212→   212→   212→        const initialBranches = [
+   213→   213→   213→            { id: 'b1', name: 'بن غرسه' },
+   214→   214→   214→            { id: 'b2', name: 'ابونواس' },
+   215→   215→   215→            { id: 'b3', name: 'المنصور' },
+   216→   216→   216→            { id: 'b4', name: 'عين زاره' }
+   217→   217→   217→        ];
+   218→   218→   218→
+   219→   219→   219→        const initialEmployees = [
+   220→   220→   220→            { id: 'e1', branchId: 'b1', name: 'أحمد', shift: 'الفترة الصباحية' },
+   221→   221→   221→            { id: 'e2', branchId: 'b1', name: 'هاشم', shift: 'الفترة المسائية' },
+   222→   222→   222→            { id: 'e3', branchId: 'b2', name: 'هيثم', shift: 'الفترة الصباحية' },
+   223→   223→   223→            { id: 'e4', branchId: 'b2', name: 'اياد', shift: 'الفترة المسائية' },
+   224→   224→   224→            { id: 'e5', branchId: 'b3', name: 'وسام', shift: 'الفترة كاملة' },
+   225→   225→   225→            { id: 'e6', branchId: 'b4', name: 'اسامه', shift: 'الفترة الصباحية' },
+   226→   226→   226→            { id: 'e7', branchId: 'b4', name: 'اياد', shift: 'الفترة المسائية' }
+   227→   227→   227→        ];
+   228→   228→   228→
+   229→   229→   229→        // Application State
+   230→   230→   230→        let branches = JSON.parse(localStorage.getItem('gc_branches')) || initialBranches;
+   231→   231→   231→        let employees = JSON.parse(localStorage.getItem('gc_employees')) || initialEmployees;
+   232→   232→   232→        let records = JSON.parse(localStorage.getItem('gc_records')) || [];
+   233→   233→   233→        let closedDays = JSON.parse(localStorage.getItem('gc_closedDays')) || {}; // { 'YYYY-MM-DD': true }
+   234→   234→   234→
+   235→   235→   235→        // App Init
+   236→   236→   236→        window.onload = () => {
+   237→   237→   237→            document.getElementById('datePicker').value = todayISO();
+   238→   238→   238→            renderApp();
+   239→   239→   239→        };
+   240→   240→   240→
+   241→   241→   241→        function saveData() {
+   242→   242→   242→            localStorage.setItem('gc_branches', JSON.stringify(branches));
+   243→   243→   243→            localStorage.setItem('gc_employees', JSON.stringify(employees));
+   244→   244→   244→            localStorage.setItem('gc_records', JSON.stringify(records));
+   245→   245→   245→            localStorage.setItem('gc_closedDays', JSON.stringify(closedDays));
+   246→   246→   246→        }
+   247→   247→   247→
+   248→   248→   248→        function isDayClosed(date) {
+   249→   249→   249→            return !!closedDays[date];
+   250→   250→   250→        }
+   251→   251→   251→
+   252→   252→   252→        function renderApp() {
+   253→   253→   253→            const selectedDate = document.getElementById('datePicker').value;
+   254→   254→   254→            const dayClosed = isDayClosed(selectedDate);
+   255→   255→   255→            const container = document.getElementById('branchesContainer');
+   256→   256→   256→            container.innerHTML = '';
+   257→   257→   257→
+   258→   258→   258→            const banner = document.getElementById('dayStatusBanner');
+   259→   259→   259→            banner.innerHTML = dayClosed
+   260→   260→   260→                ? `<div class="bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-xl p-4 flex justify-between items-center text-sm">
+   261→   261→   261→                        <span>🔒 هذا اليوم (${formatDateShort(selectedDate)}) <strong>مغلق</strong> — لا يمكن إضافة أو تعديل أو حذف الحركات المالية له.</span>
+   262→   262→   262→                        <button onclick="openClosingModal()" class="text-violet-300 hover:text-white underline text-xs">عرض تفاصيل الإغلاق</button>
+   263→   263→   263→                   </div>`
+   264→   264→   264→                : '';
+   265→   265→   265→
+   266→   266→   266→            let grandWithdrawals = 0;
+   267→   267→   267→            let grandShortages = 0;
+   268→   268→   268→
+   269→   269→   269→            branches.forEach(branch => {
+   270→   270→   270→                const branchEmps = employees.filter(e => e.branchId === branch.id);
+   271→   271→   271→                
+   272→   272→   272→                let branchHtml = `
+   273→   273→   273→                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
+   274→   274→   274→                        <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
+   275→   275→   275→                            <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">📍 ${branch.name}</h2>
+   276→   276→   276→                            <button onclick="deleteBranch('${branch.id}')" class="text-rose-400 hover:text-rose-300 text-xs font-semibold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">حذف الفرع</button>
+   277→   277→   277→                        </div>
+   278→   278→   278→                        <div class="space-y-4">
+   279→   279→   279→                `;
+   280→   280→   280→
+   281→   281→   281→                if (branchEmps.length === 0) {
+   282→   282→   282→                    branchHtml += `<p class="text-slate-500 text-sm text-center py-4">لا يوجد موظفون بالفرع حالياً</p>`;
+   283→   283→   283→                }
+   284→   284→   284→
+   285→   285→   285→                branchEmps.forEach(emp => {
+   286→   286→   286→                    const empRecords = records.filter(r => r.empId === emp.id && r.date === selectedDate).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+   287→   287→   287→                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+   288→   288→   288→                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+   289→   289→   289→
+   290→   290→   290→                    grandWithdrawals += withdrawals;
+   291→   291→   291→                    grandShortages += shortages;
+   292→   292→   292→
+   293→   293→   293→                    branchHtml += `
+   294→   294→   294→                        <div class="bg-slate-900/70 border border-slate-700/60 rounded-xl p-4">
+   295→   295→   295→                            <div class="flex justify-between items-start mb-3">
+   296→   296→   296→                                <div>
+   297→   297→   297→                                    <h3 class="font-bold text-white text-base">${emp.name}</h3>
+   298→   298→   298→                                    <span class="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full mt-1 inline-block border border-indigo-500/20">${emp.shift}</span>
+   299→   299→   299→                                </div>
+   300→   300→   300→                                <div class="flex gap-2">
+   301→   301→   301→                                    ${dayClosed
+   302→   302→   302→                                        ? `<button disabled class="bg-slate-700 text-slate-500 text-xs px-2.5 py-1.5 rounded-lg border border-slate-600 cursor-not-allowed">🔒 مغلق</button>`
+   303→   303→   303→                                        : `<button onclick="openRecordModal('${emp.id}', '${emp.name}')" class="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white text-xs px-2.5 py-1.5 rounded-lg border border-cyan-500/30 transition">+ حركة</button>`
+   304→   304→   304→                                    }
+   305→   305→   305→                                    <button onclick="deleteEmployee('${emp.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
+   306→   306→   306→                                </div>
+   307→   307→   307→                            </div>
+   308→   308→   308→                            
+   309→   309→   309→                            <!-- Financial Totals -->
+   310→   310→   310→                            <div class="grid grid-cols-2 gap-3 bg-slate-800/80 p-2.5 rounded-lg text-xs mb-3">
+   311→   311→   311→                                <div class="flex justify-between">
+   312→   312→   312→                                    <span class="text-slate-400">السحبيات:</span>
+   313→   313→   313→                                    <span class="font-bold text-amber-400">${withdrawals} د.ل</span>
+   314→   314→   314→                                </div>
+   315→   315→   315→                                <div class="flex justify-between border-r border-slate-700 pr-3">
+   316→   316→   316→                                    <span class="text-slate-400">العجوزات:</span>
+   317→   317→   317→                                    <span class="font-bold text-rose-400">${shortages} د.ل</span>
+   318→   318→   318→                                </div>
+   319→   319→   319→                            </div>
+   320→   320→   320→
+   321→   321→   321→                            <!-- Record History -->
+   322→   322→   322→                            <div class="space-y-1">
+   323→   323→   323→                                ${empRecords.map(r => `
+   324→   324→   324→                                    <div class="flex justify-between items-center text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded">
+   325→   325→   325→                                        <span>${r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} — ${formatDateShort(r.date)}: ${r.note || 'بدون ملاحظة'}</span>
+   326→   326→   326→                                        <div class="flex items-center gap-2">
+   327→   327→   327→                                            <span class="font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}">${r.amount} د.ل</span>
+   328→   328→   328→                                            ${dayClosed
+   329→   329→   329→                                                ? ''
+   330→   330→   330→                                                : `<button onclick="editRecord('${r.id}')" class="text-slate-600 hover:text-cyan-400">✏️</button>
+   331→   331→   331→                                                   <button onclick="deleteRecord('${r.id}')" class="text-slate-600 hover:text-rose-400">×</button>`
+   332→   332→   332→                                            }
+   333→   333→   333→                                        </div>
+   334→   334→   334→                                    </div>
+   335→   335→   335→                                `).join('')}
+   336→   336→   336→                            </div>
+   337→   337→   337→                        </div>
+   338→   338→   338→                    `;
+   339→   339→   339→                });
+   340→   340→   340→
+   341→   341→   341→                branchHtml += `</div></div>`;
+   342→   342→   342→                container.innerHTML += branchHtml;
+   343→   343→   343→            });
+   344→   344→   344→
+   345→   345→   345→            document.getElementById('totalWithdrawals').innerText = `${grandWithdrawals} د.ل`;
+   346→   346→   346→            document.getElementById('totalShortages').innerText = `${grandShortages} د.ل`;
+   347→   347→   347→        }
+   348→   348→   348→
+   349→   349→   349→        // Modals Logic
+   350→   350→   350→        function todayISO() {
+   351→   351→   351→            const d = new Date();
+   352→   352→   352→            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+   353→   353→   353→        }
+   354→   354→   354→
+   355→   355→   355→        function formatDateShort(dateStr) {
+   356→   356→   356→            if (!dateStr) return '';
+   357→   357→   357→            const [y, m, d] = dateStr.split('-');
+   358→   358→   358→            return `${d}/${m}/${y}`;
+   359→   359→   359→        }
+   360→   360→   360→
+   361→   361→   361→        function openRecordModal(empId, empName) {
+   362→   362→   362→            if (isDayClosed(document.getElementById('datePicker').value)) {
+   363→   363→   363→                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للتعديل.');
+   364→   364→   364→            }
+   365→   365→   365→            document.getElementById('recordId').value = '';
+   366→   366→   366→            document.getElementById('recordEmpId').value = empId;
+   367→   367→   367→            document.getElementById('modalTitle').innerText = `إضافة حركة لـ (${empName})`;
+   368→   368→   368→            document.getElementById('recordType').value = 'withdrawal';
+   369→   369→   369→            document.getElementById('recordDate').value = document.getElementById('datePicker').value || todayISO();
+   370→   370→   370→            document.getElementById('recordAmount').value = '';
+   371→   371→   371→            document.getElementById('recordNote').value = '';
+   372→   372→   372→            document.getElementById('recordModal').classList.remove('hidden');
+   373→   373→   373→            document.getElementById('recordModal').classList.add('flex');
+   374→   374→   374→        }
+   375→   375→   375→
+   376→   376→   376→        function editRecord(recordId) {
+   377→   377→   377→            const r = records.find(rec => rec.id === recordId);
+   378→   378→   378→            if (!r) return;
+   379→   379→   379→            if (isDayClosed(r.date)) {
+   380→   380→   380→                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للتعديل.');
+   381→   381→   381→            }
+   382→   382→   382→            const emp = employees.find(e => e.id === r.empId);
+   383→   383→   383→            document.getElementById('recordId').value = r.id;
+   384→   384→   384→            document.getElementById('recordEmpId').value = r.empId;
+   385→   385→   385→            document.getElementById('modalTitle').innerText = `تعديل حركة لـ (${emp ? emp.name : ''})`;
+   386→   386→   386→            document.getElementById('recordType').value = r.type;
+   387→   387→   387→            document.getElementById('recordDate').value = r.date || todayISO();
+   388→   388→   388→            document.getElementById('recordAmount').value = r.amount;
+   389→   389→   389→            document.getElementById('recordNote').value = r.note || '';
+   390→   390→   390→            document.getElementById('recordModal').classList.remove('hidden');
+   391→   391→   391→            document.getElementById('recordModal').classList.add('flex');
+   392→   392→   392→        }
+   393→   393→   393→
+   394→   394→   394→        function openBranchModal() {
+   395→   395→   395→            document.getElementById('branchModal').classList.remove('hidden');
+   396→   396→   396→            document.getElementById('branchModal').classList.add('flex');
+   397→   397→   397→        }
+   398→   398→   398→
+   399→   399→   399→        function openEmpModal() {
+   400→   400→   400→            const select = document.getElementById('empBranch');
+   401→   401→   401→            select.innerHTML = branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+   402→   402→   402→            document.getElementById('empModal').classList.remove('hidden');
+   403→   403→   403→            document.getElementById('empModal').classList.add('flex');
+   404→   404→   404→        }
+   405→   405→   405→
+   406→   406→   406→        function closeModal(id) {
+   407→   407→   407→            document.getElementById(id).classList.remove('flex');
+   408→   408→   408→            document.getElementById(id).classList.add('hidden');
+   409→   409→   409→        }
+   410→   410→   410→
+   411→   411→   411→        // Actions
+   412→   412→   412→        function saveRecord() {
+   413→   413→   413→            const recordId = document.getElementById('recordId').value;
+   414→   414→   414→            const empId = document.getElementById('recordEmpId').value;
+   415→   415→   415→            const type = document.getElementById('recordType').value;
+   416→   416→   416→            const amount = parseFloat(document.getElementById('recordAmount').value);
+   417→   417→   417→            const note = document.getElementById('recordNote').value;
+   418→   418→   418→            const date = document.getElementById('recordDate').value;
+   419→   419→   419→
+   420→   420→   420→            if (!amount || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح');
+   421→   421→   421→            if (!date) return alert('الرجاء تحديد تاريخ الحركة');
+   422→   422→   422→            if (isDayClosed(date)) return alert('لا يمكن حفظ حركة في يوم مغلق. الرجاء إعادة فتح اليوم أولاً.');
+   423→   423→   423→
+   424→   424→   424→            const month = date.slice(0, 7); // YYYY-MM derived from the chosen date
+   425→   425→   425→
+   426→   426→   426→            if (recordId) {
+   427→   427→   427→                // Editing an existing record
+   428→   428→   428→                const idx = records.findIndex(r => r.id === recordId);
+   429→   429→   429→                if (idx !== -1) {
+   430→   430→   430→                    records[idx] = { ...records[idx], type, amount, note, date, month };
+   431→   431→   431→                }
+   432→   432→   432→            } else {
+   433→   433→   433→                // Adding a new record
+   434→   434→   434→                records.push({ id: 'r_' + Date.now(), empId, type, amount, note, date, month });
+   435→   435→   435→            }
+   436→   436→   436→
+   437→   437→   437→            saveData();
+   438→   438→   438→            closeModal('recordModal');
+   439→   439→   439→            document.getElementById('recordAmount').value = '';
+   440→   440→   440→            document.getElementById('recordNote').value = '';
+   441→   441→   441→            document.getElementById('recordId').value = '';
+   442→   442→   442→
+   443→   443→   443→            // Switch the view to the day this record belongs to, so the user sees it immediately
+   444→   444→   444→            document.getElementById('datePicker').value = date;
+   445→   445→   445→            renderApp();
+   446→   446→   446→        }
+   447→   447→   447→
+   448→   448→   448→        function saveBranch() {
+   449→   449→   449→            const name = document.getElementById('branchName').value.trim();
+   450→   450→   450→            if (!name) return alert('الرجاء كتابة اسم الفرع');
+   451→   451→   451→
+   452→   452→   452→            branches.push({ id: 'b_' + Date.now(), name });
+   453→   453→   453→            saveData();
+   454→   454→   454→            closeModal('branchModal');
+   455→   455→   455→            document.getElementById('branchName').value = '';
+   456→   456→   456→            renderApp();
+   457→   457→   457→        }
+   458→   458→   458→
+   459→   459→   459→        function saveEmployee() {
+   460→   460→   460→            const name = document.getElementById('empName').value.trim();
+   461→   461→   461→            const branchId = document.getElementById('empBranch').value;
+   462→   462→   462→            const shift = document.getElementById('empShift').value;
+   463→   463→   463→
+   464→   464→   464→            if (!name) return alert('الرجاء كتابة اسم الموظف');
+   465→   465→   465→
+   466→   466→   466→            employees.push({ id: 'e_' + Date.now(), branchId, name, shift });
+   467→   467→   467→            saveData();
+   468→   468→   468→            closeModal('empModal');
+   469→   469→   469→            document.getElementById('empName').value = '';
+   470→   470→   470→            renderApp();
+   471→   471→   471→        }
+   472→   472→   472→
+   473→   473→   473→        function deleteRecord(id) {
+   474→   474→   474→            const r = records.find(rec => rec.id === id);
+   475→   475→   475→            if (r && isDayClosed(r.date)) {
+   476→   476→   476→                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للحذف.');
+   477→   477→   477→            }
+   478→   478→   478→            records = records.filter(r => r.id !== id);
+   479→   479→   479→            saveData();
+   480→   480→   480→            renderApp();
+   481→   481→   481→        }
+   482→   482→   482→
+   483→   483→   483→        function deleteEmployee(id) {
+   484→   484→   484→            if (confirm('هل أنت تأكد من حذف الموظف؟ ستظل سجلاته محفوظة في النظام.')) {
+   485→   485→   485→                employees = employees.filter(e => e.id !== id);
+   486→   486→   486→                saveData();
+   487→   487→   487→                renderApp();
+   488→   488→   488→            }
+   489→   489→   489→        }
+   490→   490→   490→
+   491→   491→   491→        function deleteBranch(id) {
+   492→   492→   492→            if (confirm('هل أنت متاكد من حذف الفرع؟')) {
+   493→   493→   493→                branches = branches.filter(b => b.id !== id);
+   494→   494→   494→                employees = employees.filter(e => e.branchId !== id);
+   495→   495→   495→                saveData();
+   496→   496→   496→                renderApp();
+   497→   497→   497→            }
+   498→   498→   498→        }
+   499→   499→   499→
+   500→   500→   500→        // -------------------- PDF Export --------------------
+   501→   501→   501→        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+   502→   502→   502→
+   503→   503→   503→        function formatMonthLabel(monthValue) {
+   504→   504→   504→            if (!monthValue) return '';
+   505→   505→   505→            const [year, month] = monthValue.split('-');
+   506→   506→   506→            return `${arabicMonths[parseInt(month, 10) - 1]} ${year}`;
+   507→   507→   507→        }
+   508→   508→   508→
+   509→   509→   509→        function buildReportHTML(periodLabel, matchRecord) {
+   510→   510→   510→            const now = new Date();
+   511→   511→   511→            const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' });
+   512→   512→   512→
+   513→   513→   513→            let grandWithdrawals = 0;
+   514→   514→   514→            let grandShortages = 0;
+   515→   515→   515→            let branchesHtml = '';
+   516→   516→   516→
+   517→   517→   517→            branches.forEach(branch => {
+   518→   518→   518→                const branchEmps = employees.filter(e => e.branchId === branch.id);
+   519→   519→   519→                if (branchEmps.length === 0) return;
+   520→   520→   520→
+   521→   521→   521→                let branchWithdrawals = 0;
+   522→   522→   522→                let branchShortages = 0;
+   523→   523→   523→                let rowsHtml = '';
+   524→   524→   524→                let branchHasRecords = false;
+   525→   525→   525→
+   526→   526→   526→                branchEmps.forEach(emp => {
+   527→   527→   527→                    const empRecords = records.filter(r => r.empId === emp.id && matchRecord(r)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+   528→   528→   528→                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+   529→   529→   529→                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+   530→   530→   530→                    branchWithdrawals += withdrawals;
+   531→   531→   531→                    branchShortages += shortages;
+   532→   532→   532→                    grandWithdrawals += withdrawals;
+   533→   533→   533→                    grandShortages += shortages;
+   534→   534→   534→                    if (empRecords.length > 0) branchHasRecords = true;
+   535→   535→   535→
+   536→   536→   536→                    const notes = empRecords.map(r => `${formatDateShort(r.date)} — ${r.type === 'withdrawal' ? 'سحب' : 'عجز'}: ${r.amount} د.ل${r.note ? ' (' + r.note + ')' : ''}`).join(' | ') || '—';
+   537→   537→   537→
+   538→   538→   538→                    rowsHtml += `
+   539→   539→   539→                        <tr>
+   540→   540→   540→                            <td style="padding:8px;border:1px solid #ddd;">${emp.name}</td>
+   541→   541→   541→                            <td style="padding:8px;border:1px solid #ddd;">${emp.shift}</td>
+   542→   542→   542→                            <td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">${withdrawals} د.ل</td>
+   543→   543→   543→                            <td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">${shortages} د.ل</td>
+   544→   544→   544→                            <td style="padding:8px;border:1px solid #ddd;font-size:11px;color:#555;">${notes}</td>
+   545→   545→   545→                        </tr>`;
+   546→   546→   546→                });
+   547→   547→   547→
+   548→   548→   548→                if (!branchHasRecords) return;
+   549→   549→   549→
+   550→   550→   550→                branchesHtml += `
+   551→   551→   551→                    <div style="margin-bottom:24px;">
+   552→   552→   552→                        <h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:15px;margin-bottom:8px;">
+   553→   553→   553→                            📍 فرع: ${branch.name} — إجمالي السحبيات: ${branchWithdrawals} د.ل | إجمالي العجوزات: ${branchShortages} د.ل
+   554→   554→   554→                        </h3>
+   555→   555→   555→                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+   556→   556→   556→                            <thead>
+   557→   557→   557→                                <tr style="background:#f1f5f9;">
+   558→   558→   558→                                    <th style="padding:8px;border:1px solid #ddd;">الموظف</th>
+   559→   559→   559→                                    <th style="padding:8px;border:1px solid #ddd;">الفترة</th>
+   560→   560→   560→                                    <th style="padding:8px;border:1px solid #ddd;">السحبيات</th>
+   561→   561→   561→                                    <th style="padding:8px;border:1px solid #ddd;">العجوزات</th>
+   562→   562→   562→                                    <th style="padding:8px;border:1px solid #ddd;">تفاصيل الحركات</th>
+   563→   563→   563→                                </tr>
+   564→   564→   564→                            </thead>
+   565→   565→   565→                            <tbody>${rowsHtml}</tbody>
+   566→   566→   566→                        </table>
+   567→   567→   567→                    </div>`;
+   568→   568→   568→            });
+   569→   569→   569→
+   570→   570→   570→            return `
+   571→   571→   571→                <div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:'Cairo',sans-serif;">
+   572→   572→   572→                    <div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">
+   573→   573→   573→                        <h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>
+   574→   574→   574→                        <p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير سحوبات وعجوزات الموظفين</p>
+   575→   575→   575→                        <p style="font-size:13px;color:#64748b;margin:4px 0 0;">${periodLabel} — تاريخ الإصدار: ${generatedOn}</p>
+   576→   576→   576→                    </div>
+   577→   577→   577→
+   578→   578→   578→                    <div style="display:flex;gap:16px;margin-bottom:24px;">
+   579→   579→   579→                        <div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">
+   580→   580→   580→                            <p style="font-size:12px;color:#92400e;margin:0;">إجمالي السحبيات</p>
+   581→   581→   581→                            <p style="font-size:20px;font-weight:800;color:#b45309;margin:4px 0 0;">${grandWithdrawals} د.ل</p>
+   582→   582→   582→                        </div>
+   583→   583→   583→                        <div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:12px;text-align:center;">
+   584→   584→   584→                            <p style="font-size:12px;color:#9f1239;margin:0;">إجمالي العجوزات</p>
+   585→   585→   585→                            <p style="font-size:20px;font-weight:800;color:#be123c;margin:4px 0 0;">${grandShortages} د.ل</p>
+   586→   586→   586→                        </div>
+   587→   587→   587→                    </div>
+   588→   588→   588→
+   589→   589→   589→                    ${branchesHtml || '<p style="text-align:center;color:#94a3b8;">لا توجد بيانات لعرضها لهذه الفترة</p>'}
+   590→   590→   590→
+   591→   591→   591→                    <div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">
+   592→   592→   592→                        تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع
+   593→   593→   593→                    </div>
+   594→   594→   594→                </div>`;
+   595→   595→   595→        }
+   596→   596→   596→
+   597→   597→   597→        // -------------------- Daily Closing --------------------
+   598→   598→   598→        function openClosingModal() {
+   599→   599→   599→            renderClosingModalBody();
+
+[showing lines 200-599 of 838; use offset=600 with limit to continue reading]
