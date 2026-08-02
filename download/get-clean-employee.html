@@ -715,6 +715,15 @@
             clearCarEntry();
             renderEmployeeDashboard();
 
+            // الانتقال التلقائي للغرفة التالية
+            const branchRooms = getRoomsForBranch(currentBranchName);
+            const currentRoomIdx = branchRooms.indexOf(room);
+            if (currentRoomIdx >= 0 && currentRoomIdx < branchRooms.length - 1) {
+                const nextRoom = branchRooms[currentRoomIdx + 1];
+                document.getElementById('roomSelect').value = nextRoom;
+                renderCarEntry();
+            }
+
             // Show success message
             alert(successMsg);
         }
