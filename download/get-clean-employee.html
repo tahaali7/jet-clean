@@ -1441,13 +1441,13 @@
                 } else if (item.key === 'بيع_البطاقة') {
                     html += '<div style="text-align:center;"></div>';
                 } else {
-                    html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" oninput="onTreasuryFieldChange(\'' + key + '\', \'" + branchName + "\')" style="' + inputStyle + 'color:#34d399;" /></div>';
+                    html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" oninput="onTreasuryFieldChange(\'' + key + ', \'' + branchName + '\')" style="' + inputStyle + 'color:#34d399;" /></div>';
                 }
                 // خرج
                 if (isAutoCalc && (item.key === 'مصاريف_العمال' || item.key === 'بدل_البطاقة')) {
                     html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense"' + readOnlyAttr + ' style="' + autoStyle + '" /></div>';
                 } else {
-                    html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" oninput="onTreasuryFieldChange(\'' + key + '\', \'" + branchName + "\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
+                    html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" oninput="onTreasuryFieldChange(\'' + key + ', \'' + branchName + '\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
                 }
                 // الرصيد
                 var balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171';
