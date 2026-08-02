@@ -153,16 +153,8 @@
                 <!-- مصاريف العمال -->
                 <div id="workerExpensesSection" class="hidden mt-4 pt-4 border-t border-amber-500/30">
                     <h3 class="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
-                    <div class="bg-slate-900/50 rounded-xl p-4 space-y-3">
+                    <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
                         <div id="workerExpensesContent"></div>
-                        <div class="flex justify-between items-center pt-3 border-t border-dashed border-amber-500/20">
-                            <span class="text-amber-300 font-semibold text-sm">مجموع مصاريف العمال:</span>
-                            <span id="totalWorkerExpenses" class="text-lg font-black text-amber-400">0 د.ل</span>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center mt-3 pt-3 border-t-2 border-slate-600">
-                        <span class="text-white font-bold">الصافي بعد المصاريف:</span>
-                        <span id="netAfterExpenses" class="text-2xl font-black text-emerald-400">0 د.ل</span>
                     </div>
                 </div>
             </div>
@@ -1010,6 +1002,7 @@
 
                 // Group entries by room (show latest per room, could be from employee or admin)
                 let html = '';
+                var roomNetMap = {};
                 availableRooms.forEach(room => {
                     // Find entries for this room (from any employee or admin)
                     const roomEntries = allEntries.filter(e => e.room === room);
@@ -1019,7 +1012,9 @@
                     roomEntries.forEach(entry => {
                         grandTotalAmount += entry.totalAmount;
                         grandTotalCars += entry.totalCars;
-                        grandTotalNet += getNetAmount(entry.totalAmount, branchName, room);
+                        var net = getNetAmount(entry.totalAmount, branchName, room);
+                        grandTotalNet += net;
+                        roomNetMap[room] = (roomNetMap[room] || 0) + net;
 
                         let detailsHtml = '';
                         const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
@@ -1113,7 +1108,7 @@
                 document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
                 document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
                 // مصاريف العمال
-                renderWorkerExpenses(branchName, date, grandTotalNet);
+                renderWorkerExpenses(branchName, date, roomNetMap);
                 grandCard.classList.remove('hidden');
                 return;
             }
@@ -1136,6 +1131,7 @@
             }
 
             let html = '';
+            var roomNetMap = {};
             const currentBranch = branches.find(b => b.id === currentEmployee.branchId);
             const currentBranchName = currentBranch ? currentBranch.name : '';
 
@@ -1147,7 +1143,9 @@
 
                 grandTotalAmount += entry.totalAmount;
                 grandTotalCars += entry.totalCars;
-                grandTotalNet += getNetAmount(entry.totalAmount, currentBranchName, room);
+                var net = getNetAmount(entry.totalAmount, currentBranchName, room);
+                grandTotalNet += net;
+                roomNetMap[room] = net;
 
                 let detailsHtml = '';
                 // عرض التسعيرات العادية (فقط الأرقام، بدون الـ custom_)
@@ -1239,7 +1237,7 @@
             document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
             document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
             // مصاريف العمال
-            renderWorkerExpenses(currentBranchName, date, grandTotalNet);
+            renderWorkerExpenses(currentBranchName, date, roomNetMap);
             grandCard.classList.remove('hidden');
         }
 
@@ -1248,12 +1246,12 @@
             return branchName + '_' + date;
         }
 
-        function renderWorkerExpenses(branchName, date, totalNet) {
+        function renderWorkerExpenses(branchName, date, roomNetMap) {
             var section = document.getElementById('workerExpensesSection');
             var content = document.getElementById('workerExpensesContent');
             var cleanness = BRANCH_CLEANLINESS[branchName];
 
-            if (!cleanness) {
+            if (!cleanness || Object.keys(roomNetMap).length === 0) {
                 section.classList.add('hidden');
                 return;
             }
@@ -1263,19 +1261,45 @@
             var saved = workerExpenses[key] || {};
             var selectedCleanliness = saved.cleanliness || 0;
 
+            if (cleanness.type === 'fixed') {
+                selectedCleanliness = cleanness.value;
+            }
+
             var html = '';
+            var availableRooms = getRoomsForBranch(branchName);
+            var roomIndex = 0;
+            var totalRoomsNet = 0;
+
+            availableRooms.forEach(function(room) {
+                var net = roomNetMap[room];
+                if (net === undefined) return;
+                totalRoomsNet += net;
+                var icon = ROOM_ICONS[room] || '\u{1F3E0}';
+                var bgColor = roomIndex % 2 === 0 ? 'background:rgba(15,23,42,0.4);' : 'background:rgba(15,23,42,0.2);';
+                var borderB = 'border-bottom:1px solid rgba(51,65,85,0.5);';
+
+                html += '<div style="display:flex;justify-content:space-between;align-items:center;' + bgColor + borderB + 'padding:10px 16px;">';
+                html += '<div style="display:flex;align-items:center;gap:8px;">';
+                html += '<span style="font-size:18px;">' + icon + '</span>';
+                html += '<span style="color:#cbd5e1;font-size:14px;font-weight:600;">' + room + '</span>';
+                html += '</div>';
+                html += '<span style="color:#22d3ee;font-size:16px;font-weight:900;">' + net + ' د.ل</span>';
+                html += '</div>';
+                roomIndex++;
+            });
+
+            html += '<div style="border-top:1px solid rgba(245,158,11,0.3);"></div>';
 
             // صف النظافة
-            html += '<div class="flex justify-between items-center">';
-            html += '<span class="text-slate-300 text-sm">🧹 النظافة:</span>';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(245,158,11,0.05);padding:10px 16px;">';
+            html += '<div style="display:flex;align-items:center;gap:8px;">';
+            html += '<span style="font-size:18px;">\u{1F9F9}</span>';
+            html += '<span style="color:#fcd34d;font-size:14px;font-weight:600;">النظافة</span>';
+            html += '</div>';
             if (cleanness.type === 'fixed') {
-                html += '<div class="flex items-center gap-2">';
-                html += '<span class="bg-amber-500/10 text-amber-300 px-3 py-1 rounded-lg font-bold text-sm border border-amber-500/20">' + cleanness.value + ' د.ل</span>';
-                html += '<input type="hidden" id="cleanlinessValue" value="' + cleanness.value + '">';
-                html += '</div>';
-                selectedCleanliness = cleanness.value;
+                html += '<span style="color:#fbbf24;font-size:16px;font-weight:700;">' + cleanness.value + ' د.ل</span>';
             } else {
-                html += '<select id="cleanlinessSelect" onchange="onCleanlinessChange(\'' + key + '\')" class="bg-slate-800 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-amber-500">';
+                html += '<select id="cleanlinessSelect" onchange="onCleanlinessChange(\'' + key + '\')" style="background:#1e293b;border:1px solid rgba(245,158,11,0.3);color:#fcd34d;border-radius:8px;padding:4px 12px;font-size:14px;font-weight:700;outline:none;">';
                 html += '<option value="0">-- اختر --</option>';
                 cleanness.options.forEach(function(opt) {
                     var sel = selectedCleanliness === opt ? ' selected' : '';
@@ -1285,31 +1309,63 @@
             }
             html += '</div>';
 
-            content.innerHTML = html;
+            html += '<div style="border-top:2px solid rgba(16,185,129,0.3);"></div>';
 
-            // حساب المجموع
-            updateWorkerExpensesTotal(key, selectedCleanliness, totalNet);
+            // صف الإجمالي
+            var grandTotal = totalRoomsNet + selectedCleanliness;
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(16,185,129,0.1);padding:12px 16px;">';
+            html += '<span style="color:#6ee7b7;font-size:14px;font-weight:700;">الإجمالي</span>';
+            html += '<span id="workerGrandTotal" style="color:#34d399;font-size:20px;font-weight:900;">' + grandTotal + ' د.ل</span>';
+            html += '</div>';
+
+            content.innerHTML = html;
         }
 
         function onCleanlinessChange(key) {
             var sel = document.getElementById('cleanlinessSelect');
             if (!sel) return;
             var value = parseInt(sel.value) || 0;
-            var netText = document.getElementById('grandTotalNet').textContent;
-            var totalNet = parseInt(netText) || 0;
-            // حفظ القيمة
             if (!workerExpenses[key]) workerExpenses[key] = {};
             workerExpenses[key].cleanliness = value;
             saveData();
-            // تحديث المجموع
-            updateWorkerExpensesTotal(key, value, totalNet);
+            var date = document.getElementById('empDatePicker').value;
+            if (!date) return;
+            var roomNetMap = collectRoomNetMap();
+            var branchName = '';
+            if (isAdminMode) {
+                var branch = branches.find(function(b) { return b.id === adminSelectedBranch; });
+                branchName = branch ? branch.name : '';
+            } else if (currentEmployee) {
+                var branch = branches.find(function(b) { return b.id === currentEmployee.branchId; });
+                branchName = branch ? branch.name : '';
+            }
+            if (branchName) renderWorkerExpenses(branchName, date, roomNetMap);
         }
 
-        function updateWorkerExpensesTotal(key, cleanlinessVal, totalNet) {
-            var totalExpenses = cleanlinessVal;
-            document.getElementById('totalWorkerExpenses').textContent = totalExpenses + ' د.ل';
-            var netAfter = totalNet - totalExpenses;
-            document.getElementById('netAfterExpenses').textContent = netAfter + ' د.ل';
+        function collectRoomNetMap() {
+            var date = document.getElementById('empDatePicker').value;
+            if (!date) return {};
+            var branchId, branchName, entries;
+            if (isAdminMode) {
+                branchId = adminSelectedBranch;
+                var branch = branches.find(function(b) { return b.id === branchId; });
+                branchName = branch ? branch.name : '';
+                var adminEmpId = 'admin_' + branchId;
+                entries = carEntries.filter(function(e) { return (e.branchId === branchId || e.empId === adminEmpId) && e.date === date; });
+            } else if (currentEmployee) {
+                branchId = currentEmployee.branchId;
+                var branch = branches.find(function(b) { return b.id === branchId; });
+                branchName = branch ? branch.name : '';
+                entries = carEntries.filter(function(e) { return e.empId === currentEmployee.id && e.date === date; });
+            } else {
+                return {};
+            }
+            var map = {};
+            entries.forEach(function(e) {
+                var net = getNetAmount(e.totalAmount, branchName, e.room);
+                map[e.room] = (map[e.room] || 0) + net;
+            });
+            return map;
         }
 
         function deleteCarEntry(entryId) {
