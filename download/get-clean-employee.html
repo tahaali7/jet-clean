@@ -73,6 +73,9 @@
                         ⚙️ إدارة النظام
                     </button>
                 </div>
+                <button onclick="exportCarEntryPDF()" id="empExportPdfBtn" class="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-indigo-500/30">
+                    📄 تصدير تقرير PDF
+                </button>
                 <button onclick="logoutEmployee()" class="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
                     🚪 تسجيل خروج
                 </button>
@@ -1776,6 +1779,190 @@
                         تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع
                     </div>
                 </div>`;
+        }
+
+        // ==================== CAR ENTRY PDF EXPORT ====================
+        function buildCarReportHTML(selectedDate, branchId, branchName, entries, empLabel) {
+            const now = new Date();
+            const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' });
+            const availableRooms = getRoomsForBranch(branchName);
+
+            let grandTotalAmount = 0;
+            let grandTotalCars = 0;
+            let grandTotalNet = 0;
+
+            let roomsHtml = '';
+            let roomHasData = false;
+
+            availableRooms.forEach(room => {
+                const roomEntries = entries.filter(e => e.room === room);
+                if (roomEntries.length === 0) return;
+                roomHasData = true;
+
+                let roomTotalAmount = 0;
+                let roomTotalCars = 0;
+                let rowsHtml = '';
+
+                roomEntries.forEach(entry => {
+                    const entryLabel = entry.empName === 'المسؤول' ? 'المسؤول' : entry.empName;
+
+                    // Standard prices
+                    const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
+                    entryPrices.forEach(price => {
+                        const count = entry.priceCounts[price] || 0;
+                        if (count > 0) {
+                            let subtotal = price * count;
+                            let priceText = price + ' د.ل';
+                            if (EXTRA_PRICES.includes(price)) {
+                                subtotal = (price - 5) * count;
+                                priceText = price + ' د.ل <span style="font-size:10px;color:#b45309;">(بعد خصم 5 إكسترا = ' + (price - 5) + ' د.ل)</span>';
+                            }
+                            rowsHtml += '<tr>' +
+                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;">' + priceText + '</td>' +
+                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;">' + count + ' سيارة</td>' +
+                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#047857;">' + subtotal + ' د.ل</td>' +
+                                '</tr>';
+                        }
+                    });
+
+                    // Custom prices
+                    if (entry.customPrices) {
+                        Object.keys(entry.customPrices).forEach(key => {
+                            const item = entry.customPrices[key];
+                            rowsHtml += '<tr style="background:#faf5ff;">' +
+                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;color:#7c3aed;">مخصصة ' + item.price + ' د.ل</td>' +
+                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;">' + item.count + ' سيارة</td>' +
+                                '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#047857;">' + (item.price * item.count) + ' د.ل</td>' +
+                                '</tr>';
+                        });
+                    }
+
+                    // Extra row
+                    if (entry.extraCars && entry.extraCars > 0) {
+                        rowsHtml += '<tr style="background:#fffbeb;">' +
+                            '<td colspan="2" style="padding:6px 8px;border:1px solid #ddd;text-align:right;color:#b45309;font-weight:bold;">⭐ إكسترا: ' + entry.extraCars + ' سيارة × 5 د.ل</td>' +
+                            '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:bold;color:#b45309;">' + entry.extraAmount + ' د.ل</td>' +
+                            '</tr>';
+                    }
+
+                    // Subtotal row for this entry
+                    rowsHtml += '<tr style="background:#f0fdf4;border-top:2px solid #0e7490;">' +
+                        '<td colspan="2" style="padding:6px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;font-size:13px;">إجمالي ' + room + ' (' + entryLabel + '):</td>' +
+                        '<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;font-weight:800;font-size:14px;color:#047857;">' + entry.totalAmount + ' د.ل</td>' +
+                        '</tr>';
+
+                    roomTotalAmount += entry.totalAmount;
+                    roomTotalCars += entry.totalCars;
+                });
+
+                const roomNet = getNetAmount(roomTotalAmount, branchName, room);
+                grandTotalAmount += roomTotalAmount;
+                grandTotalCars += roomTotalCars;
+                grandTotalNet += roomNet;
+
+                roomsHtml += '<div style="margin-bottom:20px;">' +
+                    '<h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:14px;margin-bottom:6px;">' +
+                    (ROOM_ICONS[room] || '') + ' ' + room + ' — ' + roomTotalCars + ' سيارة | الإجمالي: ' + roomTotalAmount + ' د.ل | الصافي: ' + roomNet + ' د.ل (' + getNetFormulaText(branchName, room) + ')</h3>' +
+                    '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+                    '<thead><tr style="background:#f1f5f9;">' +
+                    '<th style="padding:6px 8px;border:1px solid #ddd;">التسعيرة</th>' +
+                    '<th style="padding:6px 8px;border:1px solid #ddd;">عدد السيارات</th>' +
+                    '<th style="padding:6px 8px;border:1px solid #ddd;">المبلغ</th>' +
+                    '</tr></thead>' +
+                    '<tbody>' + rowsHtml + '</tbody>' +
+                    '</table></div>';
+            });
+
+            if (!roomHasData) {
+                roomsHtml = '<p style="text-align:center;color:#94a3b8;padding:20px;">لا توجد تسجيلات لهذا اليوم</p>';
+            }
+
+            return '<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;" dir="rtl">' +
+                '<div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
+                '<h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>' +
+                '<p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير تسجيل السيارات — فرع ' + branchName + '</p>' +
+                '<p style="font-size:13px;color:#64748b;margin:4px 0 0;">يوم: ' + formatDateShort(selectedDate) + (empLabel ? ' — ' + empLabel : '') + ' | تاريخ الإصدار: ' + generatedOn + '</p>' +
+                '</div>' +
+                '<div style="display:flex;gap:16px;margin-bottom:24px;">' +
+                '<div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;text-align:center;">' +
+                '<p style="font-size:12px;color:#166534;margin:0;">إجمالي المبيعات</p>' +
+                '<p style="font-size:20px;font-weight:800;color:#047857;margin:4px 0 0;">' + grandTotalAmount + ' د.ل</p>' +
+                '</div>' +
+                '<div style="flex:1;background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:12px;text-align:center;">' +
+                '<p style="font-size:12px;color:#155e75;margin:0;">إجمالي السيارات</p>' +
+                '<p style="font-size:20px;font-weight:800;color:#0e7490;margin:4px 0 0;">' + grandTotalCars + ' سيارة</p>' +
+                '</div>' +
+                '<div style="flex:1;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;text-align:center;">' +
+                '<p style="font-size:12px;color:#1e40af;margin:0;">إجمالي الصافي</p>' +
+                '<p style="font-size:20px;font-weight:800;color:#1d4ed8;margin:4px 0 0;">' + grandTotalNet + ' د.ل</p>' +
+                '</div>' +
+                '</div>' +
+                roomsHtml +
+                '<div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">' +
+                'تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع' +
+                '</div></div>';
+        }
+
+        async function exportCarEntryPDF() {
+            const date = document.getElementById('empDatePicker').value;
+            if (!date) return alert('الرجاء تحديد التاريخ أولاً');
+
+            let branchId, branchName, entries, empLabel;
+
+            if (isAdminMode) {
+                if (!adminSelectedBranch) return alert('الرجاء اختيار الفرع أولاً');
+                branchId = adminSelectedBranch;
+                const branch = branches.find(b => b.id === branchId);
+                branchName = branch ? branch.name : '';
+                empLabel = 'المسؤول';
+                const adminEmpId = 'admin_' + branchId;
+                entries = carEntries.filter(e => (e.branchId === branchId || e.empId === adminEmpId) && e.date === date);
+            } else {
+                if (!currentEmployee) return;
+                branchId = currentEmployee.branchId;
+                const branch = branches.find(b => b.id === branchId);
+                branchName = branch ? branch.name : '';
+                empLabel = currentEmployee.name + ' (' + currentEmployee.shift + ')';
+                entries = carEntries.filter(e => e.empId === currentEmployee.id && e.date === date);
+            }
+
+            if (entries.length === 0) return alert('لا توجد تسجيلات في هذا التاريخ للتصدير');
+
+            try {
+                const reportArea = document.getElementById('pdfReportArea');
+                reportArea.innerHTML = buildCarReportHTML(date, branchId, branchName, entries, empLabel);
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+                const imgData = canvas.toDataURL('image/png');
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                const fileName = 'تقرير_سيارات_' + branchName + '_' + date + '.pdf';
+                pdf.save(fileName);
+                reportArea.innerHTML = '';
+            } catch (err) {
+                console.error(err);
+                alert('حدث خطأ أثناء إنشاء ملف PDF. الرجاء المحاولة مرة أخرى.');
+            }
         }
 
         // ==================== DAILY CLOSING ====================
