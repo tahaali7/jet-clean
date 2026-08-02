@@ -1391,6 +1391,8 @@
             var borderB = 'border-bottom:1px solid rgba(51,65,85,0.5);';
             var inputStyle = 'background:#0f172a;border:1px solid rgba(96,165,250,0.3);color:#93c5fd;border-radius:6px;padding:5px 4px;font-size:13px;font-weight:700;outline:none;width:80px;text-align:center;font-family:Cairo,sans-serif;';
             var balanceStyle = 'font-size:13px;font-weight:900;min-width:70px;text-align:center;';
+            var autoStyle = 'background:rgba(15,23,42,0.7);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 4px;font-size:13px;font-weight:700;outline:none;width:80px;text-align:center;font-family:Cairo,sans-serif;color:#fcd34d;';
+            var readOnlyAttr = ' readonly';
 
             var html = '';
             // رأس الجدول
@@ -1401,23 +1403,49 @@
             html += '<span style="color:#fcd34d;font-size:12px;font-weight:700;text-align:center;">الرصيد</span>';
             html += '</div>';
 
+            // قراءة قيم البيع وبدل البطاقة لحساب المصاريف تلقائياً
+            var bankCardSale = parseInt((saved['بيع_البطاقة'] || {}).income) || 0;
+            var bankCardReplaceAuto = Math.floor(bankCardSale / 2);
+            var workerExpAuto = workerExpTotal - bankCardReplaceAuto;
+
             var runningBalance = 0;
             var rowIdx = 0;
             items.forEach(function(item) {
                 var rowSaved = saved[item.key] || {};
                 var income = rowSaved.income || 0;
                 var expense = rowSaved.expense || 0;
+                var isAutoCalc = false;
+
+                // مصاريف العمال في الخرج = الإجمالي - بدل البطاقة المصرفية
+                if (item.key === 'مصاريف_العمال') {
+                    expense = workerExpAuto;
+                    isAutoCalc = true;
+                }
+                // بدل البطاقة المصرفية في الدخل = بيع البطاقة المصرفية / 2
+                if (item.key === 'بدل_البطاقة') {
+                    income = bankCardReplaceAuto;
+                    isAutoCalc = true;
+                }
+
                 runningBalance = runningBalance + income - expense;
 
                 var rowBg = rowIdx % 2 === 0 ? 'background:rgba(15,23,42,0.4);' : 'background:rgba(15,23,42,0.2);';
 
                 html += '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;' + rowBg + cellPad + borderB + '">';
                 // البيان
-                html += '<span style="color:#cbd5e1;font-size:13px;font-weight:600;">' + item.label + '</span>';
+                html += '<span style="color:#cbd5e1;font-size:13px;font-weight:600;">' + item.label + (isAutoCalc ? ' <span style="font-size:10px;color:#fbbf24;">(تلقائي)</span>' : '') + '</span>';
                 // دخل
-                html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" onchange="onTreasuryFieldChange(\'' + key + '\', \'' + branchName + '\')" style="' + inputStyle + 'color:#34d399;" /></div>';
+                if (isAutoCalc && item.key === 'بدل_البطاقة') {
+                    html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income"' + readOnlyAttr + ' style="' + autoStyle + '" /></div>';
+                } else {
+                    html += '<div style="text-align:center;"><input type="number" value="' + income + '" data-key="' + item.key + '" data-type="income" onchange="onTreasuryFieldChange(\'' + key + '\', \'' + branchName + '\')" style="' + inputStyle + 'color:#34d399;" /></div>';
+                }
                 // خرج
-                html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" onchange="onTreasuryFieldChange(\'' + key + '\', \'' + branchName + '\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
+                if (isAutoCalc && item.key === 'مصاريف_العمال') {
+                    html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense"' + readOnlyAttr + ' style="' + autoStyle + '" /></div>';
+                } else {
+                    html += '<div style="text-align:center;"><input type="number" value="' + expense + '" data-key="' + item.key + '" data-type="expense" onchange="onTreasuryFieldChange(\'' + key + '\', \'' + branchName + '\')" style="' + inputStyle + 'color:#fca5a5;" /></div>';
+                }
                 // الرصيد
                 var balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171';
                 html += '<span data-balance-for="' + item.key + '" style="' + balanceStyle + 'color:' + balColor + ';">' + runningBalance + '</span>';
@@ -1433,8 +1461,9 @@
             if (!workerExpenses[key]) workerExpenses[key] = {};
             if (!workerExpenses[key].treasury) workerExpenses[key].treasury = {};
 
-            // حفظ جميع القيم
+            // حفظ جميع القيم اليدوية فقط (تخطي الحقول التلقائية readonly)
             inputs.forEach(function(input) {
+                if (input.readOnly) return;
                 var itemKey = input.getAttribute('data-key');
                 var type = input.getAttribute('data-type');
                 var value = parseInt(input.value) || 0;
@@ -1444,9 +1473,29 @@
 
             saveData();
 
+            // إعادة حساب القيم التلقائية والأرصدة
+            var saved = workerExpenses[key].treasury;
+            var bankCardSale = parseInt((saved['بيع_البطاقة'] || {}).income) || 0;
+            var bankCardReplaceAuto = Math.floor(bankCardSale / 2);
+
+            // تحديث بدل البطاقة تلقائياً
+            if (!saved['بدل_البطاقة']) saved['بدل_البطاقة'] = {};
+            saved['بدل_البطاقة'].income = bankCardReplaceAuto;
+            var bankCardInput = document.querySelector('input[data-key="بدل_البطاقة"][data-type="income"]');
+            if (bankCardInput) bankCardInput.value = bankCardReplaceAuto;
+
+            // تحديث مصاريف العمال تلقائياً = workerExpTotal - بدل البطاقة
+            var workerExpTotal = 0;
+            var workerGrandEl = document.getElementById('workerGrandTotal');
+            if (workerGrandEl) workerExpTotal = parseInt(workerGrandEl.textContent) || 0;
+            var workerExpAuto = workerExpTotal - bankCardReplaceAuto;
+            if (!saved['مصاريف_العمال']) saved['مصاريف_العمال'] = {};
+            saved['مصاريف_العمال'].expense = workerExpAuto;
+            var workerExpInput = document.querySelector('input[data-key="مصاريف_العمال"][data-type="expense"]');
+            if (workerExpInput) workerExpInput.value = workerExpAuto;
+
             // إعادة حساب الأرصدة
             var items = getTreasuryItems(branchName);
-            var saved = workerExpenses[key].treasury;
             var runningBalance = 0;
             items.forEach(function(item) {
                 var rowSaved = saved[item.key] || {};
@@ -2262,9 +2311,15 @@
                 '</table>' +
                 '</div>';
 
-            // الخزينة - جميع الفروع - 4 أعمدة
+            // الخزينة - جميع الفروع - 4 أعمدة مع حساب تلقائي
             var treasSaved = (workerExpenses[workerExpKey] && workerExpenses[workerExpKey].treasury) || {};
             var pdfTreasuryItems = getTreasuryItems(branchName);
+
+            // حساب القيم التلقائية للـ PDF
+            var pdfBankCardSale = parseInt((treasSaved['بيع_البطاقة'] || {}).income) || 0;
+            var pdfBankCardReplace = Math.floor(pdfBankCardSale / 2);
+            var pdfWorkerExpTotal = finalTotalAfterExpenses;
+            var pdfWorkerExpInTreasury = pdfWorkerExpTotal - pdfBankCardReplace;
 
             var tCellPad = 'padding:4px 6px;border:1px solid #333;';
             var tLabelStyle = tCellPad + 'font-size:10px;';
@@ -2284,11 +2339,26 @@
                 var rowS = treasSaved[item.key] || {};
                 var tIncome = rowS.income || 0;
                 var tExpense = rowS.expense || 0;
+                var isAuto = false;
+
+                // بدل البطاقة المصرفية = بيع البطاقة / 2
+                if (item.key === 'بدل_البطاقة') {
+                    tIncome = pdfBankCardReplace;
+                    isAuto = true;
+                }
+                // مصاريف العمال = الإجمالي - بدل البطاقة
+                if (item.key === 'مصاريف_العمال') {
+                    tExpense = pdfWorkerExpInTreasury;
+                    isAuto = true;
+                }
+
                 tRunningBalance = tRunningBalance + tIncome - tExpense;
                 var balColor = tRunningBalance >= 0 ? '#1b7a3d' : '#dc2626';
 
+                var labelSuffix = isAuto ? ' *' : '';
+
                 treasuryRowsHtml += '<tr>' +
-                    '<td style="' + tLabelStyle + '">' + item.label + '</td>' +
+                    '<td style="' + tLabelStyle + '">' + item.label + labelSuffix + '</td>' +
                     '<td style="' + tValueStyle + 'color:#16a34a;">' + (tIncome > 0 ? tIncome : '') + '</td>' +
                     '<td style="' + tValueStyle + 'color:#dc2626;">' + (tExpense > 0 ? tExpense : '') + '</td>' +
                     '<td style="' + tValueStyle + 'color:' + balColor + ';">' + tRunningBalance + '</td>' +
