@@ -343,6 +343,16 @@
         const ROOM_PRICES = {
             'مكينة الغسيل': [10, 15]
         };
+        // Branch-specific available rooms
+        const BRANCH_ROOMS = {
+            'ابونواس': ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'مكينة الغسيل'],
+            'المنصور': ['غرفة 1', 'غرفة 2', 'غرفة 3']
+            // بن غرسه و عين زاره = كل الغرف (لا حاجة لتعريفهم)
+        };
+        function getRoomsForBranch(branchName) {
+            return BRANCH_ROOMS[branchName] || ROOMS;
+        }
+
         function getPricesForRoom(room) {
             return ROOM_PRICES[room] || ALL_PRICES;
         }
@@ -497,10 +507,11 @@
             document.getElementById('empInfo').textContent = `مرحباً ${emp.name} | ${branch ? branch.name : ''} | ${emp.shift}`;
             document.getElementById('empDatePicker').value = todayISO();
 
-            // Populate room dropdown
+            // Populate room dropdown (branch-specific)
+            const branchRooms = getRoomsForBranch(branch ? branch.name : '');
             const roomSelect = document.getElementById('roomSelect');
             roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
-            ROOMS.forEach(room => {
+            branchRooms.forEach(room => {
                 roomSelect.innerHTML += `<option value="${room}">${ROOM_ICONS[room] || '🏠'} ${room}</option>`;
             });
 
@@ -736,7 +747,9 @@
             const currentBranch = branches.find(b => b.id === currentEmployee.branchId);
             const currentBranchName = currentBranch ? currentBranch.name : '';
 
-            ROOMS.forEach(room => {
+            const branchAvailableRooms = getRoomsForBranch(currentBranchName);
+
+            branchAvailableRooms.forEach(room => {
                 const entry = empEntries.find(e => e.room === room);
                 if (!entry) return;
 
