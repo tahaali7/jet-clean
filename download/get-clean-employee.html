@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>مغسلة جيت كلين - نظام إدارة الفروع</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,9 +20,29 @@
         .price-input::-webkit-inner-spin-button,
         .price-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         .price-input { -moz-appearance: textfield; }
+        /* iOS / iPhone optimizations */
+        * { -webkit-touch-callout: none; -webkit-user-select: none; }
+        input, select, textarea { -webkit-user-select: auto; }
+        body {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        select, input[type="date"], input[type="number"], input[type="text"], input[type="password"] {
+            font-size: 16px !important; /* Prevent iOS auto-zoom on focus */
+        }
+        button { touch-action: manipulation; }
+        /* Prevent iOS bounce overscroll */
+        html { overflow: hidden; height: 100%; }
+        body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        /* Smooth scrolling */
+        body { scroll-behavior: smooth; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-8 md:pt-[calc(2rem+env(safe-area-inset-top))] md:pb-[calc(2rem+env(safe-area-inset-bottom))]">
 
     <!-- ======================== LOGIN SCREEN ======================== -->
     <div id="loginScreen" class="login-bg fixed inset-0 flex items-center justify-center p-4 z-[100]">
