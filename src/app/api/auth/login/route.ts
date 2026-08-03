@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: employee.id,
         name: employee.name,
-        role: 'employee' as const,
+        role: (employee.role || 'employee') as 'employee' | 'viewer',
         branchId: employee.branchId,
         shift: employee.shift
       }

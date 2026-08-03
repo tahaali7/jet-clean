@@ -19,14 +19,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, branchId, shift, password } = await req.json()
+    const { name, branchId, shift, password, role } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: 'الرجاء كتابة اسم الموظف' }, { status: 400 })
     if (!branchId) return NextResponse.json({ error: 'الرجاء اختيار الفرع' }, { status: 400 })
     if (!password?.trim()) return NextResponse.json({ error: 'الرجاء إدخال رمز المرور' }, { status: 400 })
 
     const id = name.trim().replace(/\s+/g, '_') + '_' + branchId + '_' + Date.now()
     const employee = await db.employee.create({
-      data: { id, name: name.trim(), branchId, shift: shift || 'الفترة الصباحية', password: password.trim() }
+      data: { id, name: name.trim(), branchId, shift: shift || 'الفترة الصباحية', password: password.trim(), role: role || 'employee' }
     })
     return NextResponse.json(employee)
   } catch (error) {

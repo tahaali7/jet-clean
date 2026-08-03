@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 interface User {
   id: string
   name: string
-  role: 'admin' | 'employee'
+  role: 'admin' | 'employee' | 'viewer'
   branchId?: string
   shift?: string
 }
@@ -584,7 +584,7 @@ export default function JetCleanApp() {
   const [showBranchModal, setShowBranchModal] = useState(false)
   const [newBranchName, setNewBranchName] = useState('')
   const [showEmpModal, setShowEmpModal] = useState(false)
-  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '' })
+  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee' })
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
   const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
   const [adminPassword, setAdminPassword] = useState('')
@@ -786,7 +786,7 @@ export default function JetCleanApp() {
         if (isAdminMode && adminSelectedBranch) {
           try { await loadCarEntries(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
           try { await loadWorkerExpenses(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
-        } else if (!isAdminMode && user?.role === 'employee' && user.branchId) {
+        } else if (!isAdminMode && (user?.role === 'employee' || user?.role === 'viewer') && user.branchId) {
           try { await loadCarEntries(empDate, user.branchId) } catch(e) { console.error(e) }
           try { await loadWorkerExpenses(empDate, user.branchId) } catch(e) { console.error(e) }
         }
@@ -1093,7 +1093,7 @@ export default function JetCleanApp() {
       })
       if (res.ok) {
         setShowEmpModal(false)
-        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '' })
+        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee' })
         await loadEmployees()
         await loadBranches()
       } else { alert('حدث خطأ') }
@@ -1636,7 +1636,7 @@ export default function JetCleanApp() {
     const borderColor = isAdminEntry ? 'border-amber-500/20' : 'border-slate-700'
     const entryLabel = isAdminEntry ? '👨‍💼 المسؤول' : entry.empName
 
-    const canEdit = isAdminMode || (!isAdminMode && entry.empId === user?.id)
+    const canEdit = isAdminMode || (!isAdminMode && entry.empId === user?.id && user?.role !== 'viewer')
     const dayClosed = isDayClosed(entry.date)
 
     return (
@@ -1787,7 +1787,8 @@ export default function JetCleanApp() {
 
     const empInfoText = isAdminMode
       ? 'مرحباً المسؤول طه علي 👨‍💼'
-      : `مرحباً ${user?.name} | ${branchName} | ${user?.shift}`
+      : `مرحباً ${user?.name} | ${branchName} | ${user?.shift}${user?.role === 'viewer' ? ' | 👁️ مشاهد' : ''}`
+    const isViewer = user?.role === 'viewer'
 
     return (
       <div className="min-h-screen bg-slate-900">
@@ -1839,6 +1840,7 @@ export default function JetCleanApp() {
             />
           </div>
 
+          {!isViewer && (
           <div className="mb-6">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🚗 تسجيل السيارات</h2>
 
@@ -1880,6 +1882,7 @@ export default function JetCleanApp() {
               </div>
             )}
           </div>
+          )}
 
           {displayEntries.length === 0 && (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
@@ -2310,7 +2313,7 @@ export default function JetCleanApp() {
                 {employees.map(emp => {
                   const brName = branches.find(b => b.id === emp.branchId)?.name || ''
                   return (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({brName}) - {emp.shift}</option>
+                    <option key={emp.id} value={emp.id}>{emp.name} ({brName}) - {emp.shift}{emp.role === 'viewer' ? ' 👁️ مشاهد' : ''}</option>
                   )
                 })}
               </select>
@@ -2462,6 +2465,16 @@ export default function JetCleanApp() {
                 </select>
               </div>
               <div>
+                <label className="text-xs text-slate-400 mb-1 block">الدور</label>
+                <select value={newEmp.role}
+                  onChange={e => setNewEmp(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="employee">👤 موظف عادي</option>
+                  <option value="viewer">👁️ مشاهد فقط</option>
+                </select>
+              </div>
+              <div>
                 <label className="text-xs text-slate-400 mb-1 block">رمز المرور</label>
                 <input type="text" value={newEmp.password}
                   onChange={e => setNewEmp(prev => ({ ...prev, password: e.target.value }))}
@@ -2472,7 +2485,7 @@ export default function JetCleanApp() {
             </div>
             <div className="flex gap-3">
               <button onClick={handleCreateEmployee} className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
-              <button onClick={() => { setShowEmpModal(false); setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '' }) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+              <button onClick={() => { setShowEmpModal(false); setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee' }) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>
