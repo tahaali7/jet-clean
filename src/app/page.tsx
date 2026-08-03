@@ -1759,6 +1759,15 @@ export default function JetCleanApp() {
         )
       }
     }
+    // Sort entries by room order (غرفة 1, غرفة 2, ..., مكينة الغسيل)
+    if (branchName) {
+      const roomOrder = getRoomsForBranch(branchName)
+      displayEntries.sort((a, b) => {
+        const aIdx = roomOrder.indexOf(a.room)
+        const bIdx = roomOrder.indexOf(b.room)
+        return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx)
+      })
+    }
 
     let grandTotalAmount = 0
     let grandTotalCars = 0
