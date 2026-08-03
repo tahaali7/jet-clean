@@ -592,6 +592,14 @@ export default function JetCleanApp() {
     }
   }
 
+  const switchToCarEntry = () => {
+    setScreen('employee')
+  }
+
+  const switchToAdminManagement = () => {
+    setScreen('admin')
+  }
+
   const handleLogout = () => {
     if (!confirm('هل تريد تسجيل الخروج؟')) return
     setUser(null)
