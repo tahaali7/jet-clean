@@ -773,16 +773,16 @@ export default function JetCleanApp() {
   useEffect(() => {
     if (screen === 'employee' && empDate) {
       ;(async () => {
-        await loadBranches()
-        await loadEmployees()
+        try { await loadBranches() } catch(e) { console.error(e) }
+        try { await loadEmployees() } catch(e) { console.error(e) }
         if (isAdminMode && adminSelectedBranch) {
-          await loadCarEntries(empDate, adminSelectedBranch)
-          await loadWorkerExpenses(empDate, adminSelectedBranch)
+          try { await loadCarEntries(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
+          try { await loadWorkerExpenses(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
         } else if (!isAdminMode && user?.role === 'employee' && user.branchId) {
-          await loadCarEntries(empDate, user.branchId)
-          await loadWorkerExpenses(empDate, user.branchId)
+          try { await loadCarEntries(empDate, user.branchId) } catch(e) { console.error(e) }
+          try { await loadWorkerExpenses(empDate, user.branchId) } catch(e) { console.error(e) }
         }
-        await loadClosedDays(empDate)
+        try { await loadClosedDays(empDate) } catch(e) { console.error(e) }
       })()
     }
   }, [screen, empDate, isAdminMode, adminSelectedBranch, user])
@@ -791,12 +791,12 @@ export default function JetCleanApp() {
   useEffect(() => {
     if (screen === 'admin') {
       ;(async () => {
-        await loadBranches()
-        await loadEmployees()
+        try { await loadBranches() } catch(e) { console.error(e) }
+        try { await loadEmployees() } catch(e) { console.error(e) }
         if (adminDate) {
-          await loadRecords({ date: adminDate })
-          await loadAllCarEntries(adminDate)
-          await loadClosedDays(adminDate)
+          try { await loadRecords({ date: adminDate }) } catch(e) { console.error(e) }
+          try { await loadAllCarEntries(adminDate) } catch(e) { console.error(e) }
+          try { await loadClosedDays(adminDate) } catch(e) { console.error(e) }
         }
       })()
     }
