@@ -2266,7 +2266,6 @@ export default function JetCleanApp() {
                     <div className="flex items-center gap-2">
                       <span className="text-pink-400">📍</span>
                       <h2 className="text-base font-bold text-cyan-400">{branch.name}</h2>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${branchCarCount > 0 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700/50 text-slate-500 border border-slate-600/30'}`}>{branchCarCount > 0 ? `${branchCarCount} سيارة · ${branchCarTotal} د.ل` : 'لا توجد بيانات'}</span>
                     </div>
                     <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>
                   </div>
