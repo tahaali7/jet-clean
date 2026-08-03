@@ -1785,7 +1785,10 @@ export default function JetCleanApp() {
       <div className="min-h-screen bg-slate-900">
         <header className="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-cyan-400 flex items-center gap-2">💧 جيت كلين</h1>
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="logo" className="w-10 h-10 rounded-xl" />
+              <h1 className="text-2xl font-extrabold text-cyan-400">جيت كلين</h1>
+            </div>
             <p className="text-slate-400 text-sm mt-1">{empInfoText}</p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -2097,7 +2100,7 @@ export default function JetCleanApp() {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="text-2xl">🚗</div>
+                <img src="/logo.png" alt="logo" className="w-10 h-10 rounded-xl" />
                 <div>
                   <h1 className="text-base font-bold text-cyan-400">مغسلة جيت كلين - لوحة التحكم</h1>
                   <p className="text-xs text-slate-400">مرحباً المسؤول طه علي 👨‍💼</p>
@@ -2105,7 +2108,7 @@ export default function JetCleanApp() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
-                  🚗 تسجيل
+                  🚗
                 </button>
                 <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   📄 تقارير
@@ -2281,7 +2284,7 @@ export default function JetCleanApp() {
       <div className="w-full max-w-sm">
         <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-2xl">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-3">🚗</div>
+            <img src="/logo.png" alt="logo" className="w-20 h-20 rounded-2xl mx-auto mb-3" />
             <h1 className="text-2xl font-black text-cyan-400">جيت كلين</h1>
             <p className="text-sm text-slate-400 mt-1">مغسلة جيت كلين - نظام إدارة الفروع</p>
           </div>
