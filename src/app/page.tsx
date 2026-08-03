@@ -1618,8 +1618,16 @@ export default function JetCleanApp() {
   // ==================== ADMIN MANAGEMENT SCREEN ====================
   const renderAdminScreen = () => {
     const dayClosed = isDayClosed(adminDate)
+
+    // حساب الإجماليات مسبقاً
     let grandWithdrawals = 0
     let grandShortages = 0
+    records.forEach(r => {
+      if (r.date === adminDate) {
+        if (r.type === 'withdrawal') grandWithdrawals += r.amount
+        if (r.type === 'shortage') grandShortages += r.amount
+      }
+    })
 
     return (
       <div className="min-h-screen bg-slate-900">
@@ -1656,28 +1664,37 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
-          <input
-            type="date" value={adminDate}
-            onChange={e => setAdminDate(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
-          />
+          {/* صف واحد: التاريخ + السحبيات + العجوزات */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col justify-center">
+              <label className="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
+              <input
+                type="date" value={adminDate}
+                onChange={e => setAdminDate(e.target.value)}
+                className="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+              <div>
+                <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات اليوم</p>
+                <h2 className="text-2xl font-black text-amber-400 mt-1">{grandWithdrawals} د.ل</h2>
+              </div>
+              <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
+            </div>
+            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+              <div>
+                <p className="text-slate-400 text-xs font-bold">إجمالي عجوزات اليوم</p>
+                <h2 className="text-2xl font-black text-rose-400 mt-1">{grandShortages} د.ل</h2>
+              </div>
+              <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl text-2xl">📉</div>
+            </div>
+          </div>
 
           {dayClosed && (
             <div className="bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-xl p-4 flex justify-between items-center text-sm">
               <span>🔒 هذا اليوم ({formatDateShort(adminDate)}) <strong>مغلق</strong></span>
             </div>
           )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-800 border border-amber-500/30 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400">إجمالي السحبيات</p>
-              <p className="text-xl font-black text-amber-400">{grandWithdrawals} د.ل</p>
-            </div>
-            <div className="bg-slate-800 border border-rose-500/30 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400">إجمالي العجوزات</p>
-              <p className="text-xl font-black text-rose-400">{grandShortages} د.ل</p>
-            </div>
-          </div>
 
           <div className="space-y-4">
             {branches.map(branch => {
@@ -1691,8 +1708,6 @@ export default function JetCleanApp() {
                 const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
                 branchWithdrawals += withdrawals
                 branchShortages += shortages
-                grandWithdrawals += withdrawals
-                grandShortages += shortages
 
                 const empCarEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate)
                 const carTotal = empCarEntries.reduce((s, e) => s + e.totalAmount, 0)
