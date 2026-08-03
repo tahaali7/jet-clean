@@ -813,6 +813,14 @@ export default function JetCleanApp() {
     setCustomCountInput('')
   }
 
+  const handleRemoveCustomPrice = (key: string) => {
+    setCustomPricesData(prev => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
   // ==================== RECORD ACTIONS ====================
   const handleSaveRecord = async () => {
     const amount = parseFloat(recordModalData.amount)
@@ -1356,6 +1364,76 @@ export default function JetCleanApp() {
             <span className="text-lg font-black text-cyan-400">{getNetAmount(entry.totalAmount, branchName, room)} د.ل</span>
           </div>
           <p className="text-[10px] text-slate-500 mt-1 text-left">({getNetFormulaText(branchName, room)})</p>
+        </div>
+      </div>
+    )
+  }
+
+  const renderPriceGrid = () => {
+    const prices = getPricesForRoom(selectedRoom)
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5">
+        {prices.map(price => {
+          const isExtraPrice = EXTRA_PRICES.includes(price)
+          return (
+            <div key={price} className={`room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center`}>
+              <p className="text-xs text-slate-400 mb-2">تسعيرة</p>
+              <p className="text-2xl font-black text-white mb-1">{price} د.ل</p>
+              {isExtraPrice && <p className="text-[10px] text-amber-400 mt-1">(شامل 5 د.ل إكسترا)</p>}
+              <input
+                type="number"
+                min="0"
+                value={priceInputs[price] || 0}
+                onChange={e => setPriceInputs(prev => ({ ...prev, [price]: parseInt(e.target.value) || 0 }))}
+                className="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-cyan-500"
+                onFocus={e => (e.target as HTMLInputElement).select()}
+              />
+            </div>
+          )
+        })}
+        {/* Custom price card */}
+        <div className="room-card bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center col-span-full sm:col-span-1">
+          <p className="text-xs text-violet-300 mb-2 font-semibold">➕ تسعيرة مخصصة</p>
+          <div className="flex gap-2 items-center">
+            <input
+              type="number"
+              min="0"
+              value={customPriceInput}
+              placeholder="السعر"
+              onChange={e => setCustomPriceInput(e.target.value)}
+              className="flex-1 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-base font-bold focus:outline-none focus:border-violet-500"
+              onFocus={e => (e.target as HTMLInputElement).select()}
+            />
+            <input
+              type="number"
+              min="0"
+              value={customCountInput}
+              placeholder="العدد"
+              onChange={e => setCustomCountInput(e.target.value)}
+              className="w-20 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-violet-500"
+              onFocus={e => (e.target as HTMLInputElement).select()}
+            />
+          </div>
+          <button
+            onClick={handleAddCustomPrice}
+            className="mt-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition w-full"
+          >
+            إضافة
+          </button>
+          <div className="mt-2 space-y-1">
+            {Object.keys(customPricesData).map(key => {
+              const item = customPricesData[key]
+              return (
+                <div key={key} className="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
+                  <span className="text-violet-300">{item.price} د.ل × {item.count}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold">{item.price * item.count} د.ل</span>
+                    <button onClick={() => handleRemoveCustomPrice(key)} className="text-rose-400 hover:text-rose-300">×</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     )
