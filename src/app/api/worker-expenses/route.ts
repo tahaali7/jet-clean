@@ -24,26 +24,41 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { id, date, branchId, amount, note } = await req.json()
+    const { id, date, branchId, amount, note, jsonData, cleanliness, treasury } = await req.json()
     if (!date || !branchId) {
       return NextResponse.json({ error: 'التاريخ والفرع مطلوبان' }, { status: 400 })
     }
 
-    // Upsert: find existing or create new
-    const existing = id
-      ? await db.workerExpense.findUnique({ where: { id } })
-      : null
+    // Build the JSON data structure for worker expenses + treasury
+    const finalJsonData: Record<string, unknown> = jsonData || {}
+    if (cleanliness !== undefined) finalJsonData.cleanliness = cleanliness
+    if (treasury !== undefined) finalJsonData.treasury = treasury
+
+    // Upsert by branchId + date (unique constraint)
+    const existing = await db.workerExpense.findFirst({
+      where: { date, branchId }
+    })
 
     if (existing) {
       const updated = await db.workerExpense.update({
         where: { id: existing.id },
-        data: { amount: amount ?? 0, note: note || '' }
+        data: {
+          amount: amount ?? existing.amount,
+          note: note || existing.note,
+          jsonData: Object.keys(finalJsonData).length > 0 ? finalJsonData : existing.jsonData
+        }
       })
       return NextResponse.json(updated)
     }
 
     const expense = await db.workerExpense.create({
-      data: { date, branchId, amount: amount ?? 0, note: note || '' }
+      data: {
+        date,
+        branchId,
+        amount: amount ?? 0,
+        note: note || '',
+        jsonData: Object.keys(finalJsonData).length > 0 ? finalJsonData : null
+      }
     })
     return NextResponse.json(expense)
   } catch (error) {

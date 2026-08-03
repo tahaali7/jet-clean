@@ -602,6 +602,7 @@ export default function JetCleanApp() {
 
   // Worker expenses state
   const [cleanlinessAmount, setCleanlinessAmount] = useState(0)
+  const [workerExpData, setWorkerExpData] = useState<Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>>({})
 
   const pdfAreaRef = useRef<HTMLDivElement>(null)
 
@@ -667,7 +668,19 @@ export default function JetCleanApp() {
       if (date) params.set('date', date)
       if (branchId) params.set('branchId', branchId)
       const res = await fetch(`/api/worker-expenses?${params}`)
-      if (res.ok) setWorkerExpenses(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setWorkerExpenses(data)
+        // Parse jsonData into workerExpData
+        if (data.length > 0 && data[0].jsonData) {
+          const jd = data[0].jsonData as { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }
+          const branch = branches.find(b => b.id === branchId)
+          const bName = branch?.name || ''
+          if (bName && date) {
+            setWorkerExpData(prev => ({ ...prev, [bName + '_' + date]: jd }))
+          }
+        }
+      }
     } catch (e) { console.error(e) }
   }
 
@@ -771,6 +784,7 @@ export default function JetCleanApp() {
         void loadTreasuries(empDate, adminSelectedBranch)
       } else if (!isAdminMode && user?.role === 'employee' && user.branchId) {
         void loadCarEntries(empDate, user.branchId)
+        void loadWorkerExpenses(empDate, user.branchId)
       }
       void loadClosedDays(empDate)
     }
@@ -996,6 +1010,41 @@ export default function JetCleanApp() {
       await new Promise(r => setTimeout(r, 300))
       await loadRecords({ date: adminDate }, true)
     } catch (e) { alert('حدث خطأ أثناء الحذف') }
+  }
+
+  // ==================== WORKER EXPENSES & TREASURY ====================
+  const saveWorkerExpData = async (branchId: string, date: string, data: { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }) => {
+    try {
+      await fetch('/api/worker-expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, branchId, jsonData: data })
+      })
+    } catch (e) { console.error(e) }
+  }
+
+  const handleCleanlinessChange = (key: string, value: number, branchId: string, date: string) => {
+    setWorkerExpData(prev => {
+      const updated = { ...prev }
+      if (!updated[key]) updated[key] = {}
+      updated[key] = { ...updated[key], cleanliness: value }
+      void saveWorkerExpData(branchId, date, updated[key])
+      return updated
+    })
+  }
+
+  const handleTreasuryFieldChange = (key: string, branchName: string, branchId: string, date: string, itemKey: string, fieldType: 'income' | 'expense', value: number) => {
+    setWorkerExpData(prev => {
+      const updated = { ...prev }
+      if (!updated[key]) updated[key] = {}
+      if (!updated[key].treasury) updated[key].treasury = {}
+      updated[key] = {
+        ...updated[key],
+        treasury: { ...updated[key].treasury!, [itemKey]: { ...(updated[key].treasury![itemKey] || { income: 0, expense: 0 }), [fieldType]: value } }
+      }
+      void saveWorkerExpData(branchId, date, updated[key])
+      return updated
+    })
   }
 
   // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
@@ -1847,6 +1896,175 @@ export default function JetCleanApp() {
               </div>
             </div>
           )}
+
+          {/* Worker Expenses + Treasury */}
+          {displayEntries.length > 0 && branchName && (() => {
+            const wKey = branchName + '_' + empDate
+            const savedWE = workerExpData[wKey] || {}
+            const cleannessConfig = BRANCH_CLEANLINESS[branchName]
+            if (!cleannessConfig) return null
+
+            // Calculate room net map
+            const roomNetMap: Record<string, number> = {}
+            displayEntries.forEach(e => {
+              const net = getNetAmount(e.totalAmount, branchName, e.room)
+              roomNetMap[e.room] = (roomNetMap[e.room] || 0) + net
+            })
+
+            const availableRooms = getRoomsForBranch(branchName)
+            let totalRoomsNet = 0
+            availableRooms.forEach(r => { if (roomNetMap[r]) totalRoomsNet += roomNetMap[r] })
+            if (totalRoomsNet === 0 && !Object.keys(roomNetMap).length) return null
+
+            let selectedCleanliness = savedWE.cleanliness || 0
+            if (cleannessConfig.type === 'fixed') selectedCleanliness = cleannessConfig.value || 0
+
+            const workerExpTotal = totalRoomsNet + selectedCleanliness
+
+            // Treasury calculations
+            const treasSaved = savedWE.treasury || {}
+            const treasuryItems = getTreasuryItems(branchName)
+            const bankCardSale = parseInt(String(treasSaved['بيع_البطاقة']?.expense)) || 0
+            const bankCardReplaceAuto = Math.floor(bankCardSale / 2)
+            const workerExpInTreasury = workerExpTotal - bankCardReplaceAuto
+
+            let runningBalance = 0
+            const treasuryRows = treasuryItems.map((item, idx) => {
+              const rowSaved = treasSaved[item.key] || {}
+              let income = rowSaved.income || 0
+              let expense = rowSaved.expense || 0
+              let isAuto = false
+              if (item.key === 'بدل_البطاقة') { expense = bankCardReplaceAuto; isAuto = true }
+              if (item.key === 'مصاريف_العمال') { expense = workerExpInTreasury; isAuto = true }
+              runningBalance = runningBalance + income - expense
+              const balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171'
+              const rowBg = idx % 2 === 0 ? 'rgba(15,23,42,0.4)' : 'rgba(15,23,42,0.2)'
+              return { ...item, income, expense, isAuto, balance: runningBalance, balColor, rowBg }
+            })
+
+            const currentBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+
+            return (
+              <div className="bg-gradient-to-l from-emerald-600/10 to-cyan-600/10 border border-emerald-500/30 rounded-2xl p-5 shadow-xl mt-4">
+                <div className="border-t border-amber-500/30 pt-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* مصاريف العمال */}
+                    <div>
+                      <h3 className="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
+                      <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                        {availableRooms.map((room, idx) => {
+                          const net = roomNetMap[room]
+                          if (net === undefined || net === 0) return null
+                          const icon = ROOM_ICONS[room] || '🏠'
+                          const bgColor = idx % 2 === 0 ? 'background:rgba(15,23,42,0.4)' : 'background:rgba(15,23,42,0.2)'
+                          return (
+                            <div key={room} className="flex justify-between items-center px-4 py-2.5" style={{ background: bgColor.split('(')[1]?.slice(0,-1) ? bgColor : undefined, borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{icon}</span>
+                                <span className="text-slate-200 text-sm font-semibold">{room}</span>
+                              </div>
+                              <span className="text-cyan-400 text-base font-black">{net} د.ل</span>
+                            </div>
+                          )
+                        })}
+                        <div className="border-t border-amber-500/20" />
+                        {/* Cleanliness */}
+                        <div className="flex justify-between items-center px-4 py-2.5" style={{ background: 'rgba(245,158,11,0.05)' }}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🧹</span>
+                            <span className="text-amber-300 text-sm font-semibold">النظافة</span>
+                          </div>
+                          {cleannessConfig.type === 'fixed' ? (
+                            <span className="text-amber-400 text-base font-bold">{cleannessConfig.value} د.ل</span>
+                          ) : (
+                            <select
+                              value={selectedCleanliness}
+                              onChange={e => handleCleanlinessChange(wKey, parseInt(e.target.value) || 0, currentBranchId, empDate)}
+                              className="bg-slate-900 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm font-bold outline-none"
+                            >
+                              <option value={0}>-- اختر --</option>
+                              {cleannessConfig.options?.map(opt => (
+                                <option key={opt} value={opt}>{opt} د.ل</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <div className="border-t-2 border-emerald-500/30" />
+                        {/* Grand total */}
+                        <div className="flex justify-between items-center px-4 py-3" style={{ background: 'rgba(16,185,129,0.1)' }}>
+                          <span className="text-emerald-300 text-sm font-bold">الإجمالي</span>
+                          <span className="text-emerald-400 text-xl font-black">{workerExpTotal} د.ل</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* الخزينة - Admin only */}
+                    {isAdminMode && (
+                      <div>
+                        <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
+                        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+                          {/* Header */}
+                          <div className="grid grid-cols-4 gap-0 px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+                            <span className="text-blue-300 text-xs font-bold">البيان</span>
+                            <span className="text-emerald-400 text-xs font-bold text-center">دخل</span>
+                            <span className="text-red-300 text-xs font-bold text-center">خرج</span>
+                            <span className="text-amber-300 text-xs font-bold text-center">الرصيد</span>
+                          </div>
+                          {treasuryRows.map(row => (
+                            <div key={row.key} className="grid grid-cols-4 gap-0 items-center px-3 py-2" style={{ background: row.rowBg, borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+                              <span className="text-slate-200 text-xs font-semibold">
+                                {row.label}
+                                {row.isAuto && <span className="text-amber-400 text-[10px] ml-1">(تلقائي)</span>}
+                              </span>
+                              {/* Income */}
+                              {row.isAuto && row.key === 'بدل_البطاقة' ? (
+                                <div className="text-center" />
+                              ) : row.key === 'بيع_البطاقة' ? (
+                                <div className="text-center" />
+                              ) : (
+                                <div className="text-center">
+                                  <input
+                                    type="number"
+                                    value={row.income || ''}
+                                    placeholder="0"
+                                    onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'income', parseInt(e.target.value) || 0)}
+                                    className="bg-slate-900 border border-blue-400/30 text-emerald-400 rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none"
+                                  />
+                                </div>
+                              )}
+                              {/* Expense */}
+                              {row.isAuto ? (
+                                <div className="text-center">
+                                  <input
+                                    type="number"
+                                    value={row.expense || 0}
+                                    readOnly
+                                    className="bg-slate-900/70 border border-amber-500/30 text-amber-300 rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="text-center">
+                                  <input
+                                    type="number"
+                                    value={row.expense || ''}
+                                    placeholder="0"
+                                    onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'expense', parseInt(e.target.value) || 0)}
+                                    className="bg-slate-900 border border-red-400/30 text-red-300 rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none"
+                                  />
+                                </div>
+                              )}
+                              {/* Balance */}
+                              <span className="text-center text-xs font-black" style={{ color: row.balColor }}>{row.balance}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
         </main>
       </div>
     )
