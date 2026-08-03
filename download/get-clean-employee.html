@@ -2175,20 +2175,21 @@
             var cellPad = 'padding:5px 4px;vertical-align:middle;';
             var cellFs = 'font-size:10px;';
 
-            // بناء صفوف الأسعار - عرض كل الصفوف حتى الفارغة للتنسيق الثابت
+            // بناء صفوف الأسعار - إظهار الصفوف التي بها سيارات فقط
             var rowsHtml = '';
+            var rowNum = 0;
             prices.forEach(function(price, idx) {
                 var count = mergedCounts[price] || 0;
-                var countStyle = count > 0 ? 'font-weight:bold;' : '';
-                // للأسعار الإكسترا: عرض السعر بعد خصم 5 د.ل (مثل الموقع)
+                if (count === 0) return; // تخطي الصفوف الفارغة
+                rowNum++;
                 var isExtra = EXTRA_PRICES.includes(price);
                 var displayPrice = isExtra ? (price - 5) : price;
-                var rowAmount = count > 0 ? displayPrice * count : 0;
+                var rowAmount = displayPrice * count;
                 rowsHtml += '<tr>' +
-                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + (idx + 1) + '</td>' +
+                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
                     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
-                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;' + countStyle + '">' + (count > 0 ? count : '') + '</td>' +
-                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + (count > 0 ? rowAmount + ' د.ل' : '') + '</td>' +
+                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + count + '</td>' +
+                    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowAmount + ' د.ل</td>' +
                     '</tr>';
             });
 
