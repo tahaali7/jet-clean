@@ -1648,16 +1648,8 @@ export default function JetCleanApp() {
               <button onClick={() => { setShowPasswordsModal(true); setAdminPassword('') }} className="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                 🔑 كلمات المرور
               </button>
-              <button onClick={() => setShowClosingModal(true)} className="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                🔒 الإغلاق اليومي
-              </button>
               <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
                 🚪 تسجيل خروج
-              </button>
-            </div>
-            <div className="mt-3">
-              <button onClick={handleExportEmployeePDF} disabled={exportingEmp} className="w-full bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm flex items-center justify-center gap-2 border-2 border-orange-400/50">
-                {exportingEmp ? '⏳ جاري التصدير...' : '📋 تصدير تقرير سحوبات وعجوزات الموظفين PDF'}
               </button>
             </div>
           </div>
