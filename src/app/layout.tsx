@@ -17,7 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className="antialiased bg-slate-900 text-slate-100 font-[Cairo]">
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      </head>
+      <body className="antialiased bg-slate-900 text-slate-100" style={{ fontFamily: 'Cairo, sans-serif' }}>
         {children}
         <Toaster />
       </body>

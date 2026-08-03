@@ -898,37 +898,68 @@ export default function JetCleanApp() {
       const jspdfModule = await import('jspdf')
       const jsPDF = jspdfModule.default
 
-      // Fetch all car entries for the date range
+      const reportArea = pdfAreaRef.current
+      if (!reportArea) { setExporting(false); return alert('خطأ في عنصر التقرير') }
+
+      // Create a single PDF for all dates
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      let firstPage = true
+      let exportedCount = 0
+
       for (const date of dates) {
+        // Fetch car entries for this date
         const params = new URLSearchParams()
         params.set('date', date)
         const res = await fetch(`/api/car-entries?${params}`)
         const dateEntries: CarEntry[] = res.ok ? await res.json() : []
 
-        if (dateEntries.length === 0) continue
+        if (dateEntries.length === 0) {
+          // Generate "no data" page
+          const noDataHtml = '<div style="width:780px;background:#fff;color:#000;padding:40px;font-family:Cairo,sans-serif;text-align:center;" dir="rtl">' +
+            '<h1 style="font-size:18px;margin:0;color:#333;">مغسلة جيت كلين</h1>' +
+            '<p style="font-size:12px;color:#666;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(date) + '</p>' +
+            '<h2 style="font-size:20px;color:#999;margin-top:60px;">لا توجد بيانات في ' + formatDateShort(date) + '</h2>' +
+            '</div>'
 
-        // Group by branch
+          reportArea.innerHTML = noDataHtml
+          reportArea.style.position = 'fixed'
+          reportArea.style.top = '0'
+          reportArea.style.left = '-99999px'
+          reportArea.style.width = '800px'
+
+          await new Promise(r => setTimeout(r, 200))
+          const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+          const imgHeight = (canvas.height * pageWidth) / canvas.width
+
+          reportArea.style.position = ''
+          reportArea.style.top = ''
+          reportArea.style.left = ''
+          reportArea.style.width = ''
+          reportArea.innerHTML = ''
+
+          if (!firstPage) pdf.addPage()
+          firstPage = false
+          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+          exportedCount++
+          continue
+        }
+
+        // Group entries by branch
         const branchGroups: Record<string, CarEntry[]> = {}
         dateEntries.forEach(e => {
           if (!branchGroups[e.branchId]) branchGroups[e.branchId] = []
           branchGroups[e.branchId].push(e)
         })
 
-        let firstBranch = true
         for (const bid in branchGroups) {
-          if (!firstBranch) {
-            // Will be handled in the loop
-          }
-          firstBranch = false
           const br = branches.find(b => b.id === bid)
           const bName = br ? br.name : ''
           const bEntries = branchGroups[bid]
 
           const pages = buildCarReportHTML(date, bid, bName, bEntries)
-          const reportArea = pdfAreaRef.current
-          if (!reportArea) continue
 
-          // Page 1
+          // Render Page 1
           reportArea.innerHTML = pages.page1
           reportArea.style.position = 'fixed'
           reportArea.style.top = '0'
@@ -937,17 +968,14 @@ export default function JetCleanApp() {
 
           await new Promise(r => setTimeout(r, 200))
           const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-          const imgData1 = canvas1.toDataURL('image/png')
-          const imgHeight1 = (canvas1.height * 210) / canvas1.width
+          const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
 
-          if (reportArea.style.position) {
-            reportArea.style.position = ''
-            reportArea.style.top = ''
-            reportArea.style.left = ''
-            reportArea.style.width = ''
-          }
+          reportArea.style.position = ''
+          reportArea.style.top = ''
+          reportArea.style.left = ''
+          reportArea.style.width = ''
 
-          // Page 2
+          // Render Page 2
           reportArea.innerHTML = pages.page2
           reportArea.style.position = 'fixed'
           reportArea.style.top = '0'
@@ -956,102 +984,30 @@ export default function JetCleanApp() {
 
           await new Promise(r => setTimeout(r, 200))
           const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-          const imgData2 = canvas2.toDataURL('image/png')
-          const imgHeight2 = (canvas2.height * 210) / canvas2.width
+          const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
 
-          if (reportArea.style.position) {
-            reportArea.style.position = ''
-            reportArea.style.top = ''
-            reportArea.style.left = ''
-            reportArea.style.width = ''
-          }
+          reportArea.style.position = ''
+          reportArea.style.top = ''
+          reportArea.style.left = ''
+          reportArea.style.width = ''
           reportArea.innerHTML = ''
 
-          // Create PDF for this branch/date
-          const pdf = new jsPDF('p', 'mm', 'a4')
-          const pageWidth = pdf.internal.pageSize.getWidth()
-          pdf.addImage(imgData1, 'PNG', 0, 0, pageWidth, imgHeight1)
+          if (!firstPage) pdf.addPage()
+          firstPage = false
+          pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight1)
           pdf.addPage()
-          pdf.addImage(imgData2, 'PNG', 0, 0, pageWidth, imgHeight2)
-          pdf.save(`تقرير_${bName}_${date}.pdf`)
+          pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight2)
+          exportedCount++
         }
       }
 
-      setShowExportModal(false)
-      alert('تم التصدير بنجاح!')
-    } catch (err) {
-      console.error(err)
-      alert('حدث خطأ أثناء التصدير')
-    }
-    setExporting(false)
-  }
-
-  // ==================== SCREEN SWITCHES ====================
-  const switchToCarEntry = () => {
-    setIsAdminMode(true)
-    setAdminSelectedBranch(null)
-    setEmpDate(todayISO())
-    setSelectedRoom('')
-    setScreen('employee')
-  }
-
-  const switchToAdminManagement = () => {
-    setIsAdminMode(false)
-    setAdminSelectedBranch(null)
-    setAdminDate(todayISO())
-    setScreen('admin')
-  }
-
-  // ==================== RENDER HELPERS ====================
-  const getEmployeeBranch = () => branches.find(b => b.id === user?.branchId)
-  const getBranchName = (branchId: string) => branches.find(b => b.id === branchId)?.name || ''
-
-  const renderPriceGrid = () => {
-    const prices = getPricesForRoom(selectedRoom)
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {prices.map(price => {
-          const isExtra = EXTRA_PRICES.includes(price)
-          return (
-            <div key={price} className={`room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center`}>
-              <p className="text-xs text-slate-400 mb-2">تسعيرة</p>
-              <p className="text-2xl font-black text-white mb-1">{price} د.ل</p>
-              {isExtra && <p className="text-[10px] text-amber-400 mt-1">(شامل 5 د.ل إكسترا)</p>}
-              <input
-                type="number" min="0" value={priceInputs[price] || 0}
-                onChange={e => setPriceInputs(prev => ({ ...prev, [price]: Math.max(0, parseInt(e.target.value) || 0) }))}
-                onFocus={e => (e.target as HTMLInputElement).select()}
-                className="price-input w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-cyan-500 mt-2"
-              />
-            </div>
-          )
-        })}
-        {/* Custom price card */}
-        <div className="room-card bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center col-span-full sm:col-span-1">
-          <p className="text-xs text-violet-300 mb-2 font-semibold">➕ تسعيرة مخصصة</p>
-          <div className="flex gap-2 items-center">
-            <input type="number" min="0" value={customPriceInput} placeholder="السعر"
-              onChange={e => setCustomPriceInput(e.target.value)}
-              onFocus={e => (e.target as HTMLInputElement).select()}
-              className="price-input flex-1 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-base font-bold focus:outline-none focus:border-violet-500"
-            />
-            <input type="number" min="0" value={customCountInput} placeholder="العدد"
-              onChange={e => setCustomCountInput(e.target.value)}
-              onFocus={e => (e.target as HTMLInputElement).select()}
-              className="price-input w-20 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-violet-500"
-            />
-          </div>
-          <button onClick={handleAddCustomPrice} className="mt-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition w-full">إضافة</button>
-          {Object.keys(customPricesData).length > 0 && (
-            <div className="mt-2 space-y-1">
-              {Object.keys(customPricesData).map(key => {
-                const item = customPricesData[key]
-                return (
-                  <div key={key} className="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
-                    <span className="text-violet-300">{item.price} د.ل × {item.count}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-emerald-400 font-bold">{item.price * item.count} د.ل</span>
-                      <button onClick={() => setCustomPricesData(prev => { const n = { ...prev }; delete n[key]; return n })} className="text-rose-400 hover:text-rose-300 text-lg leading-none">×</button>
+      if (exportedCount > 0) {
+        pdf.save('تقرير_مغاسل_جيت_كلين.pdf')
+        setShowExportModal(false)
+        alert('تم التصدير بنجاح! (' + exportedCount + ' صفحة)')
+      } else {
+        alert('لا توجد بيانات للتصدير في الفترة المحددة')
+      } delete n[key]; return n })} className="text-rose-400 hover:text-rose-300 text-lg leading-none">×</button>
                     </div>
                   </div>
                 )
