@@ -1,0 +1,502 @@
+   700→   700→
+   701→   701→            // Populate room dropdown (branch-specific)
+   702→   702→            const branchRooms = getRoomsForBranch(branch ? branch.name : '');
+   703→   703→            const roomSelect = document.getElementById('roomSelect');
+   704→   704→            roomSelect.innerHTML = '<option value="">-- اختر غرفة --</option>';
+   705→   705→            branchRooms.forEach(room => {
+   706→   706→                roomSelect.innerHTML += `<option value="${room}">${ROOM_ICONS[room] || '🏠'} ${room}</option>`;
+   707→   707→            });
+   708→   708→
+   709→   709→            document.getElementById('carEntryArea').classList.add('hidden');
+   710→   710→
+   711→   711→            showScreen('employeeScreen');
+   712→   712→            renderEmployeeDashboard();
+   713→   713→        }
+   714→   714→
+   715→   715→        function logoutEmployee() {
+   716→   716→            if (confirm('هل تريد تسجيل الخروج؟')) {
+   717→   717→                goToLogin();
+   718→   718→                document.getElementById('loginPassword').value = '';
+   719→   719→            }
+   720→   720→        }
+   721→   721→
+   722→   722→        // ==================== CAR ENTRY ====================
+   723→   723→        function renderCarEntry() {
+   724→   724→            const room = document.getElementById('roomSelect').value;
+   725→   725→            const area = document.getElementById('carEntryArea');
+   726→   726→            const title = document.getElementById('selectedRoomTitle');
+   727→   727→            const grid = document.getElementById('priceGrid');
+   728→   728→
+   729→   729→            if (!room) {
+   730→   730→                area.classList.add('hidden');
+   731→   731→                return;
+   732→   732→            }
+   733→   733→
+   734→   734→            area.classList.remove('hidden');
+   735→   735→            title.innerHTML = `${ROOM_ICONS[room] || '🏠'} ${room}`;
+   736→   736→
+   737→   737→            const prices = getPricesForRoom(room);
+   738→   738→            grid.innerHTML = '';
+   739→   739→            prices.forEach(price => {
+   740→   740→                const isExtraPrice = EXTRA_PRICES.includes(price);
+   741→   741→                const extraNote = isExtraPrice ? `<p class="text-[10px] text-amber-400 mt-1">(شامل 5 د.ل إكسترا)</p>` : '';
+   742→   742→                grid.innerHTML += `
+   743→   743→                    <div class="room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center">
+   744→   744→                        <p class="text-xs text-slate-400 mb-2">تسعيرة</p>
+   745→   745→                        <p class="text-2xl font-black text-white mb-1">${price} د.ل</p>
+   746→   746→                        ${extraNote}
+   747→   747→                        <input type="number" min="0" value="0" data-price="${price}"
+   748→   748→                               class="price-input w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-cyan-500"
+   749→   749→                               id="carCount_${price}" onfocus="this.select()">
+   750→   750→                    </div>
+   751→   751→                `;
+   752→   752→            });
+   753→   753→
+   754→   754→            // Custom price card (تسعيرة مخصصة من المستخدم)
+   755→   755→            grid.innerHTML += `
+   756→   756→                <div class="room-card bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center col-span-full sm:col-span-1">
+   757→   757→                    <p class="text-xs text-violet-300 mb-2 font-semibold">➕ تسعيرة مخصصة</p>
+   758→   758→                    <div class="flex gap-2 items-center">
+   759→   759→                        <input type="number" min="0" value="" placeholder="السعر"
+   760→   760→                               class="price-input flex-1 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-base font-bold focus:outline-none focus:border-violet-500"
+   761→   761→                               id="customPrice" onfocus="this.select()">
+   762→   762→                        <input type="number" min="0" value="0" placeholder="العدد"
+   763→   763→                               class="price-input w-20 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-violet-500"
+   764→   764→                               id="customCount" onfocus="this.select()">
+   765→   765→                    </div>
+   766→   766→                    <button onclick="addCustomPrice()" class="mt-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition w-full">إضافة</button>
+   767→   767→                    <div id="customPricesList" class="mt-2 space-y-1"></div>
+   768→   768→                </div>
+   769→   769→            `;
+   770→   770→        }
+   771→   771→
+   772→   772→        // Custom prices storage (temporary during entry)
+   773→   773→        let customPricesData = {};
+   774→   774→
+   775→   775→        function addCustomPrice() {
+   776→   776→            const priceEl = document.getElementById('customPrice');
+   777→   777→            const countEl = document.getElementById('customCount');
+   778→   778→            if (!priceEl || !countEl) return;
+   779→   779→            const price = parseFloat(priceEl.value);
+   780→   780→            const count = parseInt(countEl.value) || 0;
+   781→   781→            if (!price || price <= 0) return alert('الرجاء إدخال سعر صحيح');
+   782→   782→            if (count <= 0) return alert('الرجاء إدخال عدد سيارات صحيح');
+   783→   783→            const key = 'custom_' + price;
+   784→   784→            if (isAdminMode) {
+   785→   785→                adminCustomPricesData[key] = { price: price, count: count };
+   786→   786→                renderAdminCustomPricesList();
+   787→   787→            } else {
+   788→   788→                customPricesData[key] = { price: price, count: count };
+   789→   789→                renderCustomPricesList();
+   790→   790→            }
+   791→   791→            priceEl.value = '';
+   792→   792→            countEl.value = 0;
+   793→   793→        }
+   794→   794→
+   795→   795→        function renderCustomPricesList() {
+   796→   796→            const list = document.getElementById('customPricesList');
+   797→   797→            if (!list) return;
+   798→   798→            const data = isAdminMode ? adminCustomPricesData : customPricesData;
+   799→   799→            list.innerHTML = '';
+   800→   800→            Object.keys(data).forEach(key => {
+   801→   801→                const item = data[key];
+   802→   802→                list.innerHTML += `
+   803→   803→                    <div class="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
+   804→   804→                        <span class="text-violet-300">${item.price} د.ل × ${item.count}</span>
+   805→   805→                        <div class="flex items-center gap-2">
+   806→   806→                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+   807→   807→                            <button onclick="removeCustomPrice('${key}')" class="text-rose-400 hover:text-rose-300">×</button>
+   808→   808→                        </div>
+   809→   809→                    </div>
+   810→   810→                `;
+   811→   811→            });
+   812→   812→        }
+   813→   813→
+   814→   814→        function removeCustomPrice(key) {
+   815→   815→            if (isAdminMode) {
+   816→   816→                delete adminCustomPricesData[key];
+   817→   817→                renderAdminCustomPricesList();
+   818→   818→            } else {
+   819→   819→                delete customPricesData[key];
+   820→   820→                renderCustomPricesList();
+   821→   821→            }
+   822→   822→        }
+   823→   823→
+   824→   824→        // Render admin custom prices list (into customPricesList container)
+   825→   825→        function renderAdminCustomPricesList() {
+   826→   826→            const list = document.getElementById('customPricesList');
+   827→   827→            if (!list) return;
+   828→   828→            list.innerHTML = '';
+   829→   829→            Object.keys(adminCustomPricesData).forEach(key => {
+   830→   830→                const item = adminCustomPricesData[key];
+   831→   831→                list.innerHTML += `
+   832→   832→                    <div class="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
+   833→   833→                        <span class="text-violet-300">${item.price} د.ل × ${item.count}</span>
+   834→   834→                        <div class="flex items-center gap-2">
+   835→   835→                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+   836→   836→                            <button onclick="removeAdminCustomPrice2('${key}')" class="text-rose-400 hover:text-rose-300">×</button>
+   837→   837→                        </div>
+   838→   838→                    </div>
+   839→   839→                `;
+   840→   840→            });
+   841→   841→        }
+   842→   842→
+   843→   843→        function removeAdminCustomPrice2(key) {
+   844→   844→            delete adminCustomPricesData[key];
+   845→   845→            renderAdminCustomPricesList();
+   846→   846→        }
+   847→   847→
+   848→   848→        function clearCarEntry() {
+   849→   849→            const room = document.getElementById('roomSelect').value;
+   850→   850→            const prices = getPricesForRoom(room);
+   851→   851→            prices.forEach(price => {
+   852→   852→                const el = document.getElementById('carCount_' + price);
+   853→   853→                if (el) el.value = 0;
+   854→   854→            });
+   855→   855→            // Clear custom prices
+   856→   856→            if (isAdminMode) {
+   857→   857→                adminCustomPricesData = {};
+   858→   858→            } else {
+   859→   859→                customPricesData = {};
+   860→   860→            }
+   861→   861→            const list = document.getElementById('customPricesList');
+   862→   862→            if (list) list.innerHTML = '';
+   863→   863→            const cp = document.getElementById('customPrice');
+   864→   864→            const cc = document.getElementById('customCount');
+   865→   865→            if (cp) cp.value = '';
+   866→   866→            if (cc) cc.value = 0;
+   867→   867→        }
+   868→   868→
+   869→   869→        function saveCarEntry() {
+   870→   870→            const room = document.getElementById('roomSelect').value;
+   871→   871→            const date = document.getElementById('empDatePicker').value;
+   872→   872→
+   873→   873→            if (!room) return alert('الرجاء اختيار الغرفة');
+   874→   874→            if (!date) return alert('الرجاء تحديد التاريخ');
+   875→   875→            if (!currentEmployee && !isAdminMode) return;
+   876→   876→
+   877→   877→            const prices = getPricesForRoom(room);
+   878→   878→            const priceCounts = {};
+   879→   879→            let totalCars = 0;
+   880→   880→            let totalAmount = 0;
+   881→   881→            let extraCars = 0;
+   882→   882→            let extraAmount = 0;
+   883→   883→
+   884→   884→            prices.forEach(price => {
+   885→   885→                const count = parseInt(document.getElementById('carCount_' + price).value) || 0;
+   886→   886→                if (count > 0) {
+   887→   887→                    priceCounts[price] = count;
+   888→   888→                    totalCars += count;
+   889→   889→                    if (EXTRA_PRICES.includes(price)) {
+   890→   890→                        totalAmount += (price - 5) * count;
+   891→   891→                        extraCars += count;
+   892→   892→                        extraAmount += 5 * count;
+   893→   893→                    } else {
+   894→   894→                        totalAmount += price * count;
+   895→   895→                    }
+   896→   896→                }
+   897→   897→            });
+   898→   898→
+   899→   899→            // Add custom prices
+   900→   900→            let customPricesSaved = {};
+   901→   901→            const cpData = isAdminMode ? adminCustomPricesData : customPricesData;
+   902→   902→            Object.keys(cpData).forEach(key => {
+   903→   903→                const item = cpData[key];
+   904→   904→                priceCounts['custom_' + item.price] = item.count;
+   905→   905→                customPricesSaved['custom_' + item.price] = { price: item.price, count: item.count };
+   906→   906→                totalCars += item.count;
+   907→   907→                totalAmount += item.price * item.count;
+   908→   908→            });
+   909→   909→
+   910→   910→            if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل');
+   911→   911→
+   912→   912→            // Determine empId and empName based on mode
+   913→   913→            let empId, empName, branchId;
+   914→   914→            if (isAdminMode) {
+   915→   915→                branchId = adminSelectedBranch;
+   916→   916→                empId = 'admin_' + adminSelectedBranch;
+   917→   917→                empName = 'المسؤول';
+   918→   918→            } else {
+   919→   919→                empId = currentEmployee.id;
+   920→   920→                empName = currentEmployee.name;
+   921→   921→                branchId = currentEmployee.branchId;
+   922→   922→            }
+   923→   923→
+   924→   924→            // Check if entry already exists
+   925→   925→            const existingIdx = carEntries.findIndex(e =>
+   926→   926→                e.empId === empId && e.room === room && e.date === date
+   927→   927→            );
+   928→   928→
+   929→   929→            const entry = {
+   930→   930→                id: existingIdx >= 0 ? carEntries[existingIdx].id : 'car_' + Date.now(),
+   931→   931→                empId: empId,
+   932→   932→                empName: empName,
+   933→   933→                branchId: branchId,
+   934→   934→                room: room,
+   935→   935→                date: date,
+   936→   936→                month: date.slice(0, 7),
+   937→   937→                priceCounts: priceCounts,
+   938→   938→                totalCars: totalCars,
+   939→   939→                totalAmount: totalAmount,
+   940→   940→                extraCars: extraCars,
+   941→   941→                extraAmount: extraAmount,
+   942→   942→                customPrices: customPricesSaved,
+   943→   943→                timestamp: Date.now()
+   944→   944→            };
+   945→   945→
+   946→   946→            let successMsg = `تم الحفظ بنجاح!\n${room} - ${totalCars} سيارات - ${totalAmount} د.ل`;
+   947→   947→            if (extraAmount > 0) {
+   948→   948→                successMsg += `\nإكسترا: ${extraCars} سيارة × 5 د.ل = ${extraAmount} د.ل`;
+   949→   949→            }
+   950→   950→
+   951→   951→            if (existingIdx >= 0) {
+   952→   952→                carEntries[existingIdx] = entry;
+   953→   953→            } else {
+   954→   954→                carEntries.push(entry);
+   955→   955→            }
+   956→   956→
+   957→   957→            saveData();
+   958→   958→            if (isAdminMode) {
+   959→   959→                adminCustomPricesData = {};
+   960→   960→            } else {
+   961→   961→                customPricesData = {};
+   962→   962→            }
+   963→   963→            clearCarEntry();
+   964→   964→            renderEmployeeDashboard();
+   965→   965→
+   966→   966→            // الانتقال التلقائي للغرفة التالية
+   967→   967→            let currentBranchName = '';
+   968→   968→            if (isAdminMode) {
+   969→   969→                const br = branches.find(b => b.id === adminSelectedBranch);
+   970→   970→                currentBranchName = br ? br.name : '';
+   971→   971→            } else {
+   972→   972→                const br = branches.find(b => b.id === currentEmployee.branchId);
+   973→   973→                currentBranchName = br ? br.name : '';
+   974→   974→            }
+   975→   975→            const branchRooms = getRoomsForBranch(currentBranchName);
+   976→   976→            const currentRoomIdx = branchRooms.indexOf(room);
+   977→   977→            if (currentRoomIdx >= 0 && currentRoomIdx < branchRooms.length - 1) {
+   978→   978→                const nextRoom = branchRooms[currentRoomIdx + 1];
+   979→   979→                document.getElementById('roomSelect').value = nextRoom;
+   980→   980→                renderCarEntry();
+   981→   981→            }
+   982→   982→
+   983→   983→            alert(successMsg);
+   984→   984→        }
+   985→   985→
+   986→   986→        // ==================== EMPLOYEE DASHBOARD ====================
+   987→   987→        function renderEmployeeDashboard() {
+   988→   988→            const date = document.getElementById('empDatePicker').value;
+   989→   989→            const grid = document.getElementById('empSummaryGrid');
+   990→   990→            const grandCard = document.getElementById('grandTotalCard');
+   991→   991→
+   992→   992→            let grandTotalAmount = 0;
+   993→   993→            let grandTotalCars = 0;
+   994→   994→            let grandTotalNet = 0;
+   995→   995→
+   996→   996→            if (isAdminMode) {
+   997→   997→                // === ADMIN MODE: show all entries for selected branch + date ===
+   998→   998→                if (!adminSelectedBranch || !date) {
+   999→   999→                    grid.innerHTML = `
+  1000→  1000→                        <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+  1001→  1001→                            <div class="text-4xl mb-3">📋</div>
+  1002→  1002→                            <p class="text-slate-400">${!adminSelectedBranch ? 'اختر الفرع لعرض البيانات' : 'اختر التاريخ لعرض البيانات'}</p>
+  1003→  1003→                        </div>
+  1004→  1004→                    `;
+  1005→  1005→                    grandCard.classList.add('hidden');
+  1006→  1006→                    return;
+  1007→  1007→                }
+  1008→  1008→
+  1009→  1009→                const branch = branches.find(b => b.id === adminSelectedBranch);
+  1010→  1010→                const branchName = branch ? branch.name : '';
+  1011→  1011→                const availableRooms = getRoomsForBranch(branchName);
+  1012→  1012→
+  1013→  1013→                // Get ALL entries for this branch+date (from employees + admin)
+  1014→  1014→                const branchEntries = carEntries.filter(e => e.branchId === adminSelectedBranch && e.date === date);
+  1015→  1015→
+  1016→  1016→                // Also get entries where admin previously saved with 'admin_' prefix empId
+  1017→  1017→                const adminEmpId = 'admin_' + adminSelectedBranch;
+  1018→  1018→                const allEntries = carEntries.filter(e => {
+  1019→  1019→                    return (e.branchId === adminSelectedBranch || e.empId === adminEmpId) && e.date === date;
+  1020→  1020→                });
+  1021→  1021→
+  1022→  1022→                if (allEntries.length === 0) {
+  1023→  1023→                    grid.innerHTML = `
+  1024→  1024→                        <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+  1025→  1025→                            <div class="text-4xl mb-3">📋</div>
+  1026→  1026→                            <p class="text-slate-400">لا توجد تسجيلات لهذا اليوم في فرع ${branchName}</p>
+  1027→  1027→                            <p class="text-slate-500 text-sm mt-1">اختر غرفة وسجل عدد السيارات</p>
+  1028→  1028→                        </div>
+  1029→  1029→                    `;
+  1030→  1030→                    grandCard.classList.add('hidden');
+  1031→  1031→                    return;
+  1032→  1032→                }
+  1033→  1033→
+  1034→  1034→                // Group entries by room (show latest per room, could be from employee or admin)
+  1035→  1035→                let html = '';
+  1036→  1036→                var roomNetMap = {};
+  1037→  1037→                availableRooms.forEach(room => {
+  1038→  1038→                    // Find entries for this room (from any employee or admin)
+  1039→  1039→                    const roomEntries = allEntries.filter(e => e.room === room);
+  1040→  1040→                    if (roomEntries.length === 0) return;
+  1041→  1041→
+  1042→  1042→                    // Show all entries for this room (grouped by who entered)
+  1043→  1043→                    roomEntries.forEach(entry => {
+  1044→  1044→                        grandTotalAmount += entry.totalAmount;
+  1045→  1045→                        grandTotalCars += entry.totalCars;
+  1046→  1046→                        var net = getNetAmount(entry.totalAmount, branchName, room);
+  1047→  1047→                        grandTotalNet += net;
+  1048→  1048→                        roomNetMap[room] = (roomNetMap[room] || 0) + net;
+  1049→  1049→
+  1050→  1050→                        let detailsHtml = '';
+  1051→  1051→                        const entryPrices = Object.keys(entry.priceCounts).filter(k => !String(k).startsWith('custom_')).map(Number);
+  1052→  1052→                        entryPrices.forEach(price => {
+  1053→  1053→                            const count = entry.priceCounts[price] || 0;
+  1054→  1054→                            if (count > 0) {
+  1055→  1055→                                let subtotal = price * count;
+  1056→  1056→                                let priceLabel = `${price} د.ل`;
+  1057→  1057→                                if (EXTRA_PRICES.includes(price)) {
+  1058→  1058→                                    subtotal = (price - 5) * count;
+  1059→  1059→                                    priceLabel = `${price} د.ل <span class="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = ${price - 5} د.ل)</span>`;
+  1060→  1060→                                }
+  1061→  1061→                                detailsHtml += `
+  1062→  1062→                                    <div class="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
+  1063→  1063→                                        <span class="text-slate-300">تسعيرة ${priceLabel}:</span>
+  1064→  1064→                                        <div class="flex items-center gap-3">
+  1065→  1065→                                            <span class="text-white font-bold">${count} سيارة</span>
+  1066→  1066→                                            <span class="text-emerald-400 font-bold">${subtotal} د.ل</span>
+  1067→  1067→                                        </div>
+  1068→  1068→                                    </div>
+  1069→  1069→                                `;
+  1070→  1070→                            }
+  1071→  1071→                        });
+  1072→  1072→
+  1073→  1073→                        // عرض التسعيرات المخصصة
+  1074→  1074→                        if (entry.customPrices) {
+  1075→  1075→                            Object.keys(entry.customPrices).forEach(key => {
+  1076→  1076→                                const item = entry.customPrices[key];
+  1077→  1077→                                detailsHtml += `
+  1078→  1078→                                    <div class="flex justify-between items-center text-sm bg-violet-500/10 border border-violet-500/20 px-3 py-2 rounded-lg">
+  1079→  1079→                                        <span class="text-violet-300">تسعيرة مخصصة ${item.price} د.ل:</span>
+  1080→  1080→                                        <div class="flex items-center gap-3">
+  1081→  1081→                                            <span class="text-white font-bold">${item.count} سيارة</span>
+  1082→  1082→                                            <span class="text-emerald-400 font-bold">${item.price * item.count} د.ل</span>
+  1083→  1083→                                        </div>
+  1084→  1084→                                    </div>
+  1085→  1085→                                `;
+  1086→  1086→                            });
+  1087→  1087→                        }
+  1088→  1088→
+  1089→  1089→                        // إضافة صف الإكسترا لو فيه
+  1090→  1090→                        if (entry.extraCars && entry.extraCars > 0) {
+  1091→  1091→                            detailsHtml += `
+  1092→  1092→                                <div class="flex justify-between items-center text-sm bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg mt-1">
+  1093→  1093→                                    <span class="text-amber-300 font-semibold">⭐ إكسترا:</span>
+  1094→  1094→                                    <div class="flex items-center gap-3">
+  1095→  1095→                                        <span class="text-amber-200 font-bold">${entry.extraCars} سيارة × 5 د.ل</span>
+  1096→  1096→                                        <span class="text-amber-400 font-bold">${entry.extraAmount} د.ل</span>
+  1097→  1097→                                    </div>
+  1098→  1098→                                </div>
+  1099→  1099→                            `;
+  1100→  1100→                        }
+  1101→  1101→
+  1102→  1102→                        const entryLabel = entry.empName === 'المسؤول' ? '👨‍💼 المسؤول' : entry.empName;
+  1103→  1103→                        const labelColor = entry.empName === 'المسؤول' ? 'text-amber-400' : 'text-cyan-400';
+  1104→  1104→                        const borderColor = entry.empName === 'المسؤول' ? 'border-amber-500/20' : 'border-slate-700';
+  1105→  1105→
+  1106→  1106→                        html += `
+  1107→  1107→                            <div class="room-card bg-slate-800 border ${borderColor} rounded-2xl p-5 shadow-lg">
+  1108→  1108→                                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+  1109→  1109→                                    <h3 class="text-lg font-bold ${labelColor} flex items-center gap-2">
+  1110→  1110→                                        ${ROOM_ICONS[room] || '🏠'} ${room} <span class="text-xs text-slate-400 font-normal">(${entryLabel})</span>
+  1111→  1111→                                    </h3>
+  1112→  1112→                                    <div class="flex items-center gap-2">
+  1113→  1113→                                        <span class="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">${entry.totalCars} سيارة</span>
+  1114→  1114→                                        <button onclick="editAdminCarEntry2('${entry.id}', '${room}')" class="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️ تعديل</button>
+  1115→  1115→                                        <button onclick="deleteCarEntry('${entry.id}')" class="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
+  1116→  1116→                                    </div>
+  1117→  1117→                                </div>
+  1118→  1118→                                <div class="space-y-1.5">
+  1119→  1119→                                    ${detailsHtml}
+  1120→  1120→                                </div>
+  1121→  1121→                                <div class="mt-4 pt-3 border-t border-slate-700">
+  1122→  1122→                                    <div class="flex justify-between items-center">
+  1123→  1123→                                        <span class="text-slate-300 font-semibold text-sm">إجمالي ${room}:</span>
+  1124→  1124→                                        <span class="text-xl font-black text-emerald-400">${entry.totalAmount} د.ل</span>
+  1125→  1125→                                    </div>
+  1126→  1126→                                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
+  1127→  1127→                                        <span class="text-cyan-300 font-semibold text-sm">الصافي:</span>
+  1128→  1128→                                        <span class="text-lg font-black text-cyan-400">${getNetAmount(entry.totalAmount, branchName, room)} د.ل</span>
+  1129→  1129→                                    </div>
+  1130→  1130→                                    <p class="text-[10px] text-slate-500 mt-1 text-left">(${getNetFormulaText(branchName, room)})</p>
+  1131→  1131→                                </div>
+  1132→  1132→                            </div>
+  1133→  1133→                        `;
+  1134→  1134→                    });
+  1135→  1135→                });
+  1136→  1136→
+  1137→  1137→                grid.innerHTML = html;
+  1138→  1138→                document.getElementById('grandTotalAmount').textContent = grandTotalAmount + ' د.ل';
+  1139→  1139→                document.getElementById('grandTotalCars').textContent = grandTotalCars + ' سيارة';
+  1140→  1140→                document.getElementById('grandTotalNet').textContent = grandTotalNet + ' د.ل';
+  1141→  1141→                // مصاريف العمال
+  1142→  1142→                var workerExpTotal = renderWorkerExpenses(branchName, date, roomNetMap) || 0;
+  1143→  1143→                renderTreasury(branchName, date, grandTotalAmount, workerExpTotal);
+  1144→  1144→                // إظهار الخزينة للمسؤول
+  1145→  1145→                document.getElementById('workerExpTreasuryRow').classList.remove('hidden');
+  1146→  1146→                var treasurySection = document.querySelector('#workerExpTreasuryRow > div > div:nth-child(2)');
+  1147→  1147→                if (treasurySection) treasurySection.style.display = '';
+  1148→  1148→                grandCard.classList.remove('hidden');
+  1149→  1149→                return;
+  1150→  1150→            }
+  1151→  1151→
+  1152→  1152→            // === EMPLOYEE MODE ===
+  1153→  1153→            if (!currentEmployee) return;
+  1154→  1154→
+  1155→  1155→            // الموظف يرى مدخلاته + مدخلات المسؤول لنفس الفرع والتاريخ
+  1156→  1156→            var adminEmpId = 'admin_' + currentEmployee.branchId;
+  1157→  1157→            const empEntries = carEntries.filter(e =>
+  1158→  1158→                (e.empId === currentEmployee.id || e.empId === adminEmpId) && e.date === date
+  1159→  1159→            );
+  1160→  1160→
+  1161→  1161→            if (empEntries.length === 0) {
+  1162→  1162→                grid.innerHTML = `
+  1163→  1163→                    <div class="col-span-full bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+  1164→  1164→                        <div class="text-4xl mb-3">📋</div>
+  1165→  1165→                        <p class="text-slate-400">لا توجد تسجيلات لهذا اليوم بعد</p>
+  1166→  1166→                        <p class="text-slate-500 text-sm mt-1">اختر غرفة وسجل عدد السيارات</p>
+  1167→  1167→                    </div>
+  1168→  1168→                `;
+  1169→  1169→                grandCard.classList.add('hidden');
+  1170→  1170→                return;
+  1171→  1171→            }
+  1172→  1172→
+  1173→  1173→            let html = '';
+  1174→  1174→            var roomNetMap = {};
+  1175→  1175→            const currentBranch = branches.find(b => b.id === currentEmployee.branchId);
+  1176→  1176→            const currentBranchName = currentBranch ? currentBranch.name : '';
+  1177→  1177→
+  1178→  1178→            const branchAvailableRooms = getRoomsForBranch(currentBranchName);
+  1179→  1179→
+  1180→  1180→            // تجميع المدخلات حسب الغرفة (مدخلات الموظف + المسؤول)
+  1181→  1181→            var empRoomEntries = {};
+  1182→  1182→            empEntries.forEach(function(entry) {
+  1183→  1183→                if (!empRoomEntries[entry.room]) empRoomEntries[entry.room] = [];
+  1184→  1184→                empRoomEntries[entry.room].push(entry);
+  1185→  1185→            });
+  1186→  1186→
+  1187→  1187→            branchAvailableRooms.forEach(room => {
+  1188→  1188→                var roomEntries = empRoomEntries[room];
+  1189→  1189→                if (!roomEntries || roomEntries.length === 0) return;
+  1190→  1190→
+  1191→  1191→                roomEntries.forEach(function(entry) {
+  1192→  1192→                grandTotalAmount += entry.totalAmount;
+  1193→  1193→                grandTotalCars += entry.totalCars;
+  1194→  1194→                var net = getNetAmount(entry.totalAmount, currentBranchName, room);
+  1195→  1195→                grandTotalNet += net;
+  1196→  1196→                roomNetMap[room] = (roomNetMap[room] || 0) + net;
+  1197→  1197→
+  1198→  1198→                let detailsHtml = '';
+  1199→  1199→                // عرض التسعيرات العادية (فقط الأرقام، بدون الـ custom_)
+
+[showing lines 700-1199 of 2002; use offset=1200 with limit to continue reading]
