@@ -248,7 +248,25 @@ function buildEmptyRoomTableHTML(room: string) {
     '</table>'
 }
 
-function buildCarReportHTML(selectedDate: string, branchId: string, branchName: string, entries: CarEntry[]) {
+const TREASURY_ITEMS = [
+  { key: 'المبيعات', label: 'المبيعات' },
+  { key: 'ملغي', label: 'ملغي' },
+  { key: 'مصاريف_العمال', label: 'مصاريف العمال' },
+  { key: 'بدل_البطاقة', label: 'بدل البطاقة المصرفية' },
+  { key: 'بيع_البطاقة', label: 'بيع البطاقة المصرفية' },
+  { key: 'كوبونات', label: 'كوبونات', branchOnly: 'بن غرسه' },
+  { key: 'فائض', label: 'فائض' },
+  { key: 'تم_التحويل', label: 'تم التحويل' }
+]
+
+function getTreasuryItems(branchName: string) {
+  return TREASURY_ITEMS.filter(item => {
+    if (item.branchOnly && item.branchOnly !== branchName) return false
+    return true
+  })
+}
+
+function buildCarReportHTML(selectedDate: string, branchId: string, branchName: string, entries: CarEntry[], savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>) {
   // Group entries by room
   const roomMap: Record<string, CarEntry[]> = {}
   entries.forEach(e => {
@@ -261,59 +279,171 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   let grandTotalCars = 0
   let grandTotalNet = 0
 
-  // Page 1: Room tables
-  let tablesHtml = ''
-  branchRooms.forEach(room => {
+  // Order rooms: regular rooms first, machine last
+  const regularRooms = branchRooms.filter(r => r !== 'مكينة الغسيل')
+  const hasMachine = branchRooms.includes('مكينة الغسيل')
+  const orderedRooms = [...regularRooms]
+  if (hasMachine) orderedRooms.push('مكينة الغسيل')
+
+  // Build room data
+  const roomCells: string[] = []
+  orderedRooms.forEach(room => {
     const roomEntries = roomMap[room] || []
     if (roomEntries.length > 0) {
-      tablesHtml += buildRoomTableHTML(room, roomEntries, branchName)
       const roomTotal = roomEntries.reduce((s, e) => s + e.totalAmount, 0)
       const roomCars = roomEntries.reduce((s, e) => s + e.totalCars, 0)
       grandTotalAmount += roomTotal
       grandTotalCars += roomCars
       grandTotalNet += getNetAmount(roomTotal, branchName, room)
+      roomCells.push(buildRoomTableHTML(room, roomEntries, branchName))
     } else {
-      tablesHtml += buildEmptyRoomTableHTML(room)
+      roomCells.push(buildEmptyRoomTableHTML(room))
     }
   })
 
-  const page1 = '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
-    '<div style="text-align:center;margin-bottom:15px;">' +
-    '<h1 style="font-size:18px;margin:0;color:#333;">مغسلة جيت كلين - ' + branchName + '</h1>' +
-    '<p style="font-size:12px;color:#666;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+  // 2-column grid for rooms
+  let roomsGridHtml = ''
+  for (let i = 0; i < roomCells.length; i += 2) {
+    roomsGridHtml += '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+      '<div style="flex:1;min-width:0;">' + roomCells[i] + '</div>' +
+      (roomCells[i + 1] ? '<div style="flex:1;min-width:0;">' + roomCells[i + 1] + '</div>' : '') +
+      '</div>'
+  }
+
+  // Totals bar
+  const totalsHtml = '<div style="display:flex;gap:0;margin-top:8px;border:2px solid #333;">' +
+    '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
+    '<div style="font-size:11px;color:#555;">إجمالي المبيعات</div>' +
+    '<div style="font-size:18px;font-weight:bold;">' + grandTotalAmount + ' د.ل</div>' +
     '</div>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">' +
-    tablesHtml +
-    '</div>' +
-    '<div style="margin-top:10px;display:flex;justify-content:space-around;background:#f5f5f5;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:11px;">' +
-    '<div><strong>السيارات:</strong> ' + grandTotalCars + '</div>' +
-    '<div><strong>المبيعات:</strong> ' + grandTotalAmount + ' د.ل</div>' +
-    '<div><strong>الصافي:</strong> ' + grandTotalNet + ' د.ل</div>' +
+    '<div style="flex:1;text-align:center;padding:8px;">' +
+    '<div style="font-size:11px;color:#555;">إجمالي الصافي</div>' +
+    '<div style="font-size:18px;font-weight:bold;">' + grandTotalNet + ' د.ل</div>' +
     '</div>' +
     '</div>'
 
-  // Page 2: Worker expenses + Treasury (placeholder data)
-  const page2 = '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
-    '<div style="text-align:center;margin-bottom:15px;">' +
-    '<h1 style="font-size:18px;margin:0;color:#333;">مغسلة جيت كلين - ' + branchName + '</h1>' +
-    '<p style="font-size:12px;color:#666;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+  // Page 1: Room tables + totals
+  const page1 = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+    '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+    '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+    '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">تقرير تسجيل السيارات</p>' +
+    '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
     '</div>' +
-    '<div style="margin-bottom:15px;">' +
-    '<h3 style="font-size:14px;margin-bottom:8px;color:#333;">🧹 مصاريف العمال</h3>' +
-    '<table style="width:100%;border-collapse:collapse;">' +
-    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">البيان</td><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">المبلغ (د.ل)</td></tr>' +
-    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">النظافة</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
+    roomsGridHtml +
+    totalsHtml +
+    '</div>'
+
+  // ---- Page 2: Worker expenses + Treasury ----
+  const cleannessConfig = BRANCH_CLEANLINESS[branchName]
+  const wKey = branchName + '_' + selectedDate
+  const savedWE = savedWorkerExpenses?.[wKey] || {}
+  let savedCleanliness = 0
+  if (cleannessConfig) {
+    if (cleannessConfig.type === 'fixed') {
+      savedCleanliness = cleannessConfig.value || 0
+    } else {
+      savedCleanliness = savedWE.cleanliness || 0
+    }
+  }
+
+  // Worker expenses rows - net per room + cleanliness + grand total
+  let workerRowsHtml = ''
+  orderedRooms.forEach(room => {
+    const roomEnts = entries.filter(e => e.room === room)
+    const roomAmt = roomEnts.reduce((s, e) => s + e.totalAmount, 0)
+    const roomNet = getNetAmount(roomAmt, branchName, room)
+    if (roomNet === 0) return
+    const icon = ROOM_ICONS[room] || '🏠'
+    workerRowsHtml += '<tr>' +
+      '<td style="padding:5px 8px;border:1px solid #333;font-size:11px;text-align:center;vertical-align:middle;">' + icon + ' ' + room + '</td>' +
+      '<td style="padding:5px 8px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;vertical-align:middle;">' + roomNet + ' د.ل</td>' +
+      '</tr>'
+  })
+
+  // Cleanliness row
+  workerRowsHtml += '<tr style="background:#fffbe6;">' +
+    '<td style="padding:4px 8px;border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;vertical-align:middle;">🧹 النظافة</td>' +
+    '<td style="padding:4px 8px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;vertical-align:middle;">' + savedCleanliness + ' د.ل</td>' +
+    '</tr>'
+
+  // Grand total after expenses
+  const finalTotalAfterExpenses = grandTotalNet + savedCleanliness
+  workerRowsHtml += '<tr style="background:#e8f5e9;">' +
+    '<td style="padding:5px 8px;border:2px solid #333;font-size:12px;font-weight:bold;text-align:center;vertical-align:middle;">الإجمالي</td>' +
+    '<td style="padding:5px 8px;border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;vertical-align:middle;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+    '</tr>'
+
+  const workerExpensesHtml = '<div style="flex:1;border:2px solid #333;">' +
+    '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+    '<tr><td colspan="2" style="padding:5px 8px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;border:1px solid #333;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    workerRowsHtml +
     '</table>' +
-    '</div>' +
-    '<div>' +
-    '<h3 style="font-size:14px;margin-bottom:8px;color:#333;">🏦 الخزينة</h3>' +
-    '<table style="width:100%;border-collapse:collapse;">' +
-    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">البيان</td><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">المبلغ (د.ل)</td></tr>' +
-    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">الإجمالي</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
-    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">نقدي</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
-    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">آجل</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
+    '</div>'
+
+  // Treasury table
+  const treasSaved = savedWE.treasury || {}
+  const pdfTreasuryItems = getTreasuryItems(branchName)
+  const pdfBankCardSale = parseInt(String(treasSaved['بيع_البطاقة']?.expense)) || 0
+  const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
+  const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
+
+  const tCellPad = 'padding:5px 6px;border:1px solid #333;vertical-align:middle;'
+  const tLabelStyle = tCellPad + 'font-size:10px;'
+  const tValueStyle = tCellPad + 'text-align:center;font-size:11px;font-weight:bold;'
+
+  let treasuryRowsHtml = ''
+  treasuryRowsHtml += '<tr style="background:#dbeafe;">' +
+    '<td style="' + tLabelStyle + 'font-weight:bold;text-align:center;">البيان</td>' +
+    '<td style="' + tValueStyle + '">دخل</td>' +
+    '<td style="' + tValueStyle + '">خرج</td>' +
+    '<td style="' + tValueStyle + '">الرصيد</td>' +
+    '</tr>'
+
+  let tRunningBalance = 0
+  pdfTreasuryItems.forEach(item => {
+    const rowS = treasSaved[item.key] || {}
+    let tIncome = rowS.income || 0
+    let tExpense = rowS.expense || 0
+    let isAuto = false
+
+    if (item.key === 'بدل_البطاقة') {
+      tExpense = pdfBankCardReplace
+      isAuto = true
+    }
+    if (item.key === 'مصاريف_العمال') {
+      tExpense = pdfWorkerExpInTreasury
+      isAuto = true
+    }
+
+    tRunningBalance = tRunningBalance + tIncome - tExpense
+    const balColor = tRunningBalance >= 0 ? '#1b7a3d' : '#dc2626'
+    const labelSuffix = isAuto ? ' *' : ''
+
+    treasuryRowsHtml += '<tr>' +
+      '<td style="' + tLabelStyle + 'text-align:center;">' + item.label + labelSuffix + '</td>' +
+      '<td style="' + tValueStyle + 'color:#16a34a;">' + (tIncome > 0 ? tIncome : '') + '</td>' +
+      '<td style="' + tValueStyle + 'color:#dc2626;">' + (tExpense > 0 ? tExpense : '') + '</td>' +
+      '<td style="' + tValueStyle + 'color:' + balColor + ';">' + tRunningBalance + '</td>' +
+      '</tr>'
+  })
+
+  const treasuryHtml = '<div style="flex:1;border:2px solid #333;">' +
+    '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+    '<tr><td colspan="4" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
+    treasuryRowsHtml +
     '</table>' +
+    '</div>'
+
+  const sideBySideHtml = '<div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div>'
+
+  // Page 2: Worker expenses + Treasury
+  const page2 = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+    '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+    '<h1 style="font-size:20px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+    '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">مصاريف العمال والخزينة</p>' +
+    '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
     '</div>' +
+    sideBySideHtml +
     '</div>'
 
   return { page1, page2 }
@@ -510,13 +640,14 @@ export default function JetCleanApp() {
     } catch (e) { console.error(e) }
   }
 
-  const loadRecords = async (params?: { empId?: string; date?: string; branchId?: string }) => {
+  const loadRecords = async (params?: { empId?: string; date?: string; branchId?: string }, cacheBuster?: boolean) => {
     try {
       const searchParams = new URLSearchParams()
       if (params?.empId) searchParams.set('empId', params.empId)
       if (params?.date) searchParams.set('date', params.date)
       if (params?.branchId) searchParams.set('branchId', params.branchId)
-      const res = await fetch(`/api/records?${searchParams}`)
+      if (cacheBuster) searchParams.set('_t', String(Date.now()))
+      const res = await fetch(`/api/records?${searchParams}`, { cache: 'no-store' })
       if (res.ok) setRecords(await res.json())
     } catch (e) { console.error(e) }
   }
@@ -853,7 +984,8 @@ export default function JetCleanApp() {
         })
       })
       setShowRecordModal(false)
-      await loadRecords({ date: recordModalData.date })
+      await new Promise(r => setTimeout(r, 300))
+      await loadRecords({ date: recordModalData.date }, true)
     } catch (e) { alert('حدث خطأ أثناء الحفظ') }
   }
 
@@ -861,7 +993,8 @@ export default function JetCleanApp() {
     if (!confirm('هل تريد حذف هذه الحركة؟')) return
     try {
       await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
-      await loadRecords({ date: adminDate })
+      await new Promise(r => setTimeout(r, 300))
+      await loadRecords({ date: adminDate }, true)
     } catch (e) { alert('حدث خطأ أثناء الحذف') }
   }
 
@@ -1288,6 +1421,110 @@ export default function JetCleanApp() {
     setExportingEmp(false)
   }
 
+  // ==================== CAR ENTRY PDF EXPORT (Employee Screen) ====================
+  const handleExportCarEntryPDF = async () => {
+    setExportingEmp(true)
+    try {
+      const html2canvasModule = await import('html2canvas')
+      const html2canvas = html2canvasModule.default
+      const jspdfModule = await import('jspdf')
+      const jsPDF = jspdfModule.default
+
+      // Determine branch and entries
+      let branchId = ''
+      let branchName = ''
+      let date = empDate
+
+      if (isAdminMode) {
+        if (!adminSelectedBranch) { setExportingEmp(false); return alert('الرجاء اختيار الفرع أولاً') }
+        branchId = adminSelectedBranch
+        const branch = branches.find(b => b.id === branchId)
+        branchName = branch ? branch.name : ''
+      } else {
+        if (!user) { setExportingEmp(false); return }
+        branchId = user.branchId
+        const branch = branches.find(b => b.id === branchId)
+        branchName = branch ? branch.name : ''
+      }
+
+      if (!date) { setExportingEmp(false); return alert('الرجاء تحديد التاريخ') }
+
+      // Fetch car entries for this branch+date
+      const params = new URLSearchParams()
+      params.set('date', date)
+      params.set('branchId', branchId)
+      const res = await fetch(`/api/car-entries?${params}`)
+      const entries: CarEntry[] = res.ok ? await res.json() : []
+
+      if (entries.length === 0) {
+        alert('لا توجد تسجيلات في هذا التاريخ للتصدير')
+        setExportingEmp(false)
+        return
+      }
+
+      // Build report
+      const pages = buildCarReportHTML(date, branchId, branchName, entries)
+
+      const reportArea = pdfAreaRef.current
+      if (!reportArea) { setExportingEmp(false); return alert('خطأ في عنصر التقرير') }
+
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+
+      // Render Page 1
+      reportArea.innerHTML = pages.page1
+      reportArea.style.position = 'fixed'
+      reportArea.style.top = '0'
+      reportArea.style.left = '-99999px'
+      reportArea.style.width = '800px'
+      reportArea.style.zIndex = '-1'
+
+      await new Promise(r => setTimeout(r, 300))
+      const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+      const imgData1 = canvas1.toDataURL('image/png')
+      const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
+
+      reportArea.style.position = ''
+      reportArea.style.top = ''
+      reportArea.style.left = ''
+      reportArea.style.width = ''
+      reportArea.style.zIndex = ''
+
+      // Render Page 2
+      reportArea.innerHTML = pages.page2
+      reportArea.style.position = 'fixed'
+      reportArea.style.top = '0'
+      reportArea.style.left = '-99999px'
+      reportArea.style.width = '800px'
+      reportArea.style.zIndex = '-1'
+
+      await new Promise(r => setTimeout(r, 300))
+      const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+      const imgData2 = canvas2.toDataURL('image/png')
+      const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
+
+      reportArea.style.position = ''
+      reportArea.style.top = ''
+      reportArea.style.left = ''
+      reportArea.style.width = ''
+      reportArea.style.zIndex = ''
+      reportArea.innerHTML = ''
+
+      // Add to PDF
+      pdf.addImage(imgData1, 'PNG', 0, 0, pageWidth, imgHeight1)
+      pdf.addPage()
+      pdf.addImage(imgData2, 'PNG', 0, 0, pageWidth, imgHeight2)
+
+      const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
+      pdf.save(fileName)
+    } catch (err) {
+      console.error(err)
+      alert('حدث خطأ أثناء إنشاء ملف PDF')
+    }
+    setExportingEmp(false)
+  }
+
   const renderEntryCard = (entry: CarEntry, branchName: string) => {
     const room = entry.room
     let detailsHtml: React.ReactNode[] = []
@@ -1501,7 +1738,7 @@ export default function JetCleanApp() {
               </button>
             )}
             {isAdminMode && (
-              <button onClick={handleExportEmployeePDF} disabled={exportingEmp} className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-indigo-500/30">
+              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-indigo-500/30">
                 📄 تصدير تقرير PDF
               </button>
             )}
@@ -1665,7 +1902,7 @@ export default function JetCleanApp() {
 
         <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
           {/* صف واحد: التاريخ + السحبيات + العجوزات */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col justify-center">
               <label className="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
               <input
