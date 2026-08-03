@@ -2093,8 +2093,8 @@ export default function JetCleanApp() {
     })
 
     return (
-      <div className="min-h-screen bg-[#0f1117]">
-        <header className="bg-[#1a1d24]/90 backdrop-blur-sm border-b border-slate-700/50 sticky top-0 z-50 px-4 py-3">
+      <div className="min-h-screen bg-slate-900">
+        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -2131,22 +2131,22 @@ export default function JetCleanApp() {
         <main className="max-w-5xl mx-auto p-4 pb-24 space-y-4">
           {/* صف واحد: التاريخ + السحبيات + العجوزات */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#1a1d24] p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-center">
+            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col justify-center">
               <label className="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
               <input
                 type="date" value={adminDate}
                 onChange={e => setAdminDate(e.target.value)}
-                className="bg-[#121418] border border-slate-600/50 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
+                className="bg-slate-900 border border-slate-600/50 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
               />
             </div>
-            <div className="bg-[#1a1d24] p-4 rounded-2xl border border-slate-700/50 flex justify-between items-center">
+            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
               <div>
                 <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات اليوم</p>
                 <h2 className="text-2xl font-black text-amber-400 mt-1">{grandWithdrawals} د.ل</h2>
               </div>
               <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
             </div>
-            <div className="bg-[#1a1d24] p-4 rounded-2xl border border-slate-700/50 flex justify-between items-center">
+            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
               <div>
                 <p className="text-slate-400 text-xs font-bold">إجمالي عجوزات اليوم</p>
                 <h2 className="text-2xl font-black text-rose-400 mt-1">{grandShortages} د.ل</h2>
@@ -2184,7 +2184,7 @@ export default function JetCleanApp() {
                 branchCarCount += carCount
 
                 return (
-                  <div key={emp.id} className="bg-[#121418] border border-slate-700/40 rounded-xl p-3.5">
+                  <div key={emp.id} className="bg-slate-900 border border-slate-700/40 rounded-xl p-3.5">
                     <div className="flex justify-between items-center mb-2.5">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-white text-sm">{emp.name}</h3>
@@ -2208,7 +2208,7 @@ export default function JetCleanApp() {
                     </div>
 
                     {/* صف الإحصائيات: السيارات + السحبيات + العجوزات */}
-                    <div className="flex items-center gap-0 bg-[#1a1d24] rounded-lg overflow-hidden text-[11px] border border-slate-700/30">
+                    <div className="flex items-center gap-0 bg-slate-800/80 rounded-lg overflow-hidden text-[11px] border border-slate-700/30">
                       <div className="flex-1 flex justify-between px-3 py-2">
                         <span className="text-slate-400">🚗 السيارات</span>
                         <span className="font-bold text-emerald-400">{carCount}</span>
@@ -2236,7 +2236,7 @@ export default function JetCleanApp() {
                         <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
                       )}
                       {empRecords.map(r => (
-                        <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-[#1a1d24] px-2.5 py-1.5 rounded-lg">
+                        <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1.5 rounded-lg">
                           <span>{r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
@@ -2261,7 +2261,7 @@ export default function JetCleanApp() {
               })
 
               return (
-                <div key={branch.id} className="bg-[#1a1d24] border border-slate-700/50 rounded-2xl overflow-hidden shadow-lg">
+                <div key={branch.id} className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
                   {/* رأس البطاقة */}
                   <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-700/40">
                     <div className="flex items-center gap-2">
@@ -2503,7 +2503,7 @@ export default function JetCleanApp() {
               const branchEmps = employees.filter(e => e.branchId === branch.id)
               if (branchEmps.length === 0) return null
               return (
-                <div key={branch.id} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4">
+                <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
                   <h4 className="font-bold text-cyan-400 text-sm mb-3 flex items-center gap-2">📍 {branch.name}</h4>
                   <div className="space-y-3">
                     {branchEmps.map(emp => (
