@@ -592,6 +592,11 @@ export default function JetCleanApp() {
     }
   }
 
+  const getEmployeeBranch = () => {
+    if (!user?.branchId) return null
+    return branches.find(b => b.id === user.branchId) || null
+  }
+
   const switchToCarEntry = () => {
     setScreen('employee')
   }
