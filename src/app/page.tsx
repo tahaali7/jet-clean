@@ -1798,22 +1798,21 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-4xl mx-auto px-4 pb-24 space-y-4">
-          {isAdminMode && (
-            <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/20 mb-6">
-              <label className="block text-sm text-amber-300 mb-2 font-semibold">📍 اختر الفرع:</label>
-              <select
-                value={adminSelectedBranch || ''}
-                onChange={e => { setAdminSelectedBranch(e.target.value || null); setSelectedRoom('') }}
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-base focus:outline-none focus:border-amber-500"
-              >
-                <option value="">-- اختر فرع --</option>
-                {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
-              </select>
-            </div>
-          )}
-
           <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
-            <label className="text-sm text-slate-400 font-bold">التاريخ:</label>
+            {isAdminMode && (
+              <>
+                <label className="text-sm text-amber-300 font-semibold whitespace-nowrap">📍 اختر الفرع:</label>
+                <select
+                  value={adminSelectedBranch || ''}
+                  onChange={e => { setAdminSelectedBranch(e.target.value || null); setSelectedRoom('') }}
+                  className="bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white text-base focus:outline-none focus:border-amber-500"
+                >
+                  <option value="">-- اختر فرع --</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
+                </select>
+              </>
+            )}
+            <label className="text-sm text-slate-400 font-bold whitespace-nowrap">التاريخ:</label>
             <input
               type="date" value={empDate}
               onChange={e => setEmpDate(e.target.value)}
