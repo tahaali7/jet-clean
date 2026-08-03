@@ -767,39 +767,38 @@ export default function JetCleanApp() {
   }
 
   // ==================== EFFECTS ====================
-  useEffect(() => {
-    void loadEmployees()
-  }, [])
+  // Initial data loading handled by screen-specific useEffects
 
-  useEffect(() => {
-    void loadBranches()
-  }, [])
-
-  // Employee screen data fetching
+  // Employee screen data fetching - sequential
   useEffect(() => {
     if (screen === 'employee' && empDate) {
-      if (isAdminMode && adminSelectedBranch) {
-        void loadCarEntries(empDate, adminSelectedBranch)
-        void loadWorkerExpenses(empDate, adminSelectedBranch)
-        void loadTreasuries(empDate, adminSelectedBranch)
-      } else if (!isAdminMode && user?.role === 'employee' && user.branchId) {
-        void loadCarEntries(empDate, user.branchId)
-        void loadWorkerExpenses(empDate, user.branchId)
-      }
-      void loadClosedDays(empDate)
+      ;(async () => {
+        await loadBranches()
+        await loadEmployees()
+        if (isAdminMode && adminSelectedBranch) {
+          await loadCarEntries(empDate, adminSelectedBranch)
+          await loadWorkerExpenses(empDate, adminSelectedBranch)
+        } else if (!isAdminMode && user?.role === 'employee' && user.branchId) {
+          await loadCarEntries(empDate, user.branchId)
+          await loadWorkerExpenses(empDate, user.branchId)
+        }
+        await loadClosedDays(empDate)
+      })()
     }
   }, [screen, empDate, isAdminMode, adminSelectedBranch, user])
 
-  // Admin screen data fetching
+  // Admin screen data fetching - sequential to avoid connection saturation
   useEffect(() => {
     if (screen === 'admin') {
-      void loadBranches()
-      void loadEmployees()
-      if (adminDate) {
-        void loadRecords({ date: adminDate })
-        void loadAllCarEntries(adminDate)
-        void loadClosedDays(adminDate)
-      }
+      ;(async () => {
+        await loadBranches()
+        await loadEmployees()
+        if (adminDate) {
+          await loadRecords({ date: adminDate })
+          await loadAllCarEntries(adminDate)
+          await loadClosedDays(adminDate)
+        }
+      })()
     }
   }, [screen, adminDate])
 
