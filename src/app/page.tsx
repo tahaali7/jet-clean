@@ -319,6 +319,95 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   return { page1, page2 }
 }
 
+// ==================== EMPLOYEE REPORT (WITHDRAWALS/SHORTAGES) ====================
+function buildEmployeeReportHTML(
+  periodLabel: string,
+  allEmployees: Employee[],
+  allRecords: FinancialRecord[],
+  allBranches: Branch[],
+  matchRecord: (r: FinancialRecord) => boolean
+): string {
+  const now = new Date()
+  const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' })
+
+  let grandWithdrawals = 0
+  let grandShortages = 0
+  let branchesHtml = ''
+
+  allBranches.forEach(branch => {
+    const branchEmps = allEmployees.filter(e => e.branchId === branch.id)
+    if (branchEmps.length === 0) return
+
+    let branchWithdrawals = 0
+    let branchShortages = 0
+    let rowsHtml = ''
+    let branchHasRecords = false
+
+    branchEmps.forEach(emp => {
+      const empRecords = allRecords
+        .filter(r => r.empId === emp.id && matchRecord(r))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+      const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
+      const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
+      branchWithdrawals += withdrawals
+      branchShortages += shortages
+      grandWithdrawals += withdrawals
+      grandShortages += shortages
+      if (empRecords.length > 0) branchHasRecords = true
+
+      const notes = empRecords.map(r =>
+        formatDateShort(r.date) + ' — ' + (r.type === 'withdrawal' ? 'سحب' : 'عجز') + ': ' + r.amount + ' د.ل' + (r.note ? ' (' + r.note + ')' : '')
+      ).join(' | ') || '—'
+
+      rowsHtml += '<tr>' +
+        '<td style="padding:8px;border:1px solid #ddd;">' + emp.name + '</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;">' + emp.shift + '</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;font-size:11px;color:#555;">' + notes + '</td>' +
+        '</tr>'
+    })
+
+    if (!branchHasRecords) return
+
+    branchesHtml += '<div style="margin-bottom:24px;">' +
+      '<h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:15px;margin-bottom:8px;">' +
+      '📍 فرع: ' + branch.name + ' — إجمالي السحبيات: ' + branchWithdrawals + ' د.ل | إجمالي العجوزات: ' + branchShortages + ' د.ل' +
+      '</h3>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="background:#f1f5f9;">' +
+      '<th style="padding:8px;border:1px solid #ddd;">الموظف</th>' +
+      '<th style="padding:8px;border:1px solid #ddd;">الفترة</th>' +
+      '<th style="padding:8px;border:1px solid #ddd;">السحبيات</th>' +
+      '<th style="padding:8px;border:1px solid #ddd;">العجوزات</th>' +
+      '<th style="padding:8px;border:1px solid #ddd;">تفاصيل الحركات</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rowsHtml + '</tbody>' +
+      '</table></div>'
+  })
+
+  return '<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;">' +
+    '<div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
+    '<h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>' +
+    '<p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير سحوبات وعجوزات الموظفين</p>' +
+    '<p style="font-size:13px;color:#64748b;margin:4px 0 0;">' + periodLabel + ' — تاريخ الإصدار: ' + generatedOn + '</p>' +
+    '</div>' +
+    '<div style="display:flex;gap:16px;margin-bottom:24px;">' +
+    '<div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">' +
+    '<p style="font-size:12px;color:#92400e;margin:0;">إجمالي السحبيات</p>' +
+    '<p style="font-size:20px;font-weight:800;color:#b45309;margin:4px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
+    '</div>' +
+    '<div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:12px;text-align:center;">' +
+    '<p style="font-size:12px;color:#9f1239;margin:0;">إجمالي العجوزات</p>' +
+    '<p style="font-size:20px;font-weight:800;color:#be123c;margin:4px 0 0;">' + grandShortages + ' د.ل</p>' +
+    '</div>' +
+    '</div>' +
+    (branchesHtml || '<p style="text-align:center;color:#94a3b8;">لا توجد بيانات لعرضها لهذه الفترة</p>') +
+    '<div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">' +
+    'تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع' +
+    '</div></div>'
+}
+
 // ==================== MAIN COMPONENT ====================
 export default function JetCleanApp() {
   // Screen state
@@ -379,6 +468,7 @@ export default function JetCleanApp() {
   const [exportFrom, setExportFrom] = useState('')
   const [exportTo, setExportTo] = useState('')
   const [exporting, setExporting] = useState(false)
+  const [exportingEmp, setExportingEmp] = useState(false)
 
   // Worker expenses state
   const [cleanlinessAmount, setCleanlinessAmount] = useState(0)
@@ -1007,16 +1097,165 @@ export default function JetCleanApp() {
         alert('تم التصدير بنجاح! (' + exportedCount + ' صفحة)')
       } else {
         alert('لا توجد بيانات للتصدير في الفترة المحددة')
-      } delete n[key]; return n })} className="text-rose-400 hover:text-rose-300 text-lg leading-none">×</button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    )
+      }
+    } catch (err) {
+      console.error(err)
+      alert('حدث خطأ أثناء التصدير')
+    }
+    setExporting(false)
+  }
+
+  // ==================== EMPLOYEE PDF EXPORT (WITHDRAWALS/SHORTAGES) ====================
+  const handleExportEmployeePDF = async () => {
+    setExportingEmp(true)
+    try {
+      // Load html2canvas and jsPDF dynamically
+      const html2canvasModule = await import('html2canvas')
+      const html2canvas = html2canvasModule.default
+      const jspdfModule = await import('jspdf')
+      const jsPDF = jspdfModule.default
+
+      // Determine dates - default to admin date if no export range set
+      let dates: string[] = []
+      if (exportRangeType === 'month' && exportMonth) {
+        const [yearStr, monthStr] = exportMonth.split('-')
+        const year = parseInt(yearStr)
+        const month = parseInt(monthStr)
+        const daysInMonth = new Date(year, month, 0).getDate()
+        for (let d = 1; d <= daysInMonth; d++) {
+          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+        }
+      } else if (exportRangeType === 'day' && exportDay) {
+        dates.push(exportDay)
+      } else if (exportFrom && exportTo) {
+        const start = new Date(exportFrom)
+        const end = new Date(exportTo)
+        const curr = new Date(start)
+        while (curr <= end) {
+          dates.push(curr.toISOString().split('T')[0])
+          curr.setDate(curr.getDate() + 1)
+        }
+      }
+
+      // Default to admin date if no range was set
+      if (dates.length === 0) {
+        dates.push(adminDate)
+      }
+
+      if (dates.length === 0) { setExportingEmp(false); return }
+
+      // Fetch all records for all dates
+      const allRecordsRes = await fetch('/api/records')
+      const allRecordsData: FinancialRecord[] = allRecordsRes.ok ? await allRecordsRes.json() : []
+
+      // Build period label
+      const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+      let periodLabel = ''
+      if (exportRangeType === 'month' && exportMonth) {
+        const [y, m] = exportMonth.split('-')
+        periodLabel = arabicMonths[parseInt(m) - 1] + ' ' + y
+      } else if (exportRangeType === 'day' && exportDay) {
+        periodLabel = formatDateShort(exportDay)
+      } else if (exportFrom && exportTo) {
+        periodLabel = formatDateShort(exportFrom) + ' إلى ' + formatDateShort(exportTo)
+      } else {
+        periodLabel = formatDateShort(adminDate)
+      }
+
+      // Filter records to only those within the date range
+      const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
+
+      if (filteredRecords.length === 0) {
+        alert('لا توجد سحوبات أو عجوزات في الفترة المحددة')
+        setExportingEmp(false)
+        return
+      }
+
+      // Build the report HTML
+      const reportHtml = buildEmployeeReportHTML(
+        periodLabel,
+        employees,
+        filteredRecords,
+        branches,
+        (r: FinancialRecord) => dates.includes(r.date)
+      )
+
+      const reportArea = pdfAreaRef.current
+      if (!reportArea) { setExportingEmp(false); return alert('خطأ في عنصر التقرير') }
+
+      // Render HTML off-screen
+      reportArea.innerHTML = reportHtml
+      reportArea.style.position = 'fixed'
+      reportArea.style.top = '0'
+      reportArea.style.left = '-99999px'
+      reportArea.style.width = '800px'
+      reportArea.style.zIndex = '-1'
+
+      await new Promise(r => setTimeout(r, 300))
+
+      // Capture with html2canvas
+      const canvas = await html2canvas(reportArea, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false
+      })
+
+      // Clean up
+      reportArea.style.position = ''
+      reportArea.style.top = ''
+      reportArea.style.left = ''
+      reportArea.style.width = ''
+      reportArea.style.zIndex = ''
+      reportArea.innerHTML = ''
+
+      // Create PDF - handle multiple pages if content is tall
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const imgWidth = pageWidth
+      const imgHeight = (canvas.height * pageWidth) / canvas.width
+
+      if (imgHeight <= pageHeight) {
+        // Single page
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight)
+      } else {
+        // Multiple pages - split the canvas
+        let remainingHeight = imgHeight
+        let yOffset = 0
+        let page = 0
+
+        while (remainingHeight > 0) {
+          if (page > 0) pdf.addPage()
+
+          const sourceY = (yOffset / imgHeight) * canvas.height
+          const sourceHeight = Math.min((pageHeight / imgHeight) * canvas.height, canvas.height - sourceY)
+
+          const pageCanvas = document.createElement('canvas')
+          pageCanvas.width = canvas.width
+          pageCanvas.height = sourceHeight
+          const ctx = pageCanvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight)
+          }
+
+          const pageImgHeight = (pageCanvas.height * pageWidth) / pageCanvas.width
+          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, pageImgHeight)
+
+          yOffset += pageHeight
+          remainingHeight -= pageHeight
+          page++
+        }
+      }
+
+      pdf.save('تقرير_سحوبات_وعجوزات_الموظفين.pdf')
+      setShowExportModal(false)
+      alert('تم تصدير تقرير السحوبات والعجوزات بنجاح!')
+    } catch (err) {
+      console.error(err)
+      alert('حدث خطأ أثناء تصدير تقرير الموظفين')
+    }
+    setExportingEmp(false)
   }
 
   const renderEntryCard = (entry: CarEntry, branchName: string) => {
@@ -1292,6 +1531,9 @@ export default function JetCleanApp() {
               </button>
               <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                 📄 تصدير تقارير PDF
+              </button>
+              <button onClick={handleExportEmployeePDF} disabled={exportingEmp} className="bg-orange-600 hover:bg-orange-500 disabled:bg-orange-800 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                {exportingEmp ? '⏳ جاري التصدير...' : '📋 تقرير السحوبات والعجوزات'}
               </button>
               <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                 ➕ إضافة فرع
@@ -1849,7 +2091,7 @@ export default function JetCleanApp() {
   // ==================== MAIN RENDER ====================
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100" style={{ fontFamily: 'Cairo, sans-serif' }}>
-      <div ref={pdfAreaRef} id="pdfReportArea" />
+      <div ref={pdfAreaRef} id="pdfReportArea" style={{ position: 'fixed', top: '0', left: '-99999px', width: '800px', zIndex: -1 }} />
       {renderModals()}
       {screen === 'login' && renderLoginScreen()}
       {screen === 'employee' && renderEmployeeScreen()}

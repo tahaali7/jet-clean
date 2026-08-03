@@ -43,3 +43,25 @@ A full-featured Car Wash Management web application (جيت كلين - Jet Clean
 - ✅ Dev server running without errors
 - ✅ All APIs responding correctly
 - ✅ Database seeded with initial data
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix employee PDF export (withdrawals/shortages) in Next.js version
+
+Work Log:
+- Analyzed original HTML file to understand `buildReportHTML()` function for employee withdrawals/shortages
+- Found `buildReportHTML` was defined but never wired to a button in the original HTML
+- Found existing `handleExportPDF` only exported car entries, not employee reports
+- Fixed broken syntax in `handleExportPDF` (missing try-catch close, orphaned JSX)
+- Added `buildEmployeeReportHTML()` function to generate single-page HTML report with all employees, grouped by branch, showing withdrawals/shortages with dates
+- Added `handleExportEmployeePDF()` function that fetches records from API, builds report HTML, renders off-screen via html2canvas, generates multi-page PDF via jsPDF
+- Added "📋 تقرير السحوبات والعجوزات" button in admin header
+- Fixed `pdfAreaRef` div with proper off-screen CSS positioning (fixed, left:-99999px, z-index:-1)
+- Button defaults to adminDate if no export range is configured; supports month/day/range modes
+
+Stage Summary:
+- Employee PDF export now generates a single comprehensive PDF report per the user's request
+- Report includes: header, grand totals (withdrawals/shortages), branch-grouped tables with employee details and transaction dates
+- Multi-page support for long reports via canvas splitting
+- Build passes successfully, dev server running
