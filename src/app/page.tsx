@@ -1716,7 +1716,7 @@ export default function JetCleanApp() {
                 <option value="">-- اختر اسمك --</option>
                 <option value="admin">👨‍💼 المسؤول (طه علي)</option>
                 {employees.map(emp => {
-                  const brName = getBranchName(emp.branchId)
+                  const brName = branches.find(b => b.id === emp.branchId)?.name || ''
                   return (
                     <option key={emp.id} value={emp.id}>{emp.name} ({brName}) - {emp.shift}</option>
                   )
