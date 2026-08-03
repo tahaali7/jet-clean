@@ -767,7 +767,15 @@ export default function JetCleanApp() {
   }
 
   // ==================== EFFECTS ====================
-  // Initial data loading handled by screen-specific useEffects
+  // Login screen: load branches + employees for dropdown
+  useEffect(() => {
+    if (screen === 'login') {
+      ;(async () => {
+        try { await loadBranches() } catch(e) { console.error(e) }
+        try { await loadEmployees() } catch(e) { console.error(e) }
+      })()
+    }
+  }, [screen])
 
   // Employee screen data fetching - sequential
   useEffect(() => {
