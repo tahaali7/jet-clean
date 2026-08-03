@@ -1,0 +1,12 @@
+INSERT INTO "Branch" (id, name) VALUES ('cmsd3uxwm0000uekoez0su5zg', 'بن غرسه') ON CONFLICT DO NOTHING;
+INSERT INTO "Branch" (id, name) VALUES ('cmsd3uxwn0001uekoj9gifcis', 'ابونواس') ON CONFLICT DO NOTHING;
+INSERT INTO "Branch" (id, name) VALUES ('cmsd3uxwn0002ueko2qu2n00x', 'المنصور') ON CONFLICT DO NOTHING;
+INSERT INTO "Branch" (id, name) VALUES ('cmsd3uxwo0003uekocplys1r2', 'عين زاره') ON CONFLICT DO NOTHING;
+INSERT INTO "AdminAccount" (id, name, password) VALUES ('admin', 'طه علي', '19970880528') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('ahmed_cmsd3uxwm0000uekoez0su5zg', 'أحمد', 'cmsd3uxwm0000uekoez0su5zg', 'الفترة الصباحية', '1234') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('hashem_cmsd3uxwm0000uekoez0su5zg', 'هاشم', 'cmsd3uxwm0000uekoez0su5zg', 'الفترة المسائية', '1234') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('haitham_cmsd3uxwn0001uekoj9gifcis', 'هيثم', 'cmsd3uxwn0001uekoj9gifcis', 'الفترة الصباحية', '1234') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('iyad_cmsd3uxwn0001uekoj9gifcis', 'اياد', 'cmsd3uxwn0001uekoj9gifcis', 'الفترة المسائية', '1234') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('wessam_cmsd3uxwn0002ueko2qu2n00x', 'وسام', 'cmsd3uxwn0002ueko2qu2n00x', 'الفترة كاملة', '1234') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('osama_cmsd3uxwo0003uekocplys1r2', 'اسامه', 'cmsd3uxwo0003uekocplys1r2', 'الفترة الصباحية', '1234') ON CONFLICT DO NOTHING;
+INSERT INTO "Employee" (id, name, branchId, shift, password) VALUES ('iyad2_cmsd3uxwo0003uekocplys1r2', 'اياد', 'cmsd3uxwo0003uekocplys1r2', 'الفترة المسائية', '1234') ON CONFLICT DO NOTHING;
