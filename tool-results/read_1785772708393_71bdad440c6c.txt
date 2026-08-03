@@ -1,0 +1,2002 @@
+     1→'use client'
+     2→
+     3→import { useState, useEffect, useRef } from 'react'
+     4→
+     5→// ==================== TYPES ====================
+     6→interface User {
+     7→  id: string
+     8→  name: string
+     9→  role: 'admin' | 'employee'
+    10→  branchId?: string
+    11→  shift?: string
+    12→}
+    13→
+    14→interface Branch {
+    15→  id: string
+    16→  name: string
+    17→  employees?: Employee[]
+    18→}
+    19→
+    20→interface Employee {
+    21→  id: string
+    22→  name: string
+    23→  branchId: string
+    24→  shift: string
+    25→  password: string
+    26→  branch?: Branch
+    27→}
+    28→
+    29→interface CarEntry {
+    30→  id: string
+    31→  date: string
+    32→  branchId: string
+    33→  empId: string
+    34→  empName: string
+    35→  room: string
+    36→  totalCars: number
+    37→  totalAmount: number
+    38→  extraCars: number
+    39→  extraAmount: number
+    40→  priceCounts: Record<string, number>
+    41→  customPrices: Record<string, { price: number; count: number }>
+    42→  createdAt: string
+    43→}
+    44→
+    45→interface FinancialRecord {
+    46→  id: string
+    47→  empId: string
+    48→  type: 'withdrawal' | 'shortage'
+    49→  amount: number
+    50→  note: string
+    51→  date: string
+    52→  branchId: string
+    53→  employee?: Employee
+    54→}
+    55→
+    56→interface WorkerExpense {
+    57→  id: string
+    58→  date: string
+    59→  branchId: string
+    60→  amount: number
+    61→  note: string
+    62→}
+    63→
+    64→interface TreasuryItem {
+    65→  id: string
+    66→  date: string
+    67→  branchId: string
+    68→  total: number
+    69→  cash: number
+    70→  later: number
+    71→}
+    72→
+    73→interface ClosedDay {
+    74→  id: string
+    75→  date: string
+    76→  branchId: string
+    77→}
+    78→
+    79→// ==================== CONSTANTS ====================
+    80→const ROOMS = ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'غرفة 6', 'مكينة الغسيل']
+    81→const ALL_PRICES = [5, 10, 15, 20, 30, 35, 45]
+    82→const EXTRA_PRICES = [30, 35, 45]
+    83→const ROOM_PRICES: Record<string, number[]> = { 'مكينة الغسيل': [10, 15] }
+    84→const BRANCH_ROOMS: Record<string, string[]> = {
+    85→  'ابونواس': ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'مكينة الغسيل'],
+    86→  'المنصور': ['غرفة 1', 'غرفة 2', 'غرفة 3']
+    87→}
+    88→const BRANCH_NET_DEDUCTION: Record<string, number> = {
+    89→  'بن غرسه': 10, 'ابونواس': 5, 'المنصور': 0, 'عين زاره': 0
+    90→}
+    91→const MACHINE_NO_DEDUCTION_BRANCHES = ['بن غرسه', 'ابونواس']
+    92→const BRANCH_CLEANLINESS: Record<string, { type: string; value?: number; options?: number[] }> = {
+    93→  'بن غرسه': { type: 'fixed', value: 100 },
+    94→  'ابونواس': { type: 'fixed', value: 50 },
+    95→  'المنصور': { type: 'select', options: [10, 20] },
+    96→  'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
+    97→}
+    98→const ROOM_ICONS: Record<string, string> = {
+    99→  'غرفة 1': '🚿', 'غرفة 2': '🚿', 'غرفة 3': '🚿',
+   100→  'غرفة 4': '🚿', 'غرفة 5': '🚿', 'غرفة 6': '🚿',
+   101→  'مكينة الغسيل': '⚙️'
+   102→}
+   103→const PRICE_BG: Record<number, string> = {
+   104→  5: 'bg-blue-500/10 border-blue-500/30',
+   105→  10: 'bg-cyan-500/10 border-cyan-500/30',
+   106→  15: 'bg-teal-500/10 border-teal-500/30',
+   107→  20: 'bg-emerald-500/10 border-emerald-500/30',
+   108→  30: 'bg-amber-500/10 border-amber-500/30',
+   109→  35: 'bg-orange-500/10 border-orange-500/30',
+   110→  45: 'bg-rose-500/10 border-rose-500/30'
+   111→}
+   112→
+   113→function getRoomsForBranch(branchName: string) { return BRANCH_ROOMS[branchName] || ROOMS }
+   114→function getPricesForRoom(room: string) { return ROOM_PRICES[room] || ALL_PRICES }
+   115→function getNetAmount(totalAmount: number, branchName: string, roomName: string) {
+   116→  if (roomName === 'مكينة الغسيل' && MACHINE_NO_DEDUCTION_BRANCHES.includes(branchName)) return Math.floor(totalAmount / 2)
+   117→  const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0
+   118→  return Math.floor(totalAmount / 2) - deduction
+   119→}
+   120→function getNetFormulaText(branchName: string, roomName: string) {
+   121→  if (roomName === 'مكينة الغسيل' && MACHINE_NO_DEDUCTION_BRANCHES.includes(branchName)) return 'الإجمالي ÷ 2'
+   122→  const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0
+   123→  if (deduction === 0) return 'الإجمالي ÷ 2'
+   124→  return `الإجمالي ÷ 2 - ${deduction}`
+   125→}
+   126→function todayISO() {
+   127→  const d = new Date()
+   128→  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+   129→}
+   130→function formatDateShort(dateStr: string) {
+   131→  if (!dateStr) return ''
+   132→  const [y, m, d] = dateStr.split('-')
+   133→  return `${d}/${m}/${y}`
+   134→}
+   135→
+   136→// ==================== PDF REPORT BUILDERS ====================
+   137→function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string) {
+   138→  const prices = getPricesForRoom(room)
+   139→  let roomTotalAmount = 0
+   140→  let roomTotalCars = 0
+   141→  const mergedCounts: Record<string, number> = {}
+   142→  const mergedCustoms: Record<string, { price: number; count: number }> = {}
+   143→
+   144→  roomEntries.forEach(entry => {
+   145→    prices.forEach(price => {
+   146→      const count = (entry.priceCounts && entry.priceCounts[price]) || 0
+   147→      mergedCounts[price] = (mergedCounts[price] || 0) + count
+   148→    })
+   149→    if (entry.customPrices) {
+   150→      Object.keys(entry.customPrices).forEach(key => {
+   151→        const item = entry.customPrices[key]
+   152→        if (mergedCustoms[key]) {
+   153→          mergedCustoms[key].count += item.count
+   154→        } else {
+   155→          mergedCustoms[key] = { price: item.price, count: item.count }
+   156→        }
+   157→      })
+   158→    }
+   159→    roomTotalAmount += entry.totalAmount
+   160→    roomTotalCars += entry.totalCars
+   161→  })
+   162→
+   163→  const roomNet = getNetAmount(roomTotalAmount, branchName, room)
+   164→  const cellPad = 'padding:5px 4px;vertical-align:middle;'
+   165→  const cellFs = 'font-size:10px;'
+   166→
+   167→  // Build rows - only non-empty
+   168→  let rowsHtml = ''
+   169→  let rowNum = 0
+   170→  prices.forEach(price => {
+   171→    const count = mergedCounts[price] || 0
+   172→    if (count === 0) return
+   173→    rowNum++
+   174→    const isExtra = EXTRA_PRICES.includes(price)
+   175→    const displayPrice = isExtra ? (price - 5) : price
+   176→    const rowAmount = displayPrice * count
+   177→    rowsHtml += '<tr>' +
+   178→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
+   179→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
+   180→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + count + '</td>' +
+   181→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowAmount + ' د.ل</td>' +
+   182→      '</tr>'
+   183→  })
+   184→
+   185→  // Custom price rows
+   186→  const customKeys = Object.keys(mergedCustoms)
+   187→  customKeys.forEach(key => {
+   188→    const item = mergedCustoms[key]
+   189→    rowNum++
+   190→    rowsHtml += '<tr>' +
+   191→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'color:#7c3aed;">✦</td>' +
+   192→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'color:#7c3aed;">' + item.price + ' د.ل</td>' +
+   193→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + item.count + '</td>' +
+   194→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">' + (item.price * item.count) + ' د.ل</td>' +
+   195→      '</tr>'
+   196→  })
+   197→
+   198→  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+   199→    '<tr><td colspan="4" style="border:1px solid #333;padding:5px 4px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
+   200→    '<tr style="background:#f0f0f0;">' +
+   201→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
+   202→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
+   203→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
+   204→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
+   205→    '</tr>' +
+   206→    rowsHtml +
+   207→    '<tr style="background:#f0f0f0;">' +
+   208→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+   209→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
+   210→    '</tr>' +
+   211→    '<tr>' +
+   212→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;color:#555;text-align:center;">الصافي</td>' +
+   213→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
+   214→    '</tr>' +
+   215→    '</table>'
+   216→}
+   217→
+   218→function buildEmptyRoomTableHTML(room: string) {
+   219→  const prices = getPricesForRoom(room)
+   220→  const cellPad = 'padding:5px 4px;vertical-align:middle;'
+   221→  const cellFs = 'font-size:10px;'
+   222→  let rowsHtml = ''
+   223→  prices.forEach(() => {
+   224→    rowsHtml += '<tr>' +
+   225→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
+   226→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
+   227→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;"></td>' +
+   228→      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
+   229→      '</tr>'
+   230→  })
+   231→  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+   232→    '<tr><td colspan="4" style="border:1px solid #333;padding:5px 4px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
+   233→    '<tr style="background:#f0f0f0;">' +
+   234→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
+   235→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
+   236→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
+   237→    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
+   238→    '</tr>' +
+   239→    rowsHtml +
+   240→    '<tr style="background:#f0f0f0;">' +
+   241→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+   242→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+   243→    '</tr>' +
+   244→    '<tr>' +
+   245→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;color:#555;text-align:center;">الصافي</td>' +
+   246→    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+   247→    '</tr>' +
+   248→    '</table>'
+   249→}
+   250→
+   251→const TREASURY_ITEMS = [
+   252→  { key: 'المبيعات', label: 'المبيعات' },
+   253→  { key: 'ملغي', label: 'ملغي' },
+   254→  { key: 'مصاريف_العمال', label: 'مصاريف العمال' },
+   255→  { key: 'بدل_البطاقة', label: 'بدل البطاقة المصرفية' },
+   256→  { key: 'بيع_البطاقة', label: 'بيع البطاقة المصرفية' },
+   257→  { key: 'كوبونات', label: 'كوبونات', branchOnly: 'بن غرسه' },
+   258→  { key: 'فائض', label: 'فائض' },
+   259→  { key: 'تم_التحويل', label: 'تم التحويل' }
+   260→]
+   261→
+   262→function getTreasuryItems(branchName: string) {
+   263→  return TREASURY_ITEMS.filter(item => {
+   264→    if (item.branchOnly && item.branchOnly !== branchName) return false
+   265→    return true
+   266→  })
+   267→}
+   268→
+   269→function buildCarReportHTML(selectedDate: string, branchId: string, branchName: string, entries: CarEntry[], savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>) {
+   270→  // Group entries by room
+   271→  const roomMap: Record<string, CarEntry[]> = {}
+   272→  entries.forEach(e => {
+   273→    if (!roomMap[e.room]) roomMap[e.room] = []
+   274→    roomMap[e.room].push(e)
+   275→  })
+   276→
+   277→  const branchRooms = getRoomsForBranch(branchName)
+   278→  let grandTotalAmount = 0
+   279→  let grandTotalCars = 0
+   280→  let grandTotalNet = 0
+   281→
+   282→  // Order rooms: regular rooms first, machine last
+   283→  const regularRooms = branchRooms.filter(r => r !== 'مكينة الغسيل')
+   284→  const hasMachine = branchRooms.includes('مكينة الغسيل')
+   285→  const orderedRooms = [...regularRooms]
+   286→  if (hasMachine) orderedRooms.push('مكينة الغسيل')
+   287→
+   288→  // Build room data
+   289→  const roomCells: string[] = []
+   290→  orderedRooms.forEach(room => {
+   291→    const roomEntries = roomMap[room] || []
+   292→    if (roomEntries.length > 0) {
+   293→      const roomTotal = roomEntries.reduce((s, e) => s + e.totalAmount, 0)
+   294→      const roomCars = roomEntries.reduce((s, e) => s + e.totalCars, 0)
+   295→      grandTotalAmount += roomTotal
+   296→      grandTotalCars += roomCars
+   297→      grandTotalNet += getNetAmount(roomTotal, branchName, room)
+   298→      roomCells.push(buildRoomTableHTML(room, roomEntries, branchName))
+   299→    } else {
+   300→      roomCells.push(buildEmptyRoomTableHTML(room))
+   301→    }
+   302→  })
+   303→
+   304→  // 2-column grid for rooms
+   305→  let roomsGridHtml = ''
+   306→  for (let i = 0; i < roomCells.length; i += 2) {
+   307→    roomsGridHtml += '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+   308→      '<div style="flex:1;min-width:0;">' + roomCells[i] + '</div>' +
+   309→      (roomCells[i + 1] ? '<div style="flex:1;min-width:0;">' + roomCells[i + 1] + '</div>' : '') +
+   310→      '</div>'
+   311→  }
+   312→
+   313→  // Totals bar
+   314→  const totalsHtml = '<div style="display:flex;gap:0;margin-top:8px;border:2px solid #333;">' +
+   315→    '<div style="flex:1;text-align:center;padding:8px;border-left:1px solid #333;">' +
+   316→    '<div style="font-size:11px;color:#555;">إجمالي المبيعات</div>' +
+   317→    '<div style="font-size:18px;font-weight:bold;">' + grandTotalAmount + ' د.ل</div>' +
+   318→    '</div>' +
+   319→    '<div style="flex:1;text-align:center;padding:8px;">' +
+   320→    '<div style="font-size:11px;color:#555;">إجمالي الصافي</div>' +
+   321→    '<div style="font-size:18px;font-weight:bold;">' + grandTotalNet + ' د.ل</div>' +
+   322→    '</div>' +
+   323→    '</div>'
+   324→
+   325→  // Page 1: Room tables + totals
+   326→  const page1 = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+   327→    '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+   328→    '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+   329→    '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">تقرير تسجيل السيارات</p>' +
+   330→    '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+   331→    '</div>' +
+   332→    roomsGridHtml +
+   333→    totalsHtml +
+   334→    '</div>'
+   335→
+   336→  // ---- Page 2: Worker expenses + Treasury ----
+   337→  const cleannessConfig = BRANCH_CLEANLINESS[branchName]
+   338→  const wKey = branchName + '_' + selectedDate
+   339→  const savedWE = savedWorkerExpenses?.[wKey] || {}
+   340→  let savedCleanliness = 0
+   341→  if (cleannessConfig) {
+   342→    if (cleannessConfig.type === 'fixed') {
+   343→      savedCleanliness = cleannessConfig.value || 0
+   344→    } else {
+   345→      savedCleanliness = savedWE.cleanliness || 0
+   346→    }
+   347→  }
+   348→
+   349→  // Worker expenses rows - net per room + cleanliness + grand total
+   350→  let workerRowsHtml = ''
+   351→  orderedRooms.forEach(room => {
+   352→    const roomEnts = entries.filter(e => e.room === room)
+   353→    const roomAmt = roomEnts.reduce((s, e) => s + e.totalAmount, 0)
+   354→    const roomNet = getNetAmount(roomAmt, branchName, room)
+   355→    if (roomNet === 0) return
+   356→    const icon = ROOM_ICONS[room] || '🏠'
+   357→    workerRowsHtml += '<tr>' +
+   358→      '<td style="padding:5px 8px;border:1px solid #333;font-size:11px;text-align:center;vertical-align:middle;">' + icon + ' ' + room + '</td>' +
+   359→      '<td style="padding:5px 8px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;vertical-align:middle;">' + roomNet + ' د.ل</td>' +
+   360→      '</tr>'
+   361→  })
+   362→
+   363→  // Cleanliness row
+   364→  workerRowsHtml += '<tr style="background:#fffbe6;">' +
+   365→    '<td style="padding:4px 8px;border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;vertical-align:middle;">🧹 النظافة</td>' +
+   366→    '<td style="padding:4px 8px;border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;vertical-align:middle;">' + savedCleanliness + ' د.ل</td>' +
+   367→    '</tr>'
+   368→
+   369→  // Grand total after expenses
+   370→  const finalTotalAfterExpenses = grandTotalNet + savedCleanliness
+   371→  workerRowsHtml += '<tr style="background:#e8f5e9;">' +
+   372→    '<td style="padding:5px 8px;border:2px solid #333;font-size:12px;font-weight:bold;text-align:center;vertical-align:middle;">الإجمالي</td>' +
+   373→    '<td style="padding:5px 8px;border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#1b7a3d;vertical-align:middle;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+   374→    '</tr>'
+   375→
+   376→  const workerExpensesHtml = '<div style="flex:1;border:2px solid #333;">' +
+   377→    '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+   378→    '<tr><td colspan="2" style="padding:5px 8px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;border:1px solid #333;vertical-align:middle;">مصاريف العمال</td></tr>' +
+   379→    workerRowsHtml +
+   380→    '</table>' +
+   381→    '</div>'
+   382→
+   383→  // Treasury table
+   384→  const treasSaved = savedWE.treasury || {}
+   385→  const pdfTreasuryItems = getTreasuryItems(branchName)
+   386→  const pdfBankCardSale = parseInt(String(treasSaved['بيع_البطاقة']?.expense)) || 0
+   387→  const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
+   388→  const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
+   389→
+   390→  const tCellPad = 'padding:5px 6px;border:1px solid #333;vertical-align:middle;'
+   391→  const tLabelStyle = tCellPad + 'font-size:10px;'
+   392→  const tValueStyle = tCellPad + 'text-align:center;font-size:11px;font-weight:bold;'
+   393→
+   394→  let treasuryRowsHtml = ''
+   395→  treasuryRowsHtml += '<tr style="background:#dbeafe;">' +
+   396→    '<td style="' + tLabelStyle + 'font-weight:bold;text-align:center;">البيان</td>' +
+   397→    '<td style="' + tValueStyle + '">دخل</td>' +
+   398→    '<td style="' + tValueStyle + '">خرج</td>' +
+   399→    '<td style="' + tValueStyle + '">الرصيد</td>' +
+   400→    '</tr>'
+   401→
+   402→  let tRunningBalance = 0
+   403→  pdfTreasuryItems.forEach(item => {
+   404→    const rowS = treasSaved[item.key] || {}
+   405→    let tIncome = rowS.income || 0
+   406→    let tExpense = rowS.expense || 0
+   407→    let isAuto = false
+   408→
+   409→    if (item.key === 'بدل_البطاقة') {
+   410→      tExpense = pdfBankCardReplace
+   411→      isAuto = true
+   412→    }
+   413→    if (item.key === 'مصاريف_العمال') {
+   414→      tExpense = pdfWorkerExpInTreasury
+   415→      isAuto = true
+   416→    }
+   417→
+   418→    tRunningBalance = tRunningBalance + tIncome - tExpense
+   419→    const balColor = tRunningBalance >= 0 ? '#1b7a3d' : '#dc2626'
+   420→    const labelSuffix = isAuto ? ' *' : ''
+   421→
+   422→    treasuryRowsHtml += '<tr>' +
+   423→      '<td style="' + tLabelStyle + 'text-align:center;">' + item.label + labelSuffix + '</td>' +
+   424→      '<td style="' + tValueStyle + 'color:#16a34a;">' + (tIncome > 0 ? tIncome : '') + '</td>' +
+   425→      '<td style="' + tValueStyle + 'color:#dc2626;">' + (tExpense > 0 ? tExpense : '') + '</td>' +
+   426→      '<td style="' + tValueStyle + 'color:' + balColor + ';">' + tRunningBalance + '</td>' +
+   427→      '</tr>'
+   428→  })
+   429→
+   430→  const treasuryHtml = '<div style="flex:1;border:2px solid #333;">' +
+   431→    '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+   432→    '<tr><td colspan="4" style="padding:4px 8px;text-align:center;font-size:12px;font-weight:bold;background:#dbeafe;border:1px solid #333;">الخزينة</td></tr>' +
+   433→    treasuryRowsHtml +
+   434→    '</table>' +
+   435→    '</div>'
+   436→
+   437→  const sideBySideHtml = '<div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div>'
+   438→
+   439→  // Page 2: Worker expenses + Treasury
+   440→  const page2 = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+   441→    '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+   442→    '<h1 style="font-size:20px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+   443→    '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">مصاريف العمال والخزينة</p>' +
+   444→    '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+   445→    '</div>' +
+   446→    sideBySideHtml +
+   447→    '</div>'
+   448→
+   449→  return { page1, page2 }
+   450→}
+   451→
+   452→// ==================== EMPLOYEE REPORT (WITHDRAWALS/SHORTAGES) ====================
+   453→function buildEmployeeReportHTML(
+   454→  periodLabel: string,
+   455→  allEmployees: Employee[],
+   456→  allRecords: FinancialRecord[],
+   457→  allBranches: Branch[],
+   458→  matchRecord: (r: FinancialRecord) => boolean
+   459→): string {
+   460→  const now = new Date()
+   461→  const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' })
+   462→
+   463→  let grandWithdrawals = 0
+   464→  let grandShortages = 0
+   465→  let branchesHtml = ''
+   466→
+   467→  allBranches.forEach(branch => {
+   468→    const branchEmps = allEmployees.filter(e => e.branchId === branch.id)
+   469→    if (branchEmps.length === 0) return
+   470→
+   471→    let branchWithdrawals = 0
+   472→    let branchShortages = 0
+   473→    let rowsHtml = ''
+   474→    let branchHasRecords = false
+   475→
+   476→    branchEmps.forEach(emp => {
+   477→      const empRecords = allRecords
+   478→        .filter(r => r.empId === emp.id && matchRecord(r))
+   479→        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+   480→      const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
+   481→      const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
+   482→      branchWithdrawals += withdrawals
+   483→      branchShortages += shortages
+   484→      grandWithdrawals += withdrawals
+   485→      grandShortages += shortages
+   486→      if (empRecords.length > 0) branchHasRecords = true
+   487→
+   488→      const notes = empRecords.map(r =>
+   489→        formatDateShort(r.date) + ' — ' + (r.type === 'withdrawal' ? 'سحب' : 'عجز') + ': ' + r.amount + ' د.ل' + (r.note ? ' (' + r.note + ')' : '')
+   490→      ).join(' | ') || '—'
+   491→
+   492→      rowsHtml += '<tr>' +
+   493→        '<td style="padding:8px;border:1px solid #ddd;">' + emp.name + '</td>' +
+   494→        '<td style="padding:8px;border:1px solid #ddd;">' + emp.shift + '</td>' +
+   495→        '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
+   496→        '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
+   497→        '<td style="padding:8px;border:1px solid #ddd;font-size:11px;color:#555;">' + notes + '</td>' +
+   498→        '</tr>'
+   499→    })
+   500→
+   501→    if (!branchHasRecords) return
+   502→
+   503→    branchesHtml += '<div style="margin-bottom:24px;">' +
+   504→      '<h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:15px;margin-bottom:8px;">' +
+   505→      '📍 فرع: ' + branch.name + ' — إجمالي السحبيات: ' + branchWithdrawals + ' د.ل | إجمالي العجوزات: ' + branchShortages + ' د.ل' +
+   506→      '</h3>' +
+   507→      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+   508→      '<thead><tr style="background:#f1f5f9;">' +
+   509→      '<th style="padding:8px;border:1px solid #ddd;">الموظف</th>' +
+   510→      '<th style="padding:8px;border:1px solid #ddd;">الفترة</th>' +
+   511→      '<th style="padding:8px;border:1px solid #ddd;">السحبيات</th>' +
+   512→      '<th style="padding:8px;border:1px solid #ddd;">العجوزات</th>' +
+   513→      '<th style="padding:8px;border:1px solid #ddd;">تفاصيل الحركات</th>' +
+   514→      '</tr></thead>' +
+   515→      '<tbody>' + rowsHtml + '</tbody>' +
+   516→      '</table></div>'
+   517→  })
+   518→
+   519→  return '<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;">' +
+   520→    '<div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
+   521→    '<h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>' +
+   522→    '<p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير سحوبات وعجوزات الموظفين</p>' +
+   523→    '<p style="font-size:13px;color:#64748b;margin:4px 0 0;">' + periodLabel + ' — تاريخ الإصدار: ' + generatedOn + '</p>' +
+   524→    '</div>' +
+   525→    '<div style="display:flex;gap:16px;margin-bottom:24px;">' +
+   526→    '<div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">' +
+   527→    '<p style="font-size:12px;color:#92400e;margin:0;">إجمالي السحبيات</p>' +
+   528→    '<p style="font-size:20px;font-weight:800;color:#b45309;margin:4px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
+   529→    '</div>' +
+   530→    '<div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:12px;text-align:center;">' +
+   531→    '<p style="font-size:12px;color:#9f1239;margin:0;">إجمالي العجوزات</p>' +
+   532→    '<p style="font-size:20px;font-weight:800;color:#be123c;margin:4px 0 0;">' + grandShortages + ' د.ل</p>' +
+   533→    '</div>' +
+   534→    '</div>' +
+   535→    (branchesHtml || '<p style="text-align:center;color:#94a3b8;">لا توجد بيانات لعرضها لهذه الفترة</p>') +
+   536→    '<div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">' +
+   537→    'تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع' +
+   538→    '</div></div>'
+   539→}
+   540→
+   541→// ==================== MAIN COMPONENT ====================
+   542→export default function JetCleanApp() {
+   543→  // Screen state
+   544→  const [screen, setScreen] = useState<'login' | 'employee' | 'admin'>('login')
+   545→
+   546→  // Auth state
+   547→  const [user, setUser] = useState<User | null>(null)
+   548→  const [isAdminMode, setIsAdminMode] = useState(false)
+   549→  const [adminSelectedBranch, setAdminSelectedBranch] = useState<string | null>(null)
+   550→
+   551→  // Data state
+   552→  const [branches, setBranches] = useState<Branch[]>([])
+   553→  const [employees, setEmployees] = useState<Employee[]>([])
+   554→  const [carEntries, setCarEntries] = useState<CarEntry[]>([])
+   555→  const [records, setRecords] = useState<FinancialRecord[]>([])
+   556→  const [closedDays, setClosedDays] = useState<ClosedDay[]>([])
+   557→  const [workerExpenses, setWorkerExpenses] = useState<WorkerExpense[]>([])
+   558→  const [treasuries, setTreasuries] = useState<TreasuryItem[]>([])
+   559→
+   560→  // Login state
+   561→  const [loginEmpId, setLoginEmpId] = useState('')
+   562→  const [loginPassword, setLoginPassword] = useState('')
+   563→  const [loginError, setLoginError] = useState('')
+   564→  const [loginLoading, setLoginLoading] = useState(false)
+   565→
+   566→  // Employee screen state
+   567→  const [empDate, setEmpDate] = useState(todayISO())
+   568→  const [selectedRoom, setSelectedRoom] = useState('')
+   569→  const [priceInputs, setPriceInputs] = useState<Record<number, number>>({})
+   570→  const [customPricesData, setCustomPricesData] = useState<Record<string, { price: number; count: number }>>({})
+   571→  const [customPriceInput, setCustomPriceInput] = useState('')
+   572→  const [customCountInput, setCustomCountInput] = useState('')
+   573→  const [saving, setSaving] = useState(false)
+   574→
+   575→  // Admin screen state
+   576→  const [adminDate, setAdminDate] = useState(todayISO())
+   577→
+   578→  // Modal states
+   579→  const [showRecordModal, setShowRecordModal] = useState(false)
+   580→  const [recordModalData, setRecordModalData] = useState({
+   581→    id: '', empId: '', empName: '', type: 'withdrawal' as 'withdrawal' | 'shortage',
+   582→    amount: '', note: '', date: todayISO(), branchId: ''
+   583→  })
+   584→  const [showBranchModal, setShowBranchModal] = useState(false)
+   585→  const [newBranchName, setNewBranchName] = useState('')
+   586→  const [showEmpModal, setShowEmpModal] = useState(false)
+   587→  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '' })
+   588→  const [showPasswordsModal, setShowPasswordsModal] = useState(false)
+   589→  const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
+   590→  const [adminPassword, setAdminPassword] = useState('')
+   591→  const [showClosingModal, setShowClosingModal] = useState(false)
+   592→
+   593→  // Export modal state
+   594→  const [showExportModal, setShowExportModal] = useState(false)
+   595→  const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
+   596→  const [exportMonth, setExportMonth] = useState('')
+   597→  const [exportDay, setExportDay] = useState('')
+   598→  const [exportFrom, setExportFrom] = useState('')
+   599→  const [exportTo, setExportTo] = useState('')
+   600→  const [exporting, setExporting] = useState(false)
+   601→  const [exportingEmp, setExportingEmp] = useState(false)
+   602→
+   603→  // Worker expenses state
+   604→  const [cleanlinessAmount, setCleanlinessAmount] = useState(0)
+   605→  const [workerExpData, setWorkerExpData] = useState<Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>>({})
+   606→
+   607→  const pdfAreaRef = useRef<HTMLDivElement>(null)
+   608→
+   609→  // ==================== DATA FETCHING ====================
+   610→  const loadBranches = async () => {
+   611→    try {
+   612→      const res = await fetch('/api/branches')
+   613→      if (res.ok) setBranches(await res.json())
+   614→    } catch (e) { console.error(e) }
+   615→  }
+   616→
+   617→  const loadEmployees = async () => {
+   618→    try {
+   619→      const res = await fetch('/api/employees')
+   620→      if (res.ok) setEmployees(await res.json())
+   621→    } catch (e) { console.error(e) }
+   622→  }
+   623→
+   624→  const loadCarEntries = async (date?: string, branchId?: string, empId?: string) => {
+   625→    try {
+   626→      const params = new URLSearchParams()
+   627→      if (date) params.set('date', date)
+   628→      if (branchId) params.set('branchId', branchId)
+   629→      if (empId) params.set('empId', empId)
+   630→      const res = await fetch(`/api/car-entries?${params}`)
+   631→      if (res.ok) setCarEntries(await res.json())
+   632→    } catch (e) { console.error(e) }
+   633→  }
+   634→
+   635→  const loadAllCarEntries = async (date?: string) => {
+   636→    try {
+   637→      const params = new URLSearchParams()
+   638→      if (date) params.set('date', date)
+   639→      const res = await fetch(`/api/car-entries?${params}`)
+   640→      if (res.ok) setCarEntries(await res.json())
+   641→    } catch (e) { console.error(e) }
+   642→  }
+   643→
+   644→  const loadRecords = async (params?: { empId?: string; date?: string; branchId?: string }, cacheBuster?: boolean) => {
+   645→    try {
+   646→      const searchParams = new URLSearchParams()
+   647→      if (params?.empId) searchParams.set('empId', params.empId)
+   648→      if (params?.date) searchParams.set('date', params.date)
+   649→      if (params?.branchId) searchParams.set('branchId', params.branchId)
+   650→      if (cacheBuster) searchParams.set('_t', String(Date.now()))
+   651→      const res = await fetch(`/api/records?${searchParams}`, { cache: 'no-store' })
+   652→      if (res.ok) setRecords(await res.json())
+   653→    } catch (e) { console.error(e) }
+   654→  }
+   655→
+   656→  const loadClosedDays = async (date?: string) => {
+   657→    try {
+   658→      const params = new URLSearchParams()
+   659→      if (date) params.set('date', date)
+   660→      const res = await fetch(`/api/closed-days?${params}`)
+   661→      if (res.ok) setClosedDays(await res.json())
+   662→    } catch (e) { console.error(e) }
+   663→  }
+   664→
+   665→  const loadWorkerExpenses = async (date?: string, branchId?: string) => {
+   666→    try {
+   667→      const params = new URLSearchParams()
+   668→      if (date) params.set('date', date)
+   669→      if (branchId) params.set('branchId', branchId)
+   670→      const res = await fetch(`/api/worker-expenses?${params}`)
+   671→      if (res.ok) {
+   672→        const data = await res.json()
+   673→        setWorkerExpenses(data)
+   674→        // Parse jsonData into workerExpData
+   675→        if (data.length > 0 && data[0].jsonData) {
+   676→          const jd = data[0].jsonData as { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }
+   677→          const branch = branches.find(b => b.id === branchId)
+   678→          const bName = branch?.name || ''
+   679→          if (bName && date) {
+   680→            setWorkerExpData(prev => ({ ...prev, [bName + '_' + date]: jd }))
+   681→          }
+   682→        }
+   683→      }
+   684→    } catch (e) { console.error(e) }
+   685→  }
+   686→
+   687→  const loadTreasuries = async (date?: string, branchId?: string) => {
+   688→    try {
+   689→      const params = new URLSearchParams()
+   690→      if (date) params.set('date', date)
+   691→      if (branchId) params.set('branchId', branchId)
+   692→      const res = await fetch(`/api/treasury?${params}`)
+   693→      if (res.ok) setTreasuries(await res.json())
+   694→    } catch (e) { console.error(e) }
+   695→  }
+   696→
+   697→  // ==================== LOGIN ====================
+   698→  const handleLogin = async () => {
+   699→    if (!loginEmpId) { setLoginError('الرجاء اختيار اسم المستخدم'); return }
+   700→    if (!loginPassword) { setLoginError('الرجاء إدخال رمز المرور'); return }
+   701→    setLoginLoading(true)
+   702→    setLoginError('')
+   703→
+   704→    try {
+   705→      const res = await fetch('/api/auth/login', {
+   706→        method: 'POST',
+   707→        headers: { 'Content-Type': 'application/json' },
+   708→        body: JSON.stringify({ empId: loginEmpId, password: loginPassword })
+   709→      })
+   710→      const data = await res.json()
+   711→      if (!data.success) {
+   712→        setLoginError(data.error)
+   713→        setLoginLoading(false)
+   714→        return
+   715→      }
+   716→
+   717→      setUser(data.user)
+   718→      setLoginPassword('')
+   719→      setLoginEmpId('')
+   720→      setLoginLoading(false)
+   721→
+   722→      if (data.user.role === 'admin') {
+   723→        setIsAdminMode(false)
+   724→        setAdminSelectedBranch(null)
+   725→        setAdminDate(todayISO())
+   726→        setScreen('admin')
+   727→      } else {
+   728→        setIsAdminMode(false)
+   729→        setAdminSelectedBranch(null)
+   730→        setEmpDate(todayISO())
+   731→        setScreen('employee')
+   732→      }
+   733→    } catch {
+   734→      setLoginError('حدث خطأ في الاتصال')
+   735→      setLoginLoading(false)
+   736→    }
+   737→  }
+   738→
+   739→  const getEmployeeBranch = () => {
+   740→    if (!user?.branchId) return null
+   741→    return branches.find(b => b.id === user.branchId) || null
+   742→  }
+   743→
+   744→  const switchToCarEntry = () => {
+   745→    setIsAdminMode(true)
+   746→    setAdminSelectedBranch(null)
+   747→    setPriceInputs({})
+   748→    setCustomPricesData({})
+   749→    setSelectedRoom('')
+   750→    setEmpDate(todayISO())
+   751→    setScreen('employee')
+   752→  }
+   753→
+   754→  const switchToAdminManagement = () => {
+   755→    setIsAdminMode(false)
+   756→    setAdminSelectedBranch(null)
+   757→    setAdminDate(todayISO())
+   758→    setScreen('admin')
+   759→  }
+   760→
+   761→  const handleLogout = () => {
+   762→    if (!confirm('هل تريد تسجيل الخروج؟')) return
+   763→    setUser(null)
+   764→    setIsAdminMode(false)
+   765→    setAdminSelectedBranch(null)
+   766→    setScreen('login')
+   767→  }
+   768→
+   769→  // ==================== EFFECTS ====================
+   770→  // Initial data loading handled by screen-specific useEffects
+   771→
+   772→  // Employee screen data fetching - sequential
+   773→  useEffect(() => {
+   774→    if (screen === 'employee' && empDate) {
+   775→      ;(async () => {
+   776→        try { await loadBranches() } catch(e) { console.error(e) }
+   777→        try { await loadEmployees() } catch(e) { console.error(e) }
+   778→        if (isAdminMode && adminSelectedBranch) {
+   779→          try { await loadCarEntries(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
+   780→          try { await loadWorkerExpenses(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
+   781→        } else if (!isAdminMode && user?.role === 'employee' && user.branchId) {
+   782→          try { await loadCarEntries(empDate, user.branchId) } catch(e) { console.error(e) }
+   783→          try { await loadWorkerExpenses(empDate, user.branchId) } catch(e) { console.error(e) }
+   784→        }
+   785→        try { await loadClosedDays(empDate) } catch(e) { console.error(e) }
+   786→      })()
+   787→    }
+   788→  }, [screen, empDate, isAdminMode, adminSelectedBranch, user])
+   789→
+   790→  // Admin screen data fetching - sequential to avoid connection saturation
+   791→  useEffect(() => {
+   792→    if (screen === 'admin') {
+   793→      ;(async () => {
+   794→        try { await loadBranches() } catch(e) { console.error(e) }
+   795→        try { await loadEmployees() } catch(e) { console.error(e) }
+   796→        if (adminDate) {
+   797→          try { await loadRecords({ date: adminDate }) } catch(e) { console.error(e) }
+   798→          try { await loadAllCarEntries(adminDate) } catch(e) { console.error(e) }
+   799→          try { await loadClosedDays(adminDate) } catch(e) { console.error(e) }
+   800→        }
+   801→      })()
+   802→    }
+   803→  }, [screen, adminDate])
+   804→
+   805→  // Price inputs reset on room change
+   806→  useEffect(() => {
+   807→    if (!selectedRoom) return
+   808→    const prices = getPricesForRoom(selectedRoom)
+   809→    const newInputs: Record<number, number> = {}
+   810→    prices.forEach(p => { newInputs[p] = 0 })
+   811→    setPriceInputs(newInputs)
+   812→    setCustomPricesData({})
+   813→  }, [selectedRoom])
+   814→
+   815→  // Cleanliness reset on date/branch change
+   816→  useEffect(() => {
+   817→    if (screen === 'employee' && isAdminMode && adminSelectedBranch && empDate) {
+   818→      const branch = branches.find(b => b.id === adminSelectedBranch)
+   819→      if (branch) {
+   820→        const config = BRANCH_CLEANLINESS[branch.name]
+   821→        if (config?.type === 'fixed') setCleanlinessAmount(config.value || 0)
+   822→        else setCleanlinessAmount(0)
+   823→      }
+   824→    }
+   825→  }, [screen, isAdminMode, adminSelectedBranch, empDate, branches])
+   826→
+   827→  // ==================== CAR ENTRY ACTIONS ====================
+   828→  const handleSaveCarEntry = async () => {
+   829→    if (!selectedRoom) return alert('الرجاء اختيار الغرفة')
+   830→    const date = empDate
+   831→    if (!date) return alert('الرجاء تحديد التاريخ')
+   832→    if (!isAdminMode && !user) return
+   833→    if (isAdminMode && !adminSelectedBranch) return alert('الرجاء اختيار الفرع')
+   834→
+   835→    const prices = getPricesForRoom(selectedRoom)
+   836→    const priceCounts: Record<string, number> = {}
+   837→    let totalCars = 0
+   838→    let totalAmount = 0
+   839→    let extraCars = 0
+   840→    let extraAmount = 0
+   841→
+   842→    prices.forEach(price => {
+   843→      const count = priceInputs[price] || 0
+   844→      if (count > 0) {
+   845→        priceCounts[String(price)] = count
+   846→        totalCars += count
+   847→        if (EXTRA_PRICES.includes(price)) {
+   848→          totalAmount += (price - 5) * count
+   849→          extraCars += count
+   850→          extraAmount += 5 * count
+   851→        } else {
+   852→          totalAmount += price * count
+   853→        }
+   854→      }
+   855→    })
+   856→
+   857→    const customPricesSaved: Record<string, { price: number; count: number }> = {}
+   858→    Object.keys(customPricesData).forEach(key => {
+   859→      const item = customPricesData[key]
+   860→      priceCounts[key] = item.count
+   861→      customPricesSaved[key] = item
+   862→      totalCars += item.count
+   863→      totalAmount += item.price * item.count
+   864→    })
+   865→
+   866→    if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل')
+   867→
+   868→    let empId: string, empName: string, branchId: string
+   869→    if (isAdminMode) {
+   870→      branchId = adminSelectedBranch!
+   871→      empId = 'admin_' + adminSelectedBranch
+   872→      empName = 'المسؤول'
+   873→    } else {
+   874→      empId = user!.id
+   875→      empName = user!.name
+   876→      branchId = user!.branchId!
+   877→    }
+   878→
+   879→    const existing = carEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
+   880→
+   881→    setSaving(true)
+   882→    try {
+   883→      if (existing) {
+   884→        await fetch('/api/car-entries', {
+   885→          method: 'PUT',
+   886→          headers: { 'Content-Type': 'application/json' },
+   887→          body: JSON.stringify({
+   888→            id: existing.id, date, branchId, empId, empName, room: selectedRoom,
+   889→            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
+   890→          })
+   891→        })
+   892→      } else {
+   893→        await fetch('/api/car-entries', {
+   894→          method: 'POST',
+   895→          headers: { 'Content-Type': 'application/json' },
+   896→          body: JSON.stringify({
+   897→            date, branchId, empId, empName, room: selectedRoom,
+   898→            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
+   899→          })
+   900→        })
+   901→      }
+   902→
+   903→      if (isAdminMode) {
+   904→        await loadCarEntries(date, adminSelectedBranch!)
+   905→      } else {
+   906→        await loadCarEntries(date, branchId)
+   907→      }
+   908→
+   909→      const newInputs: Record<number, number> = {}
+   910→      prices.forEach(p => { newInputs[p] = 0 })
+   911→      setPriceInputs(newInputs)
+   912→      setCustomPricesData({})
+   913→      setCustomPriceInput('')
+   914→      setCustomCountInput('')
+   915→
+   916→      const branchName = isAdminMode
+   917→        ? (branches.find(b => b.id === adminSelectedBranch)?.name || '')
+   918→        : (branches.find(b => b.id === branchId)?.name || '')
+   919→      const branchRooms = getRoomsForBranch(branchName)
+   920→      const currentIdx = branchRooms.indexOf(selectedRoom)
+   921→      if (currentIdx >= 0 && currentIdx < branchRooms.length - 1) {
+   922→        setSelectedRoom(branchRooms[currentIdx + 1])
+   923→      }
+   924→
+   925→      alert(`تم الحفظ بنجاح!\n${selectedRoom} - ${totalCars} سيارات - ${totalAmount} د.ل`)
+   926→    } catch (e) {
+   927→      alert('حدث خطأ أثناء الحفظ')
+   928→    }
+   929→    setSaving(false)
+   930→  }
+   931→
+   932→  const handleDeleteCarEntry = async (id: string) => {
+   933→    if (!confirm('هل تريد حذف هذا التسجيل؟')) return
+   934→    try {
+   935→      await fetch(`/api/car-entries?id=${id}`, { method: 'DELETE' })
+   936→      if (isAdminMode && adminSelectedBranch) {
+   937→        await loadCarEntries(empDate, adminSelectedBranch)
+   938→      } else if (user?.branchId) {
+   939→        await loadCarEntries(empDate, user.branchId)
+   940→      }
+   941→    } catch (e) { alert('حدث خطأ أثناء الحذف') }
+   942→  }
+   943→
+   944→  const handleEditCarEntry = (entry: CarEntry) => {
+   945→    setSelectedRoom(entry.room)
+   946→    const prices = getPricesForRoom(entry.room)
+   947→    const newInputs: Record<number, number> = {}
+   948→    prices.forEach(p => { newInputs[p] = 0 })
+   949→    Object.keys(entry.priceCounts).forEach(key => {
+   950→      if (!key.startsWith('custom_')) {
+   951→        newInputs[Number(key)] = entry.priceCounts[key]
+   952→      }
+   953→    })
+   954→    setPriceInputs(newInputs)
+   955→    setCustomPricesData(entry.customPrices || {})
+   956→  }
+   957→
+   958→  const handleAddCustomPrice = () => {
+   959→    const price = parseFloat(customPriceInput)
+   960→    const count = parseInt(customCountInput) || 0
+   961→    if (!price || price <= 0) return alert('الرجاء إدخال سعر صحيح')
+   962→    if (count <= 0) return alert('الرجاء إدخال عدد سيارات صحيح')
+   963→    const key = 'custom_' + price
+   964→    setCustomPricesData(prev => ({ ...prev, [key]: { price, count } }))
+   965→    setCustomPriceInput('')
+   966→    setCustomCountInput('')
+   967→  }
+   968→
+   969→  const handleRemoveCustomPrice = (key: string) => {
+   970→    setCustomPricesData(prev => {
+   971→      const next = { ...prev }
+   972→      delete next[key]
+   973→      return next
+   974→    })
+   975→  }
+   976→
+   977→  // ==================== RECORD ACTIONS ====================
+   978→  const handleSaveRecord = async () => {
+   979→    const amount = parseFloat(recordModalData.amount)
+   980→    if (!amount || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح')
+   981→    if (!recordModalData.date) return alert('الرجاء تحديد تاريخ الحركة')
+   982→
+   983→    try {
+   984→      if (recordModalData.id) {
+   985→        await fetch(`/api/records?id=${recordModalData.id}`, { method: 'DELETE' })
+   986→      }
+   987→      await fetch('/api/records', {
+   988→        method: 'POST',
+   989→        headers: { 'Content-Type': 'application/json' },
+   990→        body: JSON.stringify({
+   991→          empId: recordModalData.empId,
+   992→          type: recordModalData.type,
+   993→          amount,
+   994→          note: recordModalData.note,
+   995→          date: recordModalData.date,
+   996→          branchId: recordModalData.branchId
+   997→        })
+   998→      })
+   999→      setShowRecordModal(false)
+  1000→      await new Promise(r => setTimeout(r, 300))
+  1001→      await loadRecords({ date: recordModalData.date }, true)
+  1002→    } catch (e) { alert('حدث خطأ أثناء الحفظ') }
+  1003→  }
+  1004→
+  1005→  const handleDeleteRecord = async (id: string) => {
+  1006→    if (!confirm('هل تريد حذف هذه الحركة؟')) return
+  1007→    try {
+  1008→      await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
+  1009→      await new Promise(r => setTimeout(r, 300))
+  1010→      await loadRecords({ date: adminDate }, true)
+  1011→    } catch (e) { alert('حدث خطأ أثناء الحذف') }
+  1012→  }
+  1013→
+  1014→  // ==================== WORKER EXPENSES & TREASURY ====================
+  1015→  const saveWorkerExpData = async (branchId: string, date: string, data: { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }) => {
+  1016→    try {
+  1017→      await fetch('/api/worker-expenses', {
+  1018→        method: 'POST',
+  1019→        headers: { 'Content-Type': 'application/json' },
+  1020→        body: JSON.stringify({ date, branchId, jsonData: data })
+  1021→      })
+  1022→    } catch (e) { console.error(e) }
+  1023→  }
+  1024→
+  1025→  const handleCleanlinessChange = (key: string, value: number, branchId: string, date: string) => {
+  1026→    setWorkerExpData(prev => {
+  1027→      const updated = { ...prev }
+  1028→      if (!updated[key]) updated[key] = {}
+  1029→      updated[key] = { ...updated[key], cleanliness: value }
+  1030→      void saveWorkerExpData(branchId, date, updated[key])
+  1031→      return updated
+  1032→    })
+  1033→  }
+  1034→
+  1035→  const handleTreasuryFieldChange = (key: string, branchName: string, branchId: string, date: string, itemKey: string, fieldType: 'income' | 'expense', value: number) => {
+  1036→    setWorkerExpData(prev => {
+  1037→      const updated = { ...prev }
+  1038→      if (!updated[key]) updated[key] = {}
+  1039→      if (!updated[key].treasury) updated[key].treasury = {}
+  1040→      updated[key] = {
+  1041→        ...updated[key],
+  1042→        treasury: { ...updated[key].treasury!, [itemKey]: { ...(updated[key].treasury![itemKey] || { income: 0, expense: 0 }), [fieldType]: value } }
+  1043→      }
+  1044→      void saveWorkerExpData(branchId, date, updated[key])
+  1045→      return updated
+  1046→    })
+  1047→  }
+  1048→
+  1049→  // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
+  1050→  const handleCreateBranch = async () => {
+  1051→    if (!newBranchName.trim()) return alert('الرجاء كتابة اسم الفرع')
+  1052→    try {
+  1053→      const res = await fetch('/api/branches', {
+  1054→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1055→        body: JSON.stringify({ name: newBranchName.trim() })
+  1056→      })
+  1057→      if (res.ok) {
+  1058→        setShowBranchModal(false)
+  1059→        setNewBranchName('')
+  1060→        await loadBranches()
+  1061→      } else {
+  1062→        const data = await res.json()
+  1063→        alert(data.error || 'حدث خطأ')
+  1064→      }
+  1065→    } catch (e) { alert('حدث خطأ') }
+  1066→  }
+  1067→
+  1068→  const handleDeleteBranch = async (id: string) => {
+  1069→    if (!confirm('هل أنت متأكد من حذف الفرع؟')) return
+  1070→    try {
+  1071→      await fetch(`/api/branches?id=${id}`, { method: 'DELETE' })
+  1072→      await loadBranches()
+  1073→      await loadEmployees()
+  1074→    } catch (e) { alert('حدث خطأ') }
+  1075→  }
+  1076→
+  1077→  const handleCreateEmployee = async () => {
+  1078→    if (!newEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
+  1079→    if (!newEmp.branchId) return alert('الرجاء اختيار الفرع')
+  1080→    if (!newEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
+  1081→    try {
+  1082→      const res = await fetch('/api/employees', {
+  1083→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1084→        body: JSON.stringify(newEmp)
+  1085→      })
+  1086→      if (res.ok) {
+  1087→        setShowEmpModal(false)
+  1088→        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '' })
+  1089→        await loadEmployees()
+  1090→        await loadBranches()
+  1091→      } else { alert('حدث خطأ') }
+  1092→    } catch (e) { alert('حدث خطأ') }
+  1093→  }
+  1094→
+  1095→  const handleDeleteEmployee = async (id: string) => {
+  1096→    if (!confirm('هل أنت متأكد من حذف الموظف؟')) return
+  1097→    try {
+  1098→      await fetch(`/api/employees?id=${id}`, { method: 'DELETE' })
+  1099→      await loadEmployees()
+  1100→      await loadBranches()
+  1101→    } catch (e) { alert('حدث خطأ') }
+  1102→  }
+  1103→
+  1104→  // ==================== PASSWORD MANAGEMENT ====================
+  1105→  const handleSaveEmpPassword = async (empId: string) => {
+  1106→    const pwd = empPasswords[empId]
+  1107→    if (!pwd?.trim()) return alert('الرجاء إدخال كلمة المرور')
+  1108→    try {
+  1109→      await fetch('/api/employees', {
+  1110→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  1111→        body: JSON.stringify({ id: empId, password: pwd.trim() })
+  1112→      })
+  1113→      alert('تم تحديث كلمة المرور')
+  1114→      await loadEmployees()
+  1115→    } catch (e) { alert('حدث خطأ') }
+  1116→  }
+  1117→
+  1118→  const handleSaveAdminPassword = async () => {
+  1119→    if (!adminPassword.trim()) return alert('الرجاء إدخال كلمة المرور')
+  1120→    try {
+  1121→      await fetch('/api/admin/password', {
+  1122→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  1123→        body: JSON.stringify({ password: adminPassword.trim() })
+  1124→      })
+  1125→      alert('تم تحديث كلمة مرور المسؤول')
+  1126→      setAdminPassword('')
+  1127→    } catch (e) { alert('حدث خطأ') }
+  1128→  }
+  1129→
+  1130→  // ==================== DAILY CLOSING ====================
+  1131→  const isDayClosedForBranch = (date: string, branchId: string) => {
+  1132→    return closedDays.some(cd => cd.date === date && cd.branchId === branchId)
+  1133→  }
+  1134→
+  1135→  const isDayClosed = (date: string) => {
+  1136→    if (!date) return false
+  1137→    return branches.length > 0 && branches.every(b => isDayClosedForBranch(date, b.id))
+  1138→  }
+  1139→
+  1140→  const handleToggleDayClosing = async () => {
+  1141→    const allClosed = isDayClosed(adminDate)
+  1142→    if (allClosed) {
+  1143→      for (const b of branches) {
+  1144→        await fetch('/api/closed-days', {
+  1145→          method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1146→          body: JSON.stringify({ date: adminDate, branchId: b.id })
+  1147→        })
+  1148→      }
+  1149→    } else {
+  1150→      for (const b of branches) {
+  1151→        if (!isDayClosedForBranch(adminDate, b.id)) {
+  1152→          await fetch('/api/closed-days', {
+  1153→            method: 'POST', headers: { 'Content-Type': 'application/json' },
+  1154→            body: JSON.stringify({ date: adminDate, branchId: b.id })
+  1155→          })
+  1156→        }
+  1157→      }
+  1158→    }
+  1159→    await loadClosedDays(adminDate)
+  1160→  }
+  1161→
+  1162→  // ==================== PDF EXPORT ====================
+  1163→  const handleExportPDF = async () => {
+  1164→    setExporting(true)
+  1165→    try {
+  1166→      // Determine dates to export
+  1167→      let dates: string[] = []
+  1168→
+  1169→      if (exportRangeType === 'month') {
+  1170→        if (!exportMonth) { setExporting(false); return alert('الرجاء اختيار الشهر') }
+  1171→        const [yearStr, monthStr] = exportMonth.split('-')
+  1172→        const year = parseInt(yearStr)
+  1173→        const month = parseInt(monthStr)
+  1174→        const daysInMonth = new Date(year, month, 0).getDate()
+  1175→        for (let d = 1; d <= daysInMonth; d++) {
+  1176→          const mm = month < 10 ? '0' + month : '' + month
+  1177→          const dd = d < 10 ? '0' + d : '' + d
+  1178→          dates.push(`${year}-${mm}-${dd}`)
+  1179→        }
+  1180→      } else if (exportRangeType === 'day') {
+  1181→        if (!exportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+  1182→        dates.push(exportDay)
+  1183→      } else {
+  1184→        if (!exportFrom || !exportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+  1185→        const start = new Date(exportFrom)
+  1186→        const end = new Date(exportTo)
+  1187→        const curr = new Date(start)
+  1188→        while (curr <= end) {
+  1189→          dates.push(curr.toISOString().split('T')[0])
+  1190→          curr.setDate(curr.getDate() + 1)
+  1191→        }
+  1192→      }
+  1193→
+  1194→      if (dates.length === 0) { setExporting(false); return }
+  1195→
+  1196→      // Load html2canvas and jsPDF dynamically
+  1197→      const html2canvasModule = await import('html2canvas')
+  1198→      const html2canvas = html2canvasModule.default
+  1199→      const jspdfModule = await import('jspdf')
+  1200→      const jsPDF = jspdfModule.default
+  1201→
+  1202→      const reportArea = pdfAreaRef.current
+  1203→      if (!reportArea) { setExporting(false); return alert('خطأ في عنصر التقرير') }
+  1204→
+  1205→      // Create a single PDF for all dates
+  1206→      const pdf = new jsPDF('p', 'mm', 'a4')
+  1207→      const pageWidth = pdf.internal.pageSize.getWidth()
+  1208→      let firstPage = true
+  1209→      let exportedCount = 0
+  1210→
+  1211→      for (const date of dates) {
+  1212→        // Fetch car entries for this date
+  1213→        const params = new URLSearchParams()
+  1214→        params.set('date', date)
+  1215→        const res = await fetch(`/api/car-entries?${params}`)
+  1216→        const dateEntries: CarEntry[] = res.ok ? await res.json() : []
+  1217→
+  1218→        if (dateEntries.length === 0) {
+  1219→          // Generate "no data" page
+  1220→          const noDataHtml = '<div style="width:780px;background:#fff;color:#000;padding:40px;font-family:Cairo,sans-serif;text-align:center;" dir="rtl">' +
+  1221→            '<h1 style="font-size:18px;margin:0;color:#333;">مغسلة جيت كلين</h1>' +
+  1222→            '<p style="font-size:12px;color:#666;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(date) + '</p>' +
+  1223→            '<h2 style="font-size:20px;color:#999;margin-top:60px;">لا توجد بيانات في ' + formatDateShort(date) + '</h2>' +
+  1224→            '</div>'
+  1225→
+  1226→          reportArea.innerHTML = noDataHtml
+  1227→          reportArea.style.position = 'fixed'
+  1228→          reportArea.style.top = '0'
+  1229→          reportArea.style.left = '-99999px'
+  1230→          reportArea.style.width = '800px'
+  1231→
+  1232→          await new Promise(r => setTimeout(r, 200))
+  1233→          const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+  1234→          const imgHeight = (canvas.height * pageWidth) / canvas.width
+  1235→
+  1236→          reportArea.style.position = ''
+  1237→          reportArea.style.top = ''
+  1238→          reportArea.style.left = ''
+  1239→          reportArea.style.width = ''
+  1240→          reportArea.innerHTML = ''
+  1241→
+  1242→          if (!firstPage) pdf.addPage()
+  1243→          firstPage = false
+  1244→          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+  1245→          exportedCount++
+  1246→          continue
+  1247→        }
+  1248→
+  1249→        // Group entries by branch
+  1250→        const branchGroups: Record<string, CarEntry[]> = {}
+  1251→        dateEntries.forEach(e => {
+  1252→          if (!branchGroups[e.branchId]) branchGroups[e.branchId] = []
+  1253→          branchGroups[e.branchId].push(e)
+  1254→        })
+  1255→
+  1256→        for (const bid in branchGroups) {
+  1257→          const br = branches.find(b => b.id === bid)
+  1258→          const bName = br ? br.name : ''
+  1259→          const bEntries = branchGroups[bid]
+  1260→
+  1261→          const pages = buildCarReportHTML(date, bid, bName, bEntries)
+  1262→
+  1263→          // Render Page 1
+  1264→          reportArea.innerHTML = pages.page1
+  1265→          reportArea.style.position = 'fixed'
+  1266→          reportArea.style.top = '0'
+  1267→          reportArea.style.left = '-99999px'
+  1268→          reportArea.style.width = '800px'
+  1269→
+  1270→          await new Promise(r => setTimeout(r, 200))
+  1271→          const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+  1272→          const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
+  1273→
+  1274→          reportArea.style.position = ''
+  1275→          reportArea.style.top = ''
+  1276→          reportArea.style.left = ''
+  1277→          reportArea.style.width = ''
+  1278→
+  1279→          // Render Page 2
+  1280→          reportArea.innerHTML = pages.page2
+  1281→          reportArea.style.position = 'fixed'
+  1282→          reportArea.style.top = '0'
+  1283→          reportArea.style.left = '-99999px'
+  1284→          reportArea.style.width = '800px'
+  1285→
+  1286→          await new Promise(r => setTimeout(r, 200))
+  1287→          const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+  1288→          const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
+  1289→
+  1290→          reportArea.style.position = ''
+  1291→          reportArea.style.top = ''
+  1292→          reportArea.style.left = ''
+  1293→          reportArea.style.width = ''
+  1294→          reportArea.innerHTML = ''
+  1295→
+  1296→          if (!firstPage) pdf.addPage()
+  1297→          firstPage = false
+  1298→          pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight1)
+  1299→          pdf.addPage()
+  1300→          pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight2)
+  1301→          exportedCount++
+  1302→        }
+  1303→      }
+  1304→
+  1305→      if (exportedCount > 0) {
+  1306→        pdf.save('تقرير_مغاسل_جيت_كلين.pdf')
+  1307→        setShowExportModal(false)
+  1308→        alert('تم التصدير بنجاح! (' + exportedCount + ' صفحة)')
+  1309→      } else {
+  1310→        alert('لا توجد بيانات للتصدير في الفترة المحددة')
+  1311→      }
+  1312→    } catch (err) {
+  1313→      console.error(err)
+  1314→      alert('حدث خطأ أثناء التصدير')
+  1315→    }
+  1316→    setExporting(false)
+  1317→  }
+  1318→
+  1319→  // ==================== EMPLOYEE PDF EXPORT (WITHDRAWALS/SHORTAGES) ====================
+  1320→  const handleExportEmployeePDF = async () => {
+  1321→    setExportingEmp(true)
+  1322→    try {
+  1323→      // Load html2canvas and jsPDF dynamically
+  1324→      const html2canvasModule = await import('html2canvas')
+  1325→      const html2canvas = html2canvasModule.default
+  1326→      const jspdfModule = await import('jspdf')
+  1327→      const jsPDF = jspdfModule.default
+  1328→
+  1329→      // Determine dates - default to admin date if no export range set
+  1330→      let dates: string[] = []
+  1331→      if (exportRangeType === 'month' && exportMonth) {
+  1332→        const [yearStr, monthStr] = exportMonth.split('-')
+  1333→        const year = parseInt(yearStr)
+  1334→        const month = parseInt(monthStr)
+  1335→        const daysInMonth = new Date(year, month, 0).getDate()
+  1336→        for (let d = 1; d <= daysInMonth; d++) {
+  1337→          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+  1338→        }
+  1339→      } else if (exportRangeType === 'day' && exportDay) {
+  1340→        dates.push(exportDay)
+  1341→      } else if (exportFrom && exportTo) {
+  1342→        const start = new Date(exportFrom)
+  1343→        const end = new Date(exportTo)
+  1344→        const curr = new Date(start)
+  1345→        while (curr <= end) {
+  1346→          dates.push(curr.toISOString().split('T')[0])
+  1347→          curr.setDate(curr.getDate() + 1)
+  1348→        }
+  1349→      }
+  1350→
+  1351→      // Default to admin date if no range was set
+  1352→      if (dates.length === 0) {
+  1353→        dates.push(adminDate)
+  1354→      }
+  1355→
+  1356→      if (dates.length === 0) { setExportingEmp(false); return }
+  1357→
+  1358→      // Fetch all records for all dates
+  1359→      const allRecordsRes = await fetch('/api/records')
+  1360→      const allRecordsData: FinancialRecord[] = allRecordsRes.ok ? await allRecordsRes.json() : []
+  1361→
+  1362→      // Build period label
+  1363→      const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+  1364→      let periodLabel = ''
+  1365→      if (exportRangeType === 'month' && exportMonth) {
+  1366→        const [y, m] = exportMonth.split('-')
+  1367→        periodLabel = arabicMonths[parseInt(m) - 1] + ' ' + y
+  1368→      } else if (exportRangeType === 'day' && exportDay) {
+  1369→        periodLabel = formatDateShort(exportDay)
+  1370→      } else if (exportFrom && exportTo) {
+  1371→        periodLabel = formatDateShort(exportFrom) + ' إلى ' + formatDateShort(exportTo)
+  1372→      } else {
+  1373→        periodLabel = formatDateShort(adminDate)
+  1374→      }
+  1375→
+  1376→      // Filter records to only those within the date range
+  1377→      const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
+  1378→
+  1379→      if (filteredRecords.length === 0) {
+  1380→        alert('لا توجد سحوبات أو عجوزات في الفترة المحددة')
+  1381→        setExportingEmp(false)
+  1382→        return
+  1383→      }
+  1384→
+  1385→      // Build the report HTML
+  1386→      const reportHtml = buildEmployeeReportHTML(
+  1387→        periodLabel,
+  1388→        employees,
+  1389→        filteredRecords,
+  1390→        branches,
+  1391→        (r: FinancialRecord) => dates.includes(r.date)
+  1392→      )
+  1393→
+  1394→      const reportArea = pdfAreaRef.current
+  1395→      if (!reportArea) { setExportingEmp(false); return alert('خطأ في عنصر التقرير') }
+  1396→
+  1397→      // Render HTML off-screen
+  1398→      reportArea.innerHTML = reportHtml
+  1399→      reportArea.style.position = 'fixed'
+  1400→      reportArea.style.top = '0'
+  1401→      reportArea.style.left = '-99999px'
+  1402→      reportArea.style.width = '800px'
+  1403→      reportArea.style.zIndex = '-1'
+  1404→
+  1405→      await new Promise(r => setTimeout(r, 300))
+  1406→
+  1407→      // Capture with html2canvas
+  1408→      const canvas = await html2canvas(reportArea, {
+  1409→        scale: 2,
+  1410→        backgroundColor: '#ffffff',
+  1411→        useCORS: true,
+  1412→        logging: false
+  1413→      })
+  1414→
+  1415→      // Clean up
+  1416→      reportArea.style.position = ''
+  1417→      reportArea.style.top = ''
+  1418→      reportArea.style.left = ''
+  1419→      reportArea.style.width = ''
+  1420→      reportArea.style.zIndex = ''
+  1421→      reportArea.innerHTML = ''
+  1422→
+  1423→      // Create PDF - handle multiple pages if content is tall
+  1424→      const pdf = new jsPDF('p', 'mm', 'a4')
+  1425→      const pageWidth = pdf.internal.pageSize.getWidth()
+  1426→      const pageHeight = pdf.internal.pageSize.getHeight()
+  1427→      const imgWidth = pageWidth
+  1428→      const imgHeight = (canvas.height * pageWidth) / canvas.width
+  1429→
+  1430→      if (imgHeight <= pageHeight) {
+  1431→        // Single page
+  1432→        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight)
+  1433→      } else {
+  1434→        // Multiple pages - split the canvas
+  1435→        let remainingHeight = imgHeight
+  1436→        let yOffset = 0
+  1437→        let page = 0
+  1438→
+  1439→        while (remainingHeight > 0) {
+  1440→          if (page > 0) pdf.addPage()
+  1441→
+  1442→          const sourceY = (yOffset / imgHeight) * canvas.height
+  1443→          const sourceHeight = Math.min((pageHeight / imgHeight) * canvas.height, canvas.height - sourceY)
+  1444→
+  1445→          const pageCanvas = document.createElement('canvas')
+  1446→          pageCanvas.width = canvas.width
+  1447→          pageCanvas.height = sourceHeight
+  1448→          const ctx = pageCanvas.getContext('2d')
+  1449→          if (ctx) {
+  1450→            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight)
+  1451→          }
+  1452→
+  1453→          const pageImgHeight = (pageCanvas.height * pageWidth) / pageCanvas.width
+  1454→          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, pageImgHeight)
+  1455→
+  1456→          yOffset += pageHeight
+  1457→          remainingHeight -= pageHeight
+  1458→          page++
+  1459→        }
+  1460→      }
+  1461→
+  1462→      pdf.save('تقرير_سحوبات_وعجوزات_الموظفين.pdf')
+  1463→      setShowExportModal(false)
+  1464→      alert('تم تصدير تقرير السحوبات والعجوزات بنجاح!')
+  1465→    } catch (err) {
+  1466→      console.error(err)
+  1467→      alert('حدث خطأ أثناء تصدير تقرير الموظفين')
+  1468→    }
+  1469→    setExportingEmp(false)
+  1470→  }
+  1471→
+  1472→  // ==================== CAR ENTRY PDF EXPORT (Employee Screen) ====================
+  1473→  const handleExportCarEntryPDF = async () => {
+  1474→    setExportingEmp(true)
+  1475→    try {
+  1476→      const html2canvasModule = await import('html2canvas')
+  1477→      const html2canvas = html2canvasModule.default
+  1478→      const jspdfModule = await import('jspdf')
+  1479→      const jsPDF = jspdfModule.default
+  1480→
+  1481→      // Determine branch and entries
+  1482→      let branchId = ''
+  1483→      let branchName = ''
+  1484→      let date = empDate
+  1485→
+  1486→      if (isAdminMode) {
+  1487→        if (!adminSelectedBranch) { setExportingEmp(false); return alert('الرجاء اختيار الفرع أولاً') }
+  1488→        branchId = adminSelectedBranch
+  1489→        const branch = branches.find(b => b.id === branchId)
+  1490→        branchName = branch ? branch.name : ''
+  1491→      } else {
+  1492→        if (!user) { setExportingEmp(false); return }
+  1493→        branchId = user.branchId
+  1494→        const branch = branches.find(b => b.id === branchId)
+  1495→        branchName = branch ? branch.name : ''
+  1496→      }
+  1497→
+  1498→      if (!date) { setExportingEmp(false); return alert('الرجاء تحديد التاريخ') }
+  1499→
+  1500→      // Fetch car entries for this branch+date
+  1501→      const params = new URLSearchParams()
+  1502→      params.set('date', date)
+  1503→      params.set('branchId', branchId)
+  1504→      const res = await fetch(`/api/car-entries?${params}`)
+  1505→      const entries: CarEntry[] = res.ok ? await res.json() : []
+  1506→
+  1507→      if (entries.length === 0) {
+  1508→        alert('لا توجد تسجيلات في هذا التاريخ للتصدير')
+  1509→        setExportingEmp(false)
+  1510→        return
+  1511→      }
+  1512→
+  1513→      // Build report
+  1514→      const pages = buildCarReportHTML(date, branchId, branchName, entries)
+  1515→
+  1516→      const reportArea = pdfAreaRef.current
+  1517→      if (!reportArea) { setExportingEmp(false); return alert('خطأ في عنصر التقرير') }
+  1518→
+  1519→      const pdf = new jsPDF('p', 'mm', 'a4')
+  1520→      const pageWidth = pdf.internal.pageSize.getWidth()
+  1521→      const pageHeight = pdf.internal.pageSize.getHeight()
+  1522→
+  1523→      // Render Page 1
+  1524→      reportArea.innerHTML = pages.page1
+  1525→      reportArea.style.position = 'fixed'
+  1526→      reportArea.style.top = '0'
+  1527→      reportArea.style.left = '-99999px'
+  1528→      reportArea.style.width = '800px'
+  1529→      reportArea.style.zIndex = '-1'
+  1530→
+  1531→      await new Promise(r => setTimeout(r, 300))
+  1532→      const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+  1533→      const imgData1 = canvas1.toDataURL('image/png')
+  1534→      const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
+  1535→
+  1536→      reportArea.style.position = ''
+  1537→      reportArea.style.top = ''
+  1538→      reportArea.style.left = ''
+  1539→      reportArea.style.width = ''
+  1540→      reportArea.style.zIndex = ''
+  1541→
+  1542→      // Render Page 2
+  1543→      reportArea.innerHTML = pages.page2
+  1544→      reportArea.style.position = 'fixed'
+  1545→      reportArea.style.top = '0'
+  1546→      reportArea.style.left = '-99999px'
+  1547→      reportArea.style.width = '800px'
+  1548→      reportArea.style.zIndex = '-1'
+  1549→
+  1550→      await new Promise(r => setTimeout(r, 300))
+  1551→      const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+  1552→      const imgData2 = canvas2.toDataURL('image/png')
+  1553→      const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
+  1554→
+  1555→      reportArea.style.position = ''
+  1556→      reportArea.style.top = ''
+  1557→      reportArea.style.left = ''
+  1558→      reportArea.style.width = ''
+  1559→      reportArea.style.zIndex = ''
+  1560→      reportArea.innerHTML = ''
+  1561→
+  1562→      // Add to PDF
+  1563→      pdf.addImage(imgData1, 'PNG', 0, 0, pageWidth, imgHeight1)
+  1564→      pdf.addPage()
+  1565→      pdf.addImage(imgData2, 'PNG', 0, 0, pageWidth, imgHeight2)
+  1566→
+  1567→      const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
+  1568→      pdf.save(fileName)
+  1569→    } catch (err) {
+  1570→      console.error(err)
+  1571→      alert('حدث خطأ أثناء إنشاء ملف PDF')
+  1572→    }
+  1573→    setExportingEmp(false)
+  1574→  }
+  1575→
+  1576→  const renderEntryCard = (entry: CarEntry, branchName: string) => {
+  1577→    const room = entry.room
+  1578→    let detailsHtml: React.ReactNode[] = []
+  1579→    const entryPrices = Object.keys(entry.priceCounts).filter(k => !k.startsWith('custom_')).map(Number)
+  1580→    entryPrices.forEach(price => {
+  1581→      const count = entry.priceCounts[String(price)] || 0
+  1582→      if (count > 0) {
+  1583→        let subtotal = price * count
+  1584→        let priceLabel = `${price} د.ل`
+  1585→        if (EXTRA_PRICES.includes(price)) {
+  1586→          subtotal = (price - 5) * count
+  1587→          priceLabel = <>{price} د.ل <span className="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = {price - 5} د.ل)</span></>
+  1588→        }
+  1589→        detailsHtml.push(
+  1590→          <div key={price} className="flex justify-between items-center text-sm bg-slate-900/60 px-3 py-2 rounded-lg">
+  1591→            <span className="text-slate-300">تسعيرة {priceLabel}:</span>
+  1592→            <div className="flex items-center gap-3">
+  1593→              <span className="text-white font-bold">{count} سيارة</span>
+  1594→              <span className="text-emerald-400 font-bold">{subtotal} د.ل</span>
+  1595→            </div>
+  1596→          </div>
+  1597→        )
+  1598→      }
+  1599→    })
+  1600→
+  1601→    Object.keys(entry.customPrices || {}).forEach(key => {
+  1602→      const item = entry.customPrices[key]
+  1603→      detailsHtml.push(
+  1604→        <div key={key} className="flex justify-between items-center text-sm bg-violet-500/10 border border-violet-500/20 px-3 py-2 rounded-lg">
+  1605→          <span className="text-violet-300">تسعيرة مخصصة {item.price} د.ل:</span>
+  1606→          <div className="flex items-center gap-3">
+  1607→            <span className="text-white font-bold">{item.count} سيارة</span>
+  1608→            <span className="text-emerald-400 font-bold">{item.price * item.count} د.ل</span>
+  1609→          </div>
+  1610→        </div>
+  1611→      )
+  1612→    })
+  1613→
+  1614→    if (entry.extraCars > 0) {
+  1615→      detailsHtml.push(
+  1616→        <div key="extra" className="flex justify-between items-center text-sm bg-amber-500/10 border border-amber-500/30 px-3 py-2 rounded-lg mt-1">
+  1617→          <span className="text-amber-300 font-semibold">⭐ إكسترا:</span>
+  1618→          <div className="flex items-center gap-3">
+  1619→            <span className="text-amber-200 font-bold">{entry.extraCars} سيارة × 5 د.ل</span>
+  1620→            <span className="text-amber-400 font-bold">{entry.extraAmount} د.ل</span>
+  1621→          </div>
+  1622→        </div>
+  1623→      )
+  1624→    }
+  1625→
+  1626→    const isAdminEntry = entry.empName === 'المسؤول'
+  1627→    const labelColor = isAdminEntry ? 'text-amber-400' : 'text-cyan-400'
+  1628→    const borderColor = isAdminEntry ? 'border-amber-500/20' : 'border-slate-700'
+  1629→    const entryLabel = isAdminEntry ? '👨‍💼 المسؤول' : entry.empName
+  1630→
+  1631→    const canEdit = isAdminMode || (!isAdminMode && entry.empId === user?.id)
+  1632→    const dayClosed = isDayClosed(entry.date)
+  1633→
+  1634→    return (
+  1635→      <div key={entry.id} className={`room-card bg-slate-800 border ${borderColor} rounded-2xl p-5 shadow-lg`}>
+  1636→        <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
+  1637→          <h3 className={`text-lg font-bold ${labelColor} flex items-center gap-2`}>
+  1638→            {ROOM_ICONS[room] || '🏠'} {room} <span className="text-xs text-slate-400 font-normal">({entryLabel})</span>
+  1639→          </h3>
+  1640→          <div className="flex items-center gap-2">
+  1641→            <span className="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">{entry.totalCars} سيارة</span>
+  1642→            {canEdit && !dayClosed && (
+  1643→              <>
+  1644→                <button onClick={() => handleEditCarEntry(entry)} className="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️</button>
+  1645→                <button onClick={() => handleDeleteCarEntry(entry.id)} className="text-rose-400 hover:text-rose-300 text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20 hover:bg-rose-500/20 transition">🗑️</button>
+  1646→              </>
+  1647→            )}
+  1648→          </div>
+  1649→        </div>
+  1650→        <div className="space-y-1.5">{detailsHtml}</div>
+  1651→        <div className="mt-4 pt-3 border-t border-slate-700">
+  1652→          <div className="flex justify-between items-center">
+  1653→            <span className="text-slate-300 font-semibold text-sm">إجمالي {room}:</span>
+  1654→            <span className="text-xl font-black text-emerald-400">{entry.totalAmount} د.ل</span>
+  1655→          </div>
+  1656→          <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-600">
+  1657→            <span className="text-cyan-300 font-semibold text-sm">الصافي:</span>
+  1658→            <span className="text-lg font-black text-cyan-400">{getNetAmount(entry.totalAmount, branchName, room)} د.ل</span>
+  1659→          </div>
+  1660→          <p className="text-[10px] text-slate-500 mt-1 text-left">({getNetFormulaText(branchName, room)})</p>
+  1661→        </div>
+  1662→      </div>
+  1663→    )
+  1664→  }
+  1665→
+  1666→  const renderPriceGrid = () => {
+  1667→    const prices = getPricesForRoom(selectedRoom)
+  1668→    return (
+  1669→      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5">
+  1670→        {prices.map(price => {
+  1671→          const isExtraPrice = EXTRA_PRICES.includes(price)
+  1672→          return (
+  1673→            <div key={price} className={`room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center`}>
+  1674→              <p className="text-xs text-slate-400 mb-2">تسعيرة</p>
+  1675→              <p className="text-2xl font-black text-white mb-1">{price} د.ل</p>
+  1676→              {isExtraPrice && <p className="text-[10px] text-amber-400 mt-1">(شامل 5 د.ل إكسترا)</p>}
+  1677→              <input
+  1678→                type="number"
+  1679→                min="0"
+  1680→                value={priceInputs[price] || 0}
+  1681→                onChange={e => setPriceInputs(prev => ({ ...prev, [price]: parseInt(e.target.value) || 0 }))}
+  1682→                className="w-full bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-cyan-500"
+  1683→                onFocus={e => (e.target as HTMLInputElement).select()}
+  1684→              />
+  1685→            </div>
+  1686→          )
+  1687→        })}
+  1688→        {/* Custom price card */}
+  1689→        <div className="room-card bg-violet-500/10 border border-violet-500/30 rounded-xl p-4 text-center col-span-full sm:col-span-1">
+  1690→          <p className="text-xs text-violet-300 mb-2 font-semibold">➕ تسعيرة مخصصة</p>
+  1691→          <div className="flex gap-2 items-center">
+  1692→            <input
+  1693→              type="number"
+  1694→              min="0"
+  1695→              value={customPriceInput}
+  1696→              placeholder="السعر"
+  1697→              onChange={e => setCustomPriceInput(e.target.value)}
+  1698→              className="flex-1 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-base font-bold focus:outline-none focus:border-violet-500"
+  1699→              onFocus={e => (e.target as HTMLInputElement).select()}
+  1700→            />
+  1701→            <input
+  1702→              type="number"
+  1703→              min="0"
+  1704→              value={customCountInput}
+  1705→              placeholder="العدد"
+  1706→              onChange={e => setCustomCountInput(e.target.value)}
+  1707→              className="w-20 bg-slate-900/80 border border-slate-600 rounded-lg p-2 text-center text-white text-lg font-bold focus:outline-none focus:border-violet-500"
+  1708→              onFocus={e => (e.target as HTMLInputElement).select()}
+  1709→            />
+  1710→          </div>
+  1711→          <button
+  1712→            onClick={handleAddCustomPrice}
+  1713→            className="mt-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition w-full"
+  1714→          >
+  1715→            إضافة
+  1716→          </button>
+  1717→          <div className="mt-2 space-y-1">
+  1718→            {Object.keys(customPricesData).map(key => {
+  1719→              const item = customPricesData[key]
+  1720→              return (
+  1721→                <div key={key} className="flex justify-between items-center text-xs bg-slate-900/60 px-2 py-1 rounded-lg">
+  1722→                  <span className="text-violet-300">{item.price} د.ل × {item.count}</span>
+  1723→                  <div className="flex items-center gap-2">
+  1724→                    <span className="text-emerald-400 font-bold">{item.price * item.count} د.ل</span>
+  1725→                    <button onClick={() => handleRemoveCustomPrice(key)} className="text-rose-400 hover:text-rose-300">×</button>
+  1726→                  </div>
+  1727→                </div>
+  1728→              )
+  1729→            })}
+  1730→          </div>
+  1731→        </div>
+  1732→      </div>
+  1733→    )
+  1734→  }
+  1735→
+  1736→  // ==================== EMPLOYEE SCREEN ====================
+  1737→  const renderEmployeeScreen = () => {
+  1738→    const currentBranch = isAdminMode
+  1739→      ? (adminSelectedBranch ? branches.find(b => b.id === adminSelectedBranch) : null)
+  1740→      : getEmployeeBranch()
+  1741→    const branchName = currentBranch?.name || ''
+  1742→    const branchId = currentBranch?.id || ''
+  1743→    const availableRooms = branchName ? getRoomsForBranch(branchName) : []
+  1744→
+  1745→    let displayEntries: CarEntry[] = []
+  1746→    if (isAdminMode) {
+  1747→      if (adminSelectedBranch && empDate) {
+  1748→        const adminEmpId = 'admin_' + adminSelectedBranch
+  1749→        displayEntries = carEntries.filter(e =>
+  1750→          (e.branchId === adminSelectedBranch || e.empId === adminEmpId) && e.date === empDate
+  1751→        )
+  1752→      }
+  1753→    } else {
+  1754→      if (user?.branchId && empDate) {
+  1755→        const adminEmpId = 'admin_' + user.branchId
+  1756→        displayEntries = carEntries.filter(e =>
+  1757→          (e.empId === user.id || e.empId === adminEmpId) && e.date === empDate
+  1758→        )
+  1759→      }
+  1760→    }
+  1761→    // Sort entries by room order (غرفة 1, غرفة 2, ..., مكينة الغسيل)
+  1762→    if (branchName) {
+  1763→      const roomOrder = getRoomsForBranch(branchName)
+  1764→      displayEntries.sort((a, b) => {
+  1765→        const aIdx = roomOrder.indexOf(a.room)
+  1766→        const bIdx = roomOrder.indexOf(b.room)
+  1767→        return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx)
+  1768→      })
+  1769→    }
+  1770→
+  1771→    let grandTotalAmount = 0
+  1772→    let grandTotalCars = 0
+  1773→    let grandTotalNet = 0
+  1774→    displayEntries.forEach(entry => {
+  1775→      grandTotalAmount += entry.totalAmount
+  1776→      grandTotalCars += entry.totalCars
+  1777→      grandTotalNet += getNetAmount(entry.totalAmount, branchName, entry.room)
+  1778→    })
+  1779→
+  1780→    const empInfoText = isAdminMode
+  1781→      ? 'مرحباً المسؤول طه علي 👨‍💼'
+  1782→      : `مرحباً ${user?.name} | ${branchName} | ${user?.shift}`
+  1783→
+  1784→    return (
+  1785→      <div className="min-h-screen bg-slate-900">
+  1786→        <header className="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 mb-6 gap-4">
+  1787→          <div>
+  1788→            <h1 className="text-2xl font-extrabold text-cyan-400 flex items-center gap-2">💧 جيت كلين</h1>
+  1789→            <p className="text-slate-400 text-sm mt-1">{empInfoText}</p>
+  1790→          </div>
+  1791→          <div className="flex flex-wrap gap-3">
+  1792→            {isAdminMode && (
+  1793→              <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-amber-500/30">
+  1794→                ⚙️ إدارة النظام
+  1795→              </button>
+  1796→            )}
+  1797→            {isAdminMode && (
+  1798→              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-indigo-500/30">
+  1799→                📄 تصدير تقرير PDF
+  1800→              </button>
+  1801→            )}
+  1802→            <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
+  1803→              🚪 تسجيل خروج
+  1804→            </button>
+  1805→          </div>
+  1806→        </header>
+  1807→
+  1808→        <main className="max-w-4xl mx-auto px-4 pb-24 space-y-4">
+  1809→          <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
+  1810→            {isAdminMode && (
+  1811→              <>
+  1812→                <label className="text-sm text-amber-300 font-semibold whitespace-nowrap">📍 اختر الفرع:</label>
+  1813→                <select
+  1814→                  value={adminSelectedBranch || ''}
+  1815→                  onChange={e => { setAdminSelectedBranch(e.target.value || null); setSelectedRoom('') }}
+  1816→                  className="bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white text-base focus:outline-none focus:border-amber-500"
+  1817→                >
+  1818→                  <option value="">-- اختر فرع --</option>
+  1819→                  {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
+  1820→                </select>
+  1821→              </>
+  1822→            )}
+  1823→            <label className="text-sm text-slate-400 font-bold whitespace-nowrap">التاريخ:</label>
+  1824→            <input
+  1825→              type="date" value={empDate}
+  1826→              onChange={e => setEmpDate(e.target.value)}
+  1827→              className="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
+  1828→            />
+  1829→          </div>
+  1830→
+  1831→          <div className="mb-6">
+  1832→            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🚗 تسجيل السيارات</h2>
+  1833→
+  1834→            <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-4">
+  1835→              <label className="block text-sm text-slate-300 mb-2 font-semibold">اختر الغرفة / المحطة:</label>
+  1836→              <select
+  1837→                value={selectedRoom}
+  1838→                onChange={e => setSelectedRoom(e.target.value)}
+  1839→                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-base focus:outline-none focus:border-cyan-500"
+  1840→              >
+  1841→                <option value="">-- اختر غرفة --</option>
+  1842→                {availableRooms.map(room => (
+  1843→                  <option key={room} value={room}>{ROOM_ICONS[room] || '🏠'} {room}</option>
+  1844→                ))}
+  1845→              </select>
+  1846→            </div>
+  1847→
+  1848→            {selectedRoom && (
+  1849→              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+  1850→                <h3 className="text-lg font-bold text-cyan-400 mb-4">
+  1851→                  {ROOM_ICONS[selectedRoom] || '🏠'} {selectedRoom}
+  1852→                </h3>
+  1853→                {renderPriceGrid()}
+  1854→                <div className="flex gap-3">
+  1855→                  <button
+  1856→                    onClick={handleSaveCarEntry}
+  1857→                    disabled={saving}
+  1858→                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm flex items-center justify-center gap-2"
+  1859→                  >
+  1860→                    {saving ? '⏳ جاري الحفظ...' : '💾 حفظ التسجيل'}
+  1861→                  </button>
+  1862→                  <button
+  1863→                    onClick={() => { setPriceInputs({}); setCustomPricesData({}) }}
+  1864→                    className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition text-sm"
+  1865→                  >
+  1866→                    🗑️ مسح
+  1867→                  </button>
+  1868→                </div>
+  1869→              </div>
+  1870→            )}
+  1871→          </div>
+  1872→
+  1873→          {displayEntries.length === 0 && (
+  1874→            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+  1875→              <div className="text-4xl mb-3">📋</div>
+  1876→              <p className="text-slate-400">
+  1877→                {!branchId ? 'اختر الفرع لعرض البيانات' : 'لا توجد تسجيلات لهذا اليوم بعد'}
+  1878→              </p>
+  1879→              <p className="text-slate-500 text-sm mt-1">اختر غرفة وسجل عدد السيارات</p>
+  1880→            </div>
+  1881→          )}
+  1882→
+  1883→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  1884→            {displayEntries.map(entry => renderEntryCard(entry, branchName))}
+  1885→          </div>
+  1886→
+  1887→          {displayEntries.length > 0 && (
+  1888→            <div className="bg-slate-800 border-2 border-cyan-500/30 rounded-2xl p-5 shadow-xl">
+  1889→              <h3 className="text-sm font-bold text-cyan-400 mb-3">📊 الإجمالي الكلي</h3>
+  1890→              <div className="grid grid-cols-3 gap-3 text-center">
+  1891→                <div className="bg-slate-900/60 rounded-xl p-3">
+  1892→                  <p className="text-xs text-slate-400">السيارات</p>
+  1893→                  <p className="text-lg font-black text-white">{grandTotalCars} سيارة</p>
+  1894→                </div>
+  1895→                <div className="bg-slate-900/60 rounded-xl p-3">
+  1896→                  <p className="text-xs text-slate-400">المبيعات</p>
+  1897→                  <p className="text-lg font-black text-emerald-400">{grandTotalAmount} د.ل</p>
+  1898→                </div>
+  1899→                <div className="bg-slate-900/60 rounded-xl p-3">
+  1900→                  <p className="text-xs text-slate-400">الصافي</p>
+  1901→                  <p className="text-lg font-black text-cyan-400">{grandTotalNet} د.ل</p>
+  1902→                </div>
+  1903→              </div>
+  1904→            </div>
+  1905→          )}
+  1906→
+  1907→          {/* Worker Expenses + Treasury */}
+  1908→          {displayEntries.length > 0 && branchName && (() => {
+  1909→            const wKey = branchName + '_' + empDate
+  1910→            const savedWE = workerExpData[wKey] || {}
+  1911→            const cleannessConfig = BRANCH_CLEANLINESS[branchName]
+  1912→            if (!cleannessConfig) return null
+  1913→
+  1914→            // Calculate room net map
+  1915→            const roomNetMap: Record<string, number> = {}
+  1916→            displayEntries.forEach(e => {
+  1917→              const net = getNetAmount(e.totalAmount, branchName, e.room)
+  1918→              roomNetMap[e.room] = (roomNetMap[e.room] || 0) + net
+  1919→            })
+  1920→
+  1921→            const availableRooms = getRoomsForBranch(branchName)
+  1922→            let totalRoomsNet = 0
+  1923→            availableRooms.forEach(r => { if (roomNetMap[r]) totalRoomsNet += roomNetMap[r] })
+  1924→            if (totalRoomsNet === 0 && !Object.keys(roomNetMap).length) return null
+  1925→
+  1926→            let selectedCleanliness = savedWE.cleanliness || 0
+  1927→            if (cleannessConfig.type === 'fixed') selectedCleanliness = cleannessConfig.value || 0
+  1928→
+  1929→            const workerExpTotal = totalRoomsNet + selectedCleanliness
+  1930→
+  1931→            // Treasury calculations
+  1932→            const treasSaved = savedWE.treasury || {}
+  1933→            const treasuryItems = getTreasuryItems(branchName)
+  1934→            const bankCardSale = parseInt(String(treasSaved['بيع_البطاقة']?.expense)) || 0
+  1935→            const bankCardReplaceAuto = Math.floor(bankCardSale / 2)
+  1936→            const workerExpInTreasury = workerExpTotal - bankCardReplaceAuto
+  1937→
+  1938→            let runningBalance = 0
+  1939→            const treasuryRows = treasuryItems.map((item, idx) => {
+  1940→              const rowSaved = treasSaved[item.key] || {}
+  1941→              let income = rowSaved.income || 0
+  1942→              let expense = rowSaved.expense || 0
+  1943→              let isAuto = false
+  1944→              if (item.key === 'بدل_البطاقة') { expense = bankCardReplaceAuto; isAuto = true }
+  1945→              if (item.key === 'مصاريف_العمال') { expense = workerExpInTreasury; isAuto = true }
+  1946→              runningBalance = runningBalance + income - expense
+  1947→              const balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171'
+  1948→              const rowBg = idx % 2 === 0 ? 'rgba(15,23,42,0.4)' : 'rgba(15,23,42,0.2)'
+  1949→              return { ...item, income, expense, isAuto, balance: runningBalance, balColor, rowBg }
+  1950→            })
+  1951→
+  1952→            const currentBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+  1953→
+  1954→            return (
+  1955→              <div className="bg-gradient-to-l from-emerald-600/10 to-cyan-600/10 border border-emerald-500/30 rounded-2xl p-5 shadow-xl mt-4">
+  1956→                <div className="border-t border-amber-500/30 pt-4">
+  1957→                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  1958→                    {/* مصاريف العمال */}
+  1959→                    <div>
+  1960→                      <h3 className="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
+  1961→                      <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+  1962→                        {availableRooms.map((room, idx) => {
+  1963→                          const net = roomNetMap[room]
+  1964→                          if (net === undefined || net === 0) return null
+  1965→                          const icon = ROOM_ICONS[room] || '🏠'
+  1966→                          const bgColor = idx % 2 === 0 ? 'background:rgba(15,23,42,0.4)' : 'background:rgba(15,23,42,0.2)'
+  1967→                          return (
+  1968→                            <div key={room} className="flex justify-between items-center px-4 py-2.5" style={{ background: bgColor.split('(')[1]?.slice(0,-1) ? bgColor : undefined, borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+  1969→                              <div className="flex items-center gap-2">
+  1970→                                <span className="text-lg">{icon}</span>
+  1971→                                <span className="text-slate-200 text-sm font-semibold">{room}</span>
+  1972→                              </div>
+  1973→                              <span className="text-cyan-400 text-base font-black">{net} د.ل</span>
+  1974→                            </div>
+  1975→                          )
+  1976→                        })}
+  1977→                        <div className="border-t border-amber-500/20" />
+  1978→                        {/* Cleanliness */}
+  1979→                        <div className="flex justify-between items-center px-4 py-2.5" style={{ background: 'rgba(245,158,11,0.05)' }}>
+  1980→                          <div className="flex items-center gap-2">
+  1981→                            <span className="text-lg">🧹</span>
+  1982→                            <span className="text-amber-300 text-sm font-semibold">النظافة</span>
+  1983→                          </div>
+  1984→                          {cleannessConfig.type === 'fixed' ? (
+  1985→                            <span className="text-amber-400 text-base font-bold">{cleannessConfig.value} د.ل</span>
+  1986→                          ) : (
+  1987→                            <select
+  1988→                              value={selectedCleanliness}
+  1989→                              onChange={e => handleCleanlinessChange(wKey, parseInt(e.target.value) || 0, currentBranchId, empDate)}
+  1990→                              className="bg-slate-900 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm font-bold outline-none"
+  1991→                            >
+  1992→                              <option value={0}>-- اختر --</option>
+  1993→                              {cleannessConfig.options?.map(opt => (
+  1994→                                <option key={opt} value={opt}>{opt} د.ل</option>
+  1995→                              ))}
+  1996→                            </select>
+  1997→                          )}
+  1998→                        </div>
+  1999→                        <div className="border-t-2 border-emerald-500/30" />
+  2000→                        {/* Grand total */}
+
+[showing lines 1-2000 of 2695; use offset=2001 with limit to continue reading]

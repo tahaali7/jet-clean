@@ -2206,29 +2206,6 @@ export default function JetCleanApp() {
                       </div>
                     </div>
 
-                    {/* صف الإحصائيات: السيارات + السحبيات + العجوزات */}
-                    <div className="flex items-center gap-0 bg-slate-800/80 rounded-lg overflow-hidden text-[11px] border border-slate-700/30">
-                      <div className="flex-1 flex justify-between px-3 py-2">
-                        <span className="text-slate-400">🚗 السيارات</span>
-                        <span className="font-bold text-emerald-400">{carCount}</span>
-                      </div>
-                      <div className="w-px h-6 bg-slate-700/50" />
-                      <div className="flex-1 flex justify-between px-3 py-2">
-                        <span className="text-slate-400">💰 المبيعات</span>
-                        <span className="font-bold text-emerald-400">{carTotal}</span>
-                      </div>
-                      <div className="w-px h-6 bg-slate-700/50" />
-                      <div className="flex-1 flex justify-between px-3 py-2">
-                        <span className="text-slate-400">💸 السحب</span>
-                        <span className="font-bold text-amber-400">{withdrawals}</span>
-                      </div>
-                      <div className="w-px h-6 bg-slate-700/50" />
-                      <div className="flex-1 flex justify-between px-3 py-2">
-                        <span className="text-slate-400">📉 العجز</span>
-                        <span className="font-bold text-rose-400">{shortages}</span>
-                      </div>
-                    </div>
-
                     {/* سجل الحركات */}
                     <div className="space-y-1 mt-2 max-h-36 overflow-y-auto custom-scrollbar">
                       {empRecords.length === 0 && (
