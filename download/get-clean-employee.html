@@ -35,11 +35,7 @@
             font-size: 16px !important; /* Prevent iOS auto-zoom on focus */
         }
         button { touch-action: manipulation; }
-        /* Prevent iOS bounce overscroll */
-        html { overflow: hidden; height: 100%; }
-        body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        /* Smooth scrolling */
-        body { scroll-behavior: smooth; }
+        body { overflow-y: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] md:p-8 md:pt-[calc(2rem+env(safe-area-inset-top))] md:pb-[calc(2rem+env(safe-area-inset-bottom))]">
