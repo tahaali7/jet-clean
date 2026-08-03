@@ -133,6 +133,192 @@ function formatDateShort(dateStr: string) {
   return `${d}/${m}/${y}`
 }
 
+// ==================== PDF REPORT BUILDERS ====================
+function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string) {
+  const prices = getPricesForRoom(room)
+  let roomTotalAmount = 0
+  let roomTotalCars = 0
+  const mergedCounts: Record<string, number> = {}
+  const mergedCustoms: Record<string, { price: number; count: number }> = {}
+
+  roomEntries.forEach(entry => {
+    prices.forEach(price => {
+      const count = (entry.priceCounts && entry.priceCounts[price]) || 0
+      mergedCounts[price] = (mergedCounts[price] || 0) + count
+    })
+    if (entry.customPrices) {
+      Object.keys(entry.customPrices).forEach(key => {
+        const item = entry.customPrices[key]
+        if (mergedCustoms[key]) {
+          mergedCustoms[key].count += item.count
+        } else {
+          mergedCustoms[key] = { price: item.price, count: item.count }
+        }
+      })
+    }
+    roomTotalAmount += entry.totalAmount
+    roomTotalCars += entry.totalCars
+  })
+
+  const roomNet = getNetAmount(roomTotalAmount, branchName, room)
+  const cellPad = 'padding:5px 4px;vertical-align:middle;'
+  const cellFs = 'font-size:10px;'
+
+  // Build rows - only non-empty
+  let rowsHtml = ''
+  let rowNum = 0
+  prices.forEach(price => {
+    const count = mergedCounts[price] || 0
+    if (count === 0) return
+    rowNum++
+    const isExtra = EXTRA_PRICES.includes(price)
+    const displayPrice = isExtra ? (price - 5) : price
+    const rowAmount = displayPrice * count
+    rowsHtml += '<tr>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowAmount + ' د.ل</td>' +
+      '</tr>'
+  })
+
+  // Custom price rows
+  const customKeys = Object.keys(mergedCustoms)
+  customKeys.forEach(key => {
+    const item = mergedCustoms[key]
+    rowNum++
+    rowsHtml += '<tr>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'color:#7c3aed;">✦</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'color:#7c3aed;">' + item.price + ' د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + item.count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">' + (item.price * item.count) + ' د.ل</td>' +
+      '</tr>'
+  })
+
+  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+    '<tr><td colspan="4" style="border:1px solid #333;padding:5px 4px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
+    '<tr style="background:#f0f0f0;">' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
+    '</tr>' +
+    rowsHtml +
+    '<tr style="background:#f0f0f0;">' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
+    '</tr>' +
+    '<tr>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;color:#555;text-align:center;">الصافي</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
+    '</tr>' +
+    '</table>'
+}
+
+function buildEmptyRoomTableHTML(room: string) {
+  const prices = getPricesForRoom(room)
+  const cellPad = 'padding:5px 4px;vertical-align:middle;'
+  const cellFs = 'font-size:10px;'
+  let rowsHtml = ''
+  prices.forEach(() => {
+    rowsHtml += '<tr>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;"></td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
+      '</tr>'
+  })
+  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+    '<tr><td colspan="4" style="border:1px solid #333;padding:5px 4px;text-align:center;font-size:12px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
+    '<tr style="background:#f0f0f0;">' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
+    '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
+    '</tr>' +
+    rowsHtml +
+    '<tr style="background:#f0f0f0;">' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+    '</tr>' +
+    '<tr>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;color:#555;text-align:center;">الصافي</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+    '</tr>' +
+    '</table>'
+}
+
+function buildCarReportHTML(selectedDate: string, branchId: string, branchName: string, entries: CarEntry[]) {
+  // Group entries by room
+  const roomMap: Record<string, CarEntry[]> = {}
+  entries.forEach(e => {
+    if (!roomMap[e.room]) roomMap[e.room] = []
+    roomMap[e.room].push(e)
+  })
+
+  const branchRooms = getRoomsForBranch(branchName)
+  let grandTotalAmount = 0
+  let grandTotalCars = 0
+  let grandTotalNet = 0
+
+  // Page 1: Room tables
+  let tablesHtml = ''
+  branchRooms.forEach(room => {
+    const roomEntries = roomMap[room] || []
+    if (roomEntries.length > 0) {
+      tablesHtml += buildRoomTableHTML(room, roomEntries, branchName)
+      const roomTotal = roomEntries.reduce((s, e) => s + e.totalAmount, 0)
+      const roomCars = roomEntries.reduce((s, e) => s + e.totalCars, 0)
+      grandTotalAmount += roomTotal
+      grandTotalCars += roomCars
+      grandTotalNet += getNetAmount(roomTotal, branchName, room)
+    } else {
+      tablesHtml += buildEmptyRoomTableHTML(room)
+    }
+  })
+
+  const page1 = '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
+    '<div style="text-align:center;margin-bottom:15px;">' +
+    '<h1 style="font-size:18px;margin:0;color:#333;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+    '<p style="font-size:12px;color:#666;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">' +
+    tablesHtml +
+    '</div>' +
+    '<div style="margin-top:10px;display:flex;justify-content:space-around;background:#f5f5f5;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:11px;">' +
+    '<div><strong>السيارات:</strong> ' + grandTotalCars + '</div>' +
+    '<div><strong>المبيعات:</strong> ' + grandTotalAmount + ' د.ل</div>' +
+    '<div><strong>الصافي:</strong> ' + grandTotalNet + ' د.ل</div>' +
+    '</div>' +
+    '</div>'
+
+  // Page 2: Worker expenses + Treasury (placeholder data)
+  const page2 = '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
+    '<div style="text-align:center;margin-bottom:15px;">' +
+    '<h1 style="font-size:18px;margin:0;color:#333;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+    '<p style="font-size:12px;color:#666;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    '</div>' +
+    '<div style="margin-bottom:15px;">' +
+    '<h3 style="font-size:14px;margin-bottom:8px;color:#333;">🧹 مصاريف العمال</h3>' +
+    '<table style="width:100%;border-collapse:collapse;">' +
+    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">البيان</td><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">المبلغ (د.ل)</td></tr>' +
+    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">النظافة</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
+    '</table>' +
+    '</div>' +
+    '<div>' +
+    '<h3 style="font-size:14px;margin-bottom:8px;color:#333;">🏦 الخزينة</h3>' +
+    '<table style="width:100%;border-collapse:collapse;">' +
+    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">البيان</td><td style="border:1px solid #333;padding:8px;text-align:center;font-weight:bold;background:#f0f0f0;">المبلغ (د.ل)</td></tr>' +
+    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">الإجمالي</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
+    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">نقدي</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
+    '<tr><td style="border:1px solid #333;padding:8px;text-align:center;">آجل</td><td style="border:1px solid #333;padding:8px;text-align:center;">-</td></tr>' +
+    '</table>' +
+    '</div>' +
+    '</div>'
+
+  return { page1, page2 }
+}
+
 // ==================== MAIN COMPONENT ====================
 export default function JetCleanApp() {
   // Screen state
@@ -185,6 +371,15 @@ export default function JetCleanApp() {
   const [adminPassword, setAdminPassword] = useState('')
   const [showClosingModal, setShowClosingModal] = useState(false)
 
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
+  const [exportMonth, setExportMonth] = useState('')
+  const [exportDay, setExportDay] = useState('')
+  const [exportFrom, setExportFrom] = useState('')
+  const [exportTo, setExportTo] = useState('')
+  const [exporting, setExporting] = useState(false)
+
   // Worker expenses state
   const [cleanlinessAmount, setCleanlinessAmount] = useState(0)
 
@@ -211,6 +406,15 @@ export default function JetCleanApp() {
       if (date) params.set('date', date)
       if (branchId) params.set('branchId', branchId)
       if (empId) params.set('empId', empId)
+      const res = await fetch(`/api/car-entries?${params}`)
+      if (res.ok) setCarEntries(await res.json())
+    } catch (e) { console.error(e) }
+  }
+
+  const loadAllCarEntries = async (date?: string) => {
+    try {
+      const params = new URLSearchParams()
+      if (date) params.set('date', date)
       const res = await fetch(`/api/car-entries?${params}`)
       if (res.ok) setCarEntries(await res.json())
     } catch (e) { console.error(e) }
@@ -311,6 +515,10 @@ export default function JetCleanApp() {
     void loadEmployees()
   }, [])
 
+  useEffect(() => {
+    void loadBranches()
+  }, [])
+
   // Employee screen data fetching
   useEffect(() => {
     if (screen === 'employee' && empDate) {
@@ -332,6 +540,7 @@ export default function JetCleanApp() {
       void loadEmployees()
       if (adminDate) {
         void loadRecords({ date: adminDate })
+        void loadAllCarEntries(adminDate)
         void loadClosedDays(adminDate)
       }
     }
@@ -362,7 +571,7 @@ export default function JetCleanApp() {
   // ==================== CAR ENTRY ACTIONS ====================
   const handleSaveCarEntry = async () => {
     if (!selectedRoom) return alert('الرجاء اختيار الغرفة')
-    const date = isAdminMode ? empDate : empDate
+    const date = empDate
     if (!date) return alert('الرجاء تحديد التاريخ')
     if (!isAdminMode && !user) return
     if (isAdminMode && !adminSelectedBranch) return alert('الرجاء اختيار الفرع')
@@ -389,7 +598,6 @@ export default function JetCleanApp() {
       }
     })
 
-    // Custom prices
     const customPricesSaved: Record<string, { price: number; count: number }> = {}
     Object.keys(customPricesData).forEach(key => {
       const item = customPricesData[key]
@@ -412,7 +620,6 @@ export default function JetCleanApp() {
       branchId = user!.branchId!
     }
 
-    // Check if entry exists
     const existing = carEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
 
     setSaving(true)
@@ -437,14 +644,12 @@ export default function JetCleanApp() {
         })
       }
 
-      // Refresh data
       if (isAdminMode) {
         await loadCarEntries(date, adminSelectedBranch!)
       } else {
         await loadCarEntries(date, branchId)
       }
 
-      // Reset inputs
       const newInputs: Record<number, number> = {}
       prices.forEach(p => { newInputs[p] = 0 })
       setPriceInputs(newInputs)
@@ -452,7 +657,6 @@ export default function JetCleanApp() {
       setCustomPriceInput('')
       setCustomCountInput('')
 
-      // Auto-advance to next room
       const branchName = isAdminMode
         ? (branches.find(b => b.id === adminSelectedBranch)?.name || '')
         : (branches.find(b => b.id === branchId)?.name || '')
@@ -462,9 +666,7 @@ export default function JetCleanApp() {
         setSelectedRoom(branchRooms[currentIdx + 1])
       }
 
-      let successMsg = `تم الحفظ بنجاح!\n${selectedRoom} - ${totalCars} سيارات - ${totalAmount} د.ل`
-      if (extraAmount > 0) successMsg += `\nإكسترا: ${extraCars} سيارة × 5 د.ل = ${extraAmount} د.ل`
-      alert(successMsg)
+      alert(`تم الحفظ بنجاح!\n${selectedRoom} - ${totalCars} سيارات - ${totalAmount} د.ل`)
     } catch (e) {
       alert('حدث خطأ أثناء الحفظ')
     }
@@ -488,7 +690,6 @@ export default function JetCleanApp() {
     const prices = getPricesForRoom(entry.room)
     const newInputs: Record<number, number> = {}
     prices.forEach(p => { newInputs[p] = 0 })
-    // Populate from entry
     Object.keys(entry.priceCounts).forEach(key => {
       if (!key.startsWith('custom_')) {
         newInputs[Number(key)] = entry.priceCounts[key]
@@ -517,7 +718,6 @@ export default function JetCleanApp() {
 
     try {
       if (recordModalData.id) {
-        // Delete old and create new (simpler than update for our schema)
         await fetch(`/api/records?id=${recordModalData.id}`, { method: 'DELETE' })
       }
       await fetch('/api/records', {
@@ -565,7 +765,7 @@ export default function JetCleanApp() {
   }
 
   const handleDeleteBranch = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف الفرع؟ سيتم حذف جميع البيانات المرتبطة.')) return
+    if (!confirm('هل أنت متأكد من حذف الفرع؟')) return
     try {
       await fetch(`/api/branches?id=${id}`, { method: 'DELETE' })
       await loadBranches()
@@ -592,7 +792,7 @@ export default function JetCleanApp() {
   }
 
   const handleDeleteEmployee = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف الموظف؟ ستظل سجلاته محفوظة في النظام.')) return
+    if (!confirm('هل أنت متأكد من حذف الموظف؟')) return
     try {
       await fetch(`/api/employees?id=${id}`, { method: 'DELETE' })
       await loadEmployees()
@@ -639,7 +839,6 @@ export default function JetCleanApp() {
   const handleToggleDayClosing = async () => {
     const allClosed = isDayClosed(adminDate)
     if (allClosed) {
-      // Reopen all
       for (const b of branches) {
         await fetch('/api/closed-days', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -647,7 +846,6 @@ export default function JetCleanApp() {
         })
       }
     } else {
-      // Close all
       for (const b of branches) {
         if (!isDayClosedForBranch(adminDate, b.id)) {
           await fetch('/api/closed-days', {
@@ -660,7 +858,135 @@ export default function JetCleanApp() {
     await loadClosedDays(adminDate)
   }
 
-  // ==================== ADMIN SCREEN SWITCH ====================
+  // ==================== PDF EXPORT ====================
+  const handleExportPDF = async () => {
+    setExporting(true)
+    try {
+      // Determine dates to export
+      let dates: string[] = []
+
+      if (exportRangeType === 'month') {
+        if (!exportMonth) { setExporting(false); return alert('الرجاء اختيار الشهر') }
+        const [yearStr, monthStr] = exportMonth.split('-')
+        const year = parseInt(yearStr)
+        const month = parseInt(monthStr)
+        const daysInMonth = new Date(year, month, 0).getDate()
+        for (let d = 1; d <= daysInMonth; d++) {
+          const mm = month < 10 ? '0' + month : '' + month
+          const dd = d < 10 ? '0' + d : '' + d
+          dates.push(`${year}-${mm}-${dd}`)
+        }
+      } else if (exportRangeType === 'day') {
+        if (!exportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+        dates.push(exportDay)
+      } else {
+        if (!exportFrom || !exportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+        const start = new Date(exportFrom)
+        const end = new Date(exportTo)
+        const curr = new Date(start)
+        while (curr <= end) {
+          dates.push(curr.toISOString().split('T')[0])
+          curr.setDate(curr.getDate() + 1)
+        }
+      }
+
+      if (dates.length === 0) { setExporting(false); return }
+
+      // Load html2canvas and jsPDF dynamically
+      const html2canvasModule = await import('html2canvas')
+      const html2canvas = html2canvasModule.default
+      const jspdfModule = await import('jspdf')
+      const jsPDF = jspdfModule.default
+
+      // Fetch all car entries for the date range
+      for (const date of dates) {
+        const params = new URLSearchParams()
+        params.set('date', date)
+        const res = await fetch(`/api/car-entries?${params}`)
+        const dateEntries: CarEntry[] = res.ok ? await res.json() : []
+
+        if (dateEntries.length === 0) continue
+
+        // Group by branch
+        const branchGroups: Record<string, CarEntry[]> = {}
+        dateEntries.forEach(e => {
+          if (!branchGroups[e.branchId]) branchGroups[e.branchId] = []
+          branchGroups[e.branchId].push(e)
+        })
+
+        let firstBranch = true
+        for (const bid in branchGroups) {
+          if (!firstBranch) {
+            // Will be handled in the loop
+          }
+          firstBranch = false
+          const br = branches.find(b => b.id === bid)
+          const bName = br ? br.name : ''
+          const bEntries = branchGroups[bid]
+
+          const pages = buildCarReportHTML(date, bid, bName, bEntries)
+          const reportArea = pdfAreaRef.current
+          if (!reportArea) continue
+
+          // Page 1
+          reportArea.innerHTML = pages.page1
+          reportArea.style.position = 'fixed'
+          reportArea.style.top = '0'
+          reportArea.style.left = '-99999px'
+          reportArea.style.width = '800px'
+
+          await new Promise(r => setTimeout(r, 200))
+          const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+          const imgData1 = canvas1.toDataURL('image/png')
+          const imgHeight1 = (canvas1.height * 210) / canvas1.width
+
+          if (reportArea.style.position) {
+            reportArea.style.position = ''
+            reportArea.style.top = ''
+            reportArea.style.left = ''
+            reportArea.style.width = ''
+          }
+
+          // Page 2
+          reportArea.innerHTML = pages.page2
+          reportArea.style.position = 'fixed'
+          reportArea.style.top = '0'
+          reportArea.style.left = '-99999px'
+          reportArea.style.width = '800px'
+
+          await new Promise(r => setTimeout(r, 200))
+          const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+          const imgData2 = canvas2.toDataURL('image/png')
+          const imgHeight2 = (canvas2.height * 210) / canvas2.width
+
+          if (reportArea.style.position) {
+            reportArea.style.position = ''
+            reportArea.style.top = ''
+            reportArea.style.left = ''
+            reportArea.style.width = ''
+          }
+          reportArea.innerHTML = ''
+
+          // Create PDF for this branch/date
+          const pdf = new jsPDF('p', 'mm', 'a4')
+          const pageWidth = pdf.internal.pageSize.getWidth()
+          pdf.addImage(imgData1, 'PNG', 0, 0, pageWidth, imgHeight1)
+          pdf.addPage()
+          pdf.addImage(imgData2, 'PNG', 0, 0, pageWidth, imgHeight2)
+          pdf.save(`تقرير_${bName}_${date}.pdf`)
+        }
+      }
+
+      setShowExportModal(false)
+      alert('تم التصدير بنجاح!')
+    } catch (err) {
+      console.error(err)
+      alert('حدث خطأ أثناء التصدير')
+    }
+    setExporting(false)
+  }
+
+  // ==================== SCREEN SWITCHES ====================
   const switchToCarEntry = () => {
     setIsAdminMode(true)
     setAdminSelectedBranch(null)
@@ -762,7 +1088,6 @@ export default function JetCleanApp() {
       }
     })
 
-    // Custom prices
     Object.keys(entry.customPrices || {}).forEach(key => {
       const item = entry.customPrices[key]
       detailsHtml.push(
@@ -837,7 +1162,6 @@ export default function JetCleanApp() {
     const branchId = currentBranch?.id || ''
     const availableRooms = branchName ? getRoomsForBranch(branchName) : []
 
-    // Filter entries for display
     let displayEntries: CarEntry[] = []
     if (isAdminMode) {
       if (adminSelectedBranch && empDate) {
@@ -855,17 +1179,13 @@ export default function JetCleanApp() {
       }
     }
 
-    // Calculate totals
     let grandTotalAmount = 0
     let grandTotalCars = 0
     let grandTotalNet = 0
-    const roomNetMap: Record<string, number> = {}
     displayEntries.forEach(entry => {
       grandTotalAmount += entry.totalAmount
       grandTotalCars += entry.totalCars
-      const net = getNetAmount(entry.totalAmount, branchName, entry.room)
-      grandTotalNet += net
-      roomNetMap[entry.room] = (roomNetMap[entry.room] || 0) + net
+      grandTotalNet += getNetAmount(entry.totalAmount, branchName, entry.room)
     })
 
     const empInfoText = isAdminMode
@@ -874,7 +1194,6 @@ export default function JetCleanApp() {
 
     return (
       <div className="min-h-screen bg-slate-900">
-        {/* Header */}
         <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-3">
@@ -898,9 +1217,8 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
-          {/* Admin branch selector */}
           {isAdminMode && (
-            <div id="adminBranchSelector" className="bg-slate-800 border border-slate-700 rounded-xl p-3">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-3">
               <label className="text-xs text-slate-400 mb-1 block">اختر الفرع</label>
               <select
                 value={adminSelectedBranch || ''}
@@ -913,7 +1231,6 @@ export default function JetCleanApp() {
             </div>
           )}
 
-          {/* Date picker */}
           <div className="flex items-center gap-3">
             <input
               type="date" value={empDate}
@@ -922,7 +1239,6 @@ export default function JetCleanApp() {
             />
           </div>
 
-          {/* Room selector + Car Entry */}
           {(branchId || (isAdminMode && adminSelectedBranch)) && availableRooms.length > 0 && (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-4">
               <div className="flex items-center gap-3">
@@ -959,7 +1275,6 @@ export default function JetCleanApp() {
             </div>
           )}
 
-          {/* Empty state */}
           {displayEntries.length === 0 && (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-3">📋</div>
@@ -970,27 +1285,25 @@ export default function JetCleanApp() {
             </div>
           )}
 
-          {/* Entry cards */}
           <div className="grid grid-cols-1 gap-4">
             {displayEntries.map(entry => renderEntryCard(entry, branchName))}
           </div>
 
-          {/* Grand Total */}
           {displayEntries.length > 0 && (
-            <div id="grandTotalCard" className="bg-slate-800 border-2 border-cyan-500/30 rounded-2xl p-5 shadow-xl">
+            <div className="bg-slate-800 border-2 border-cyan-500/30 rounded-2xl p-5 shadow-xl">
               <h3 className="text-sm font-bold text-cyan-400 mb-3">📊 الإجمالي الكلي</h3>
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="bg-slate-900/60 rounded-xl p-3">
                   <p className="text-xs text-slate-400">السيارات</p>
-                  <p className="text-lg font-black text-white" id="grandTotalCars">{grandTotalCars} سيارة</p>
+                  <p className="text-lg font-black text-white">{grandTotalCars} سيارة</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-xl p-3">
                   <p className="text-xs text-slate-400">المبيعات</p>
-                  <p className="text-lg font-black text-emerald-400" id="grandTotalAmount">{grandTotalAmount} د.ل</p>
+                  <p className="text-lg font-black text-emerald-400">{grandTotalAmount} د.ل</p>
                 </div>
                 <div className="bg-slate-900/60 rounded-xl p-3">
                   <p className="text-xs text-slate-400">الصافي</p>
-                  <p className="text-lg font-black text-cyan-400" id="grandTotalNet">{grandTotalNet} د.ل</p>
+                  <p className="text-lg font-black text-cyan-400">{grandTotalNet} د.ل</p>
                 </div>
               </div>
             </div>
@@ -1003,14 +1316,11 @@ export default function JetCleanApp() {
   // ==================== ADMIN MANAGEMENT SCREEN ====================
   const renderAdminScreen = () => {
     const dayClosed = isDayClosed(adminDate)
-
-    // Calculate grand totals
     let grandWithdrawals = 0
     let grandShortages = 0
 
     return (
       <div className="min-h-screen bg-slate-900">
-        {/* Header */}
         <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -1023,6 +1333,9 @@ export default function JetCleanApp() {
             <div className="flex flex-wrap gap-2">
               <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                 🚗 تسجيل السيارات
+              </button>
+              <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+                📄 تصدير تقارير PDF
               </button>
               <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
                 ➕ إضافة فرع
@@ -1044,34 +1357,30 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
-          {/* Date picker */}
           <input
             type="date" value={adminDate}
             onChange={e => setAdminDate(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
           />
 
-          {/* Day status banner */}
           {dayClosed && (
             <div className="bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-xl p-4 flex justify-between items-center text-sm">
-              <span>🔒 هذا اليوم ({formatDateShort(adminDate)}) <strong>مغلق</strong> — لا يمكن إضافة أو تعديل أو حذف الحركات المالية له.</span>
+              <span>🔒 هذا اليوم ({formatDateShort(adminDate)}) <strong>مغلق</strong></span>
             </div>
           )}
 
-          {/* Stats cards */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-800 border border-amber-500/30 rounded-xl p-4 text-center">
               <p className="text-xs text-slate-400">إجمالي السحبيات</p>
-              <p className="text-xl font-black text-amber-400" id="totalWithdrawals">{grandWithdrawals} د.ل</p>
+              <p className="text-xl font-black text-amber-400">{grandWithdrawals} د.ل</p>
             </div>
             <div className="bg-slate-800 border border-rose-500/30 rounded-xl p-4 text-center">
               <p className="text-xs text-slate-400">إجمالي العجوزات</p>
-              <p className="text-xl font-black text-rose-400" id="totalShortages">{grandShortages} د.ل</p>
+              <p className="text-xl font-black text-rose-400">{grandShortages} د.ل</p>
             </div>
           </div>
 
-          {/* Branches container */}
-          <div id="branchesContainer" className="space-y-4">
+          <div className="space-y-4">
             {branches.map(branch => {
               const branchEmps = employees.filter(e => e.branchId === branch.id)
               let branchWithdrawals = 0
@@ -1086,7 +1395,6 @@ export default function JetCleanApp() {
                 grandWithdrawals += withdrawals
                 grandShortages += shortages
 
-                // Car sales summary
                 const empCarEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate)
                 const carTotal = empCarEntries.reduce((s, e) => s + e.totalAmount, 0)
                 const carCount = empCarEntries.reduce((s, e) => s + e.totalCars, 0)
@@ -1139,7 +1447,6 @@ export default function JetCleanApp() {
                       </div>
                     </div>
 
-                    {/* Record History */}
                     <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                       {empRecords.map(r => (
                         <div key={r.id} className="flex justify-between items-center text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded">
@@ -1384,8 +1691,6 @@ export default function JetCleanApp() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
             <h3 className="text-lg font-bold text-white text-center">🔑 تعديل كلمات المرور</h3>
-            
-            {/* Admin */}
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-bold text-amber-400 text-sm flex items-center gap-2">👨‍💼 المسؤول: طه علي</h4>
@@ -1401,7 +1706,6 @@ export default function JetCleanApp() {
               </div>
             </div>
 
-            {/* Employees by branch */}
             {branches.map(branch => {
               const branchEmps = employees.filter(e => e.branchId === branch.id)
               if (branchEmps.length === 0) return null
@@ -1442,9 +1746,7 @@ export default function JetCleanApp() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
             <h3 className="text-lg font-bold text-white text-center">🔒 الإغلاق اليومي - {formatDateShort(adminDate)}</h3>
-            
             <div className="space-y-2">
-              {/* Stats */}
               {(() => {
                 let gw = 0, gs = 0
                 branches.forEach(branch => {
@@ -1470,7 +1772,6 @@ export default function JetCleanApp() {
               })()}
             </div>
 
-            {/* Branch details */}
             <div className="space-y-2">
               {branches.map(branch => {
                 const bEmps = employees.filter(e => e.branchId === branch.id)
@@ -1513,6 +1814,75 @@ export default function JetCleanApp() {
                 {isDayClosed(adminDate) ? 'إعادة فتح الكل' : 'إغلاق جميع الفروع'}
               </button>
               <button onClick={() => setShowClosingModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm">إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export PDF Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white text-center">📄 تصدير تقارير PDF</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">نوع الفترة</label>
+                <select
+                  value={exportRangeType}
+                  onChange={e => setExportRangeType(e.target.value as 'month' | 'day' | 'range')}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="month">شهر كامل</option>
+                  <option value="day">يوم واحد</option>
+                  <option value="range">فترة مخصصة</option>
+                </select>
+              </div>
+
+              {exportRangeType === 'month' && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">اختر الشهر</label>
+                  <input type="month" value={exportMonth}
+                    onChange={e => setExportMonth(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
+
+              {exportRangeType === 'day' && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">اختر اليوم</label>
+                  <input type="date" value={exportDay}
+                    onChange={e => setExportDay(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
+
+              {exportRangeType === 'range' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">من تاريخ</label>
+                    <input type="date" value={exportFrom}
+                      onChange={e => setExportFrom(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">إلى تاريخ</label>
+                    <input type="date" value={exportTo}
+                      onChange={e => setExportTo(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleExportPDF} disabled={exporting} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                {exporting ? '⏳ جاري التصدير...' : '📄 تصدير'}
+              </button>
+              <button onClick={() => setShowExportModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>
