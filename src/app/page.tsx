@@ -2093,58 +2093,60 @@ export default function JetCleanApp() {
     })
 
     return (
-      <div className="min-h-screen bg-slate-900">
-        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
+      <div className="min-h-screen bg-[#0f1117]">
+        <header className="bg-[#1a1d24]/90 backdrop-blur-sm border-b border-slate-700/50 sticky top-0 z-50 px-4 py-3">
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">🚗</div>
-              <div>
-                <h1 className="text-base font-bold text-cyan-400">مغسلة جيت كلين - لوحة التحكم</h1>
-                <p className="text-xs text-slate-400">مرحباً المسؤول طه علي 👨‍💼</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">🚗</div>
+                <div>
+                  <h1 className="text-base font-bold text-cyan-400">مغسلة جيت كلين - لوحة التحكم</h1>
+                  <p className="text-xs text-slate-400">مرحباً المسؤول طه علي 👨‍💼</p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                🚗 تسجيل السيارات
-              </button>
-              <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                📄 تصدير تقارير PDF
-              </button>
-              <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                ➕ إضافة فرع
-              </button>
-              <button onClick={() => { setShowEmpModal(true) }} className="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                👤 إضافة موظف
-              </button>
-              <button onClick={() => { setShowPasswordsModal(true); setAdminPassword('') }} className="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
-                🔑 كلمات المرور
-              </button>
-              <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
-                🚪 تسجيل خروج
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
+                  🚗 تسجيل
+                </button>
+                <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
+                  📄 تقارير
+                </button>
+                <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
+                  ➕ فرع
+                </button>
+                <button onClick={() => { setShowEmpModal(true) }} className="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
+                  👤 موظف
+                </button>
+                <button onClick={() => { setShowPasswordsModal(true); setAdminPassword('') }} className="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
+                  🔑 كلمات السر
+                </button>
+                <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-rose-500/30">
+                  🚪 خروج
+                </button>
+              </div>
             </div>
           </div>
         </header>
 
-        <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
+        <main className="max-w-5xl mx-auto p-4 pb-24 space-y-4">
           {/* صف واحد: التاريخ + السحبيات + العجوزات */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col justify-center">
+            <div className="bg-[#1a1d24] p-4 rounded-2xl border border-slate-700/50 flex flex-col justify-center">
               <label className="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
               <input
                 type="date" value={adminDate}
                 onChange={e => setAdminDate(e.target.value)}
-                className="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
+                className="bg-[#121418] border border-slate-600/50 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
               />
             </div>
-            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+            <div className="bg-[#1a1d24] p-4 rounded-2xl border border-slate-700/50 flex justify-between items-center">
               <div>
                 <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات اليوم</p>
                 <h2 className="text-2xl font-black text-amber-400 mt-1">{grandWithdrawals} د.ل</h2>
               </div>
               <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
             </div>
-            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+            <div className="bg-[#1a1d24] p-4 rounded-2xl border border-slate-700/50 flex justify-between items-center">
               <div>
                 <p className="text-slate-400 text-xs font-bold">إجمالي عجوزات اليوم</p>
                 <h2 className="text-2xl font-black text-rose-400 mt-1">{grandShortages} د.ل</h2>
@@ -2159,11 +2161,14 @@ export default function JetCleanApp() {
             </div>
           )}
 
-          <div className="space-y-4">
+          {/* بطاقات الفروع - شبكة عمودين */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {branches.map(branch => {
               const branchEmps = employees.filter(e => e.branchId === branch.id)
               let branchWithdrawals = 0
               let branchShortages = 0
+              let branchCarTotal = 0
+              let branchCarCount = 0
 
               const empCards = branchEmps.map(emp => {
                 const empRecords = records.filter(r => r.empId === emp.id && r.date === adminDate)
@@ -2175,15 +2180,17 @@ export default function JetCleanApp() {
                 const empCarEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate)
                 const carTotal = empCarEntries.reduce((s, e) => s + e.totalAmount, 0)
                 const carCount = empCarEntries.reduce((s, e) => s + e.totalCars, 0)
+                branchCarTotal += carTotal
+                branchCarCount += carCount
 
                 return (
-                  <div key={emp.id} className="bg-slate-900/70 border border-slate-700/60 rounded-xl p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-white text-base">{emp.name}</h3>
-                        <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full mt-1 inline-block border border-indigo-500/20">{emp.shift}</span>
+                  <div key={emp.id} className="bg-[#121418] border border-slate-700/40 rounded-xl p-3.5">
+                    <div className="flex justify-between items-center mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-white text-sm">{emp.name}</h3>
+                        <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5">
                         {!dayClosed && (
                           <button
                             onClick={() => {
@@ -2193,41 +2200,44 @@ export default function JetCleanApp() {
                               })
                               setShowRecordModal(true)
                             }}
-                            className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white text-xs px-2.5 py-1.5 rounded-lg border border-cyan-500/30 transition"
+                            className="bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition hover:bg-cyan-400"
                           >+ حركة</button>
                         )}
                         <button onClick={() => handleDeleteEmployee(emp.id)} className="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
                       </div>
                     </div>
 
-                    {carCount > 0 && (
-                      <div className="grid grid-cols-2 gap-3 bg-emerald-500/5 border border-emerald-500/20 p-2.5 rounded-lg text-xs mb-3">
-                        <div className="flex justify-between">
-                          <span className="text-slate-400">🚗 السيارات:</span>
-                          <span className="font-bold text-emerald-400">{carCount} سيارة</span>
-                        </div>
-                        <div className="flex justify-between border-r border-slate-700 pr-3">
-                          <span className="text-slate-400">💰 المبيعات:</span>
-                          <span className="font-bold text-emerald-400">{carTotal} د.ل</span>
-                        </div>
+                    {/* صف الإحصائيات: السيارات + السحبيات + العجوزات */}
+                    <div className="flex items-center gap-0 bg-[#1a1d24] rounded-lg overflow-hidden text-[11px] border border-slate-700/30">
+                      <div className="flex-1 flex justify-between px-3 py-2">
+                        <span className="text-slate-400">🚗 السيارات</span>
+                        <span className="font-bold text-emerald-400">{carCount}</span>
                       </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-3 bg-slate-800/80 p-2.5 rounded-lg text-xs mb-3">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">السحبيات:</span>
-                        <span className="font-bold text-amber-400">{withdrawals} د.ل</span>
+                      <div className="w-px h-6 bg-slate-700/50" />
+                      <div className="flex-1 flex justify-between px-3 py-2">
+                        <span className="text-slate-400">💰 المبيعات</span>
+                        <span className="font-bold text-emerald-400">{carTotal}</span>
                       </div>
-                      <div className="flex justify-between border-r border-slate-700 pr-3">
-                        <span className="text-slate-400">العجوزات:</span>
-                        <span className="font-bold text-rose-400">{shortages} د.ل</span>
+                      <div className="w-px h-6 bg-slate-700/50" />
+                      <div className="flex-1 flex justify-between px-3 py-2">
+                        <span className="text-slate-400">💸 السحب</span>
+                        <span className="font-bold text-amber-400">{withdrawals}</span>
+                      </div>
+                      <div className="w-px h-6 bg-slate-700/50" />
+                      <div className="flex-1 flex justify-between px-3 py-2">
+                        <span className="text-slate-400">📉 العجز</span>
+                        <span className="font-bold text-rose-400">{shortages}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                    {/* سجل الحركات */}
+                    <div className="space-y-1 mt-2 max-h-36 overflow-y-auto custom-scrollbar">
+                      {empRecords.length === 0 && (
+                        <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
+                      )}
                       {empRecords.map(r => (
-                        <div key={r.id} className="flex justify-between items-center text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded">
-                          <span>{r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} — {formatDateShort(r.date)}: {r.note || 'بدون ملاحظة'}</span>
+                        <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-[#1a1d24] px-2.5 py-1.5 rounded-lg">
+                          <span>{r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
                             {!dayClosed && (
@@ -2251,12 +2261,18 @@ export default function JetCleanApp() {
               })
 
               return (
-                <div key={branch.id} className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
-                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
-                    <h2 className="text-xl font-bold text-cyan-400 flex items-center gap-2">📍 {branch.name}</h2>
-                    <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-xs font-semibold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">حذف الفرع</button>
+                <div key={branch.id} className="bg-[#1a1d24] border border-slate-700/50 rounded-2xl overflow-hidden shadow-lg">
+                  {/* رأس البطاقة */}
+                  <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-700/40">
+                    <div className="flex items-center gap-2">
+                      <span className="text-pink-400">📍</span>
+                      <h2 className="text-base font-bold text-cyan-400">{branch.name}</h2>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${branchCarCount > 0 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700/50 text-slate-500 border border-slate-600/30'}`}>{branchCarCount > 0 ? `${branchCarCount} سيارة · ${branchCarTotal} د.ل` : 'لا توجد بيانات'}</span>
+                    </div>
+                    <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>
                   </div>
-                  <div className="space-y-4">
+                  {/* محتوى الموظفين */}
+                  <div className="p-3.5 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     {branchEmps.length === 0 && (
                       <p className="text-slate-500 text-sm text-center py-4">لا يوجد موظفون بالفرع حالياً</p>
                     )}
