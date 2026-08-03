@@ -598,10 +598,19 @@ export default function JetCleanApp() {
   }
 
   const switchToCarEntry = () => {
+    setIsAdminMode(true)
+    setAdminSelectedBranch(null)
+    setPriceInputs({})
+    setCustomPricesData({})
+    setSelectedRoom('')
+    setEmpDate(todayISO())
     setScreen('employee')
   }
 
   const switchToAdminManagement = () => {
+    setIsAdminMode(false)
+    setAdminSelectedBranch(null)
+    setAdminDate(todayISO())
     setScreen('admin')
   }
 
@@ -1480,36 +1489,36 @@ export default function JetCleanApp() {
 
     return (
       <div className="min-h-screen bg-slate-900">
-        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">🚗</div>
-              <div>
-                <h1 className="text-base font-bold text-cyan-400">مغسلة جيت كلين</h1>
-                <p className="text-xs text-slate-400" id="empInfo">{empInfoText}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {isAdminMode && (
-                <button onClick={switchToAdminManagement} className="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold px-3 py-2 rounded-xl border border-slate-600 transition">
-                  ⚙️ الإدارة
-                </button>
-              )}
-              <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-semibold px-3 py-2 rounded-xl border border-rose-500/30 transition">
-                🚪 خروج
+        <header className="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-cyan-400 flex items-center gap-2">💧 جيت كلين</h1>
+            <p className="text-slate-400 text-sm mt-1">{empInfoText}</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {isAdminMode && (
+              <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-amber-500/30">
+                ⚙️ إدارة النظام
               </button>
-            </div>
+            )}
+            {isAdminMode && (
+              <button onClick={handleExportEmployeePDF} disabled={exportingEmp} className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-indigo-500/30">
+                📄 تصدير تقرير PDF
+              </button>
+            )}
+            <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
+              🚪 تسجيل خروج
+            </button>
           </div>
         </header>
 
-        <main className="max-w-4xl mx-auto p-4 pb-24 space-y-4">
+        <main className="max-w-4xl mx-auto px-4 pb-24 space-y-4">
           {isAdminMode && (
-            <div className="bg-slate-800 border border-slate-700 rounded-xl p-3">
-              <label className="text-xs text-slate-400 mb-1 block">اختر الفرع</label>
+            <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/20 mb-6">
+              <label className="block text-sm text-amber-300 mb-2 font-semibold">📍 اختر الفرع:</label>
               <select
                 value={adminSelectedBranch || ''}
                 onChange={e => { setAdminSelectedBranch(e.target.value || null); setSelectedRoom('') }}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-base focus:outline-none focus:border-amber-500"
               >
                 <option value="">-- اختر فرع --</option>
                 {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
@@ -1517,49 +1526,56 @@ export default function JetCleanApp() {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
+            <label className="text-sm text-slate-400 font-bold">التاريخ:</label>
             <input
               type="date" value={empDate}
               onChange={e => setEmpDate(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500 flex-1"
+              className="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
             />
           </div>
 
-          {(branchId || (isAdminMode && adminSelectedBranch)) && availableRooms.length > 0 && (
-            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-4">
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-slate-300 font-semibold whitespace-nowrap">الغرفة:</label>
-                <select
-                  value={selectedRoom}
-                  onChange={e => setSelectedRoom(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="">-- اختر غرفة --</option>
-                  {availableRooms.map(room => (
-                    <option key={room} value={room}>{ROOM_ICONS[room] || '🏠'} {room}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🚗 تسجيل السيارات</h2>
 
-              {selectedRoom && (
-                <>
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    {ROOM_ICONS[selectedRoom] || '🏠'} {selectedRoom}
-                  </h3>
-                  {renderPriceGrid()}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleSaveCarEntry}
-                      disabled={saving}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm"
-                    >
-                      {saving ? '⏳ جاري الحفظ...' : '💾 حفظ التسجيل'}
-                    </button>
-                  </div>
-                </>
-              )}
+            <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-4">
+              <label className="block text-sm text-slate-300 mb-2 font-semibold">اختر الغرفة / المحطة:</label>
+              <select
+                value={selectedRoom}
+                onChange={e => setSelectedRoom(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-base focus:outline-none focus:border-cyan-500"
+              >
+                <option value="">-- اختر غرفة --</option>
+                {availableRooms.map(room => (
+                  <option key={room} value={room}>{ROOM_ICONS[room] || '🏠'} {room}</option>
+                ))}
+              </select>
             </div>
-          )}
+
+            {selectedRoom && (
+              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700">
+                <h3 className="text-lg font-bold text-cyan-400 mb-4">
+                  {ROOM_ICONS[selectedRoom] || '🏠'} {selectedRoom}
+                </h3>
+                {renderPriceGrid()}
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveCarEntry}
+                    disabled={saving}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm flex items-center justify-center gap-2"
+                  >
+                    {saving ? '⏳ جاري الحفظ...' : '💾 حفظ التسجيل'}
+                  </button>
+                  <button
+                    onClick={() => { setPriceInputs({}); setCustomPricesData({}) }}
+                    className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition text-sm"
+                  >
+                    🗑️ مسح
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {displayEntries.length === 0 && (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
