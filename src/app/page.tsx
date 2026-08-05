@@ -721,6 +721,7 @@ export default function JetCleanApp() {
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false)
   const [restoreLoading, setRestoreLoading] = useState(false)
+  const [showAdminDropdown, setShowAdminDropdown] = useState(false)
   const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
   const [exportMonth, setExportMonth] = useState('')
   const [exportDay, setExportDay] = useState('')
@@ -2436,18 +2437,27 @@ export default function JetCleanApp() {
                 <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   📄 تقارير الموظفين
                 </button>
-                <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
-                  ➕ فرع
-                </button>
-                <button onClick={() => { setShowEmpModal(true) }} className="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
-                  👤 موظف
-                </button>
-                <button onClick={() => { setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
-                  🔑 كلمات السر
-                </button>
-                <button onClick={handleRestore} disabled={restoreLoading} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-amber-500/30">
-                  {restoreLoading ? '⏳' : '📥'} استعادة
-                </button>
+                <div className="relative">
+                  <button onClick={() => setShowAdminDropdown(!showAdminDropdown)} className="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-slate-600">
+                    ⚙️ أدوات
+                  </button>
+                  {showAdminDropdown && (
+                    <div className="absolute top-full mt-2 left-0 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-2 min-w-[180px]">
+                      <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>➕</span> إضافة فرع
+                      </button>
+                      <button onClick={() => { setShowAdminDropdown(false); setShowEmpModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>👤</span> إضافة موظف
+                      </button>
+                      <button onClick={() => { setShowAdminDropdown(false); setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>🔑</span> كلمات السر
+                      </button>
+                      <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-amber-300 text-sm flex items-center gap-2 transition disabled:opacity-50">
+                        <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
+                      </button>
+                    </div>
+                  )}
+                </div>
                 </>}
                 <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-rose-500/30">
                   🚪 خروج
@@ -3174,7 +3184,7 @@ export default function JetCleanApp() {
 
   // ==================== MAIN RENDER ====================
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100" style={{ fontFamily: 'Cairo, sans-serif' }}>
+    <div className="min-h-screen bg-slate-900 text-slate-100" style={{ fontFamily: 'Cairo, sans-serif' }} onClick={() => { if (showAdminDropdown) setShowAdminDropdown(false) }}>
       <div ref={pdfAreaRef} id="pdfReportArea" style={{ position: 'fixed', top: '0', left: '-99999px', width: '800px', zIndex: -1 }} />
       {renderModals()}
       {screen === 'login' && renderLoginScreen()}
