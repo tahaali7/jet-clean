@@ -2197,7 +2197,8 @@ export default function JetCleanApp() {
     const dayClosed = isDayClosed(adminDate)
 
     // حساب الإجماليات للشهر الحالي
-    const currentMonth = adminDate.substring(0, 7)
+    const now = new Date()
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     let grandWithdrawals = 0
     let grandShortages = 0
     records.forEach(r => {
