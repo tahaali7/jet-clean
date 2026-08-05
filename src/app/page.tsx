@@ -165,8 +165,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const cellPad = 'padding:10px 8px;vertical-align:middle;height:22px;'
-  const cellFs = 'font-size:11px;'
+  const cellPad = 'padding:5px 6px;vertical-align:middle;height:18px;'
+  const cellFs = 'font-size:10px;'
 
   // Build rows - show ALL prices (even 0) so all room tables are same height
   let rowsHtml = ''
@@ -180,7 +180,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
-      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + count + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '">' + rowAmount + ' د.ل</td>' +
       '</tr>'
   })
@@ -193,7 +193,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'color:#7c3aed;">✦</td>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'color:#7c3aed;">' + item.price + ' د.ل</td>' +
-      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + item.count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;">' + item.count + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">' + (item.price * item.count) + ' د.ل</td>' +
       '</tr>'
   })
@@ -202,15 +202,15 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   let extraRowHtml = ''
   if (roomExtraCars > 0) {
     extraRowHtml = '<tr style="background:#fffbe6;">' +
-      '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;color:#b45309;">⭐ إكسترا</td>' +
-      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;">' + roomExtraCars + '</td>' +
-      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;">' + roomExtraAmount + ' د.ل</td>' +
+      '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;color:#b45309;">⭐ إكسترا</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;color:#b45309;">' + roomExtraCars + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;font-weight:bold;color:#b45309;">' + roomExtraAmount + ' د.ل</td>' +
       '</tr>'
   }
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;">' +
     '<colgroup><col style="width:12%;"/><col style="width:28%;"/><col style="width:25%;"/><col style="width:35%;"/></colgroup>' +
-    '<tr><td colspan="4" style="border:1px solid #333;padding:8px 6px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="border:1px solid #333;padding:4px 4px;text-align:center;font-size:11px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
     '<tr style="background:#f0f0f0;">' +
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -220,32 +220,32 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     '<tr style="background:#f0f0f0;">' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
     '<tr>' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;color:#555;text-align:center;">الصافي</td>' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;color:#555;text-align:center;">الصافي</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
 
 function buildEmptyRoomTableHTML(room: string) {
   const prices = getPricesForRoom(room)
-  const cellPad = 'padding:10px 8px;vertical-align:middle;height:22px;'
-  const cellFs = 'font-size:11px;'
+  const cellPad = 'padding:5px 6px;vertical-align:middle;height:18px;'
+  const cellFs = 'font-size:10px;'
   let rowsHtml = ''
   prices.forEach(() => {
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
-      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;"></td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:11px;"></td>' +
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
       '</tr>'
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;">' +
     '<colgroup><col style="width:12%;"/><col style="width:28%;"/><col style="width:25%;"/><col style="width:35%;"/></colgroup>' +
-    '<tr><td colspan="4" style="border:1px solid #333;padding:8px 6px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="border:1px solid #333;padding:4px 4px;text-align:center;font-size:11px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
     '<tr style="background:#f0f0f0;">' +
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -254,12 +254,12 @@ function buildEmptyRoomTableHTML(room: string) {
     '</tr>' +
     rowsHtml +
     '<tr style="background:#f0f0f0;">' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;"></td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;"></td>' +
     '</tr>' +
     '<tr>' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;color:#555;text-align:center;">الصافي</td>' +
-    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;"></td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:10px;color:#555;text-align:center;">الصافي</td>' +
+    '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:10px;font-weight:bold;"></td>' +
     '</tr>' +
     '</table>'
 }
@@ -321,7 +321,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const buildRoomsGrid = (cells: string[]) => {
     let html = ''
     for (let i = 0; i < cells.length; i += 2) {
-      html += '<div style="display:flex;gap:10px;margin-bottom:10px;">' +
+      html += '<div style="display:flex;gap:8px;margin-bottom:6px;">' +
         '<div style="flex:1;min-width:0;">' + cells[i] + '</div>' +
         (cells[i + 1] ? '<div style="flex:1;min-width:0;">' + cells[i + 1] + '</div>' : '') +
         '</div>'
@@ -338,8 +338,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
       '</div>'
   }
 
-  // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols)
-  const MAX_ROOMS_PER_PAGE = 4
+  // Split rooms across pages: max 6 rooms per page (3 rows × 2 cols)
+  const MAX_ROOMS_PER_PAGE = 6
   const pages: string[] = []
   let roomIndex = 0
 
