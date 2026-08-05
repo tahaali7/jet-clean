@@ -82,17 +82,17 @@ const ALL_PRICES = [5, 10, 15, 20, 30, 35, 45]
 const EXTRA_PRICES = [30, 35, 45]
 const ROOM_PRICES: Record<string, number[]> = { 'مكينة الغسيل': [10, 15] }
 const BRANCH_ROOMS: Record<string, string[]> = {
-  'ابونواس': ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'مكينة الغسيل'],
-  'المنصور': ['غرفة 1', 'غرفة 2', 'غرفة 3']
+  'أبونواس': ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'مكينة الغسيل'],
+  'المنصوره': ['غرفة 1', 'غرفة 2', 'غرفة 3']
 }
 const BRANCH_NET_DEDUCTION: Record<string, number> = {
-  'بن غرسه': 10, 'ابونواس': 5, 'المنصور': 0, 'عين زاره': 0
+  'بن غرسه': 10, 'أبونواس': 5, 'المنصوره': 0, 'عين زاره': 0
 }
-const MACHINE_NO_DEDUCTION_BRANCHES = ['بن غرسه', 'ابونواس']
+const MACHINE_NO_DEDUCTION_BRANCHES = ['بن غرسه', 'أبونواس']
 const BRANCH_CLEANLINESS: Record<string, { type: string; value?: number; options?: number[] }> = {
   'بن غرسه': { type: 'fixed', value: 100 },
-  'ابونواس': { type: 'fixed', value: 50 },
-  'المنصور': { type: 'select', options: [10, 20] },
+  'أبونواس': { type: 'fixed', value: 50 },
+  'المنصوره': { type: 'select', options: [10, 20] },
   'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
 }
 const ROOM_ICONS: Record<string, string> = {
