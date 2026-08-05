@@ -165,7 +165,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const cellPad = 'padding:5px 6px;vertical-align:middle;height:20px;'
+  const cellPad = 'padding:5px 6px;vertical-align:middle;height:20px;text-align:center;'
   const cellFs = 'font-size:11px;'
 
   let rowsHtml = ''
@@ -230,7 +230,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
 function buildEmptyRoomTableHTML(room: string) {
   const prices = getPricesForRoom(room)
-  const cellPad = 'padding:5px 6px;vertical-align:middle;height:20px;'
+  const cellPad = 'padding:5px 6px;vertical-align:middle;height:20px;text-align:center;'
   const cellFs = 'font-size:11px;'
   let rowsHtml = ''
   prices.forEach(() => {
@@ -347,9 +347,11 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     const pageRooms = roomCells.slice(roomIndex, roomIndex + MAX_ROOMS_PER_PAGE)
     roomIndex += MAX_ROOMS_PER_PAGE
     pages.push(
-      '<div style="width:780px;background:#fff;color:#000;padding:15px 12px;font-family:Cairo,sans-serif;" dir="rtl">' +
+      '<div style="width:780px;height:1120px;background:#fff;color:#000;padding:15px 12px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
       buildHeader('تقرير تسجيل السيارات') +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' +
       buildRoomsGrid(pageRooms) +
+      '</div>' +
       '</div>'
     )
   }
