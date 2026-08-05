@@ -1334,6 +1334,23 @@ export default function JetCleanApp() {
   }
 
   // ==================== PDF EXPORT ====================
+  // Helper: fetch worker expenses (cleanliness + treasury) for a date+branch
+  const fetchWorkerExpData = async (date: string, branchId: string, branchName: string): Promise<{ cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }> => {
+    try {
+      const params = new URLSearchParams()
+      params.set('date', date)
+      params.set('branchId', branchId)
+      const res = await fetch(`/api/worker-expenses?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.length > 0 && data[0].jsonData) {
+          return data[0].jsonData as { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }
+        }
+      }
+    } catch (e) { console.error('fetchWorkerExpData error:', e) }
+    return {}
+  }
+
   // Helper: render HTML in a clean iframe (no Tailwind CSS interference) and capture with html2canvas
   const renderHtmlToCanvas = async (html: string, width: number): Promise<HTMLCanvasElement> => {
     const html2canvasModule = await import('html2canvas')
@@ -1454,7 +1471,12 @@ export default function JetCleanApp() {
           const bName = br ? br.name : ''
           const bEntries = branchGroups[bid]
 
-          const pages = buildCarReportHTML(date, bid, bName, bEntries)
+          // Fetch worker expenses (treasury + cleanliness) for this date+branch
+          const weData = await fetchWorkerExpData(date, bid, bName)
+          const savedWEMap: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }> = {}
+          savedWEMap[bName + '_' + date] = weData
+
+          const pages = buildCarReportHTML(date, bid, bName, bEntries, savedWEMap)
 
           // Render Page 1
           const canvas1 = await renderHtmlToCanvas(pages.page1, 800)
@@ -1655,8 +1677,13 @@ export default function JetCleanApp() {
         return
       }
 
+      // Fetch worker expenses (treasury + cleanliness) for this date+branch
+      const weData = await fetchWorkerExpData(date, branchId, branchName)
+      const savedWEMap: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }> = {}
+      savedWEMap[branchName + '_' + date] = weData
+
       // Build report
-      const pages = buildCarReportHTML(date, branchId, branchName, entries)
+      const pages = buildCarReportHTML(date, branchId, branchName, entries, savedWEMap)
 
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
