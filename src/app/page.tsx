@@ -1961,6 +1961,9 @@ export default function JetCleanApp() {
                 ⚙️ إدارة النظام
               </button>
             )}
+            <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-emerald-500/30">
+              📋 تقرير الإغلاق اليومي
+            </button>
             <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
               🚪 تسجيل خروج
             </button>
@@ -2278,7 +2281,7 @@ export default function JetCleanApp() {
                 </>}
                 {user?.role !== 'viewer' && <>
                 <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
-                  📄 تقارير
+                  📄 تقارير الموظفين
                 </button>
                 <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   ➕ فرع
