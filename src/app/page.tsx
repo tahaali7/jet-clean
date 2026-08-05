@@ -392,10 +392,19 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   // Full room pages - ALL use global adaptive sizeLevel
   for (let p = 0; p < totalFullPages; p++) {
     const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
+    const isFullPage = pageRooms.length === MAX_ROOMS_PER_PAGE
+    // Full pages (e.g. 6 rooms): no min-height/centering to prevent last table cut-off
+    // Partial pages: keep min-height for clean layout
+    const containerStyle = isFullPage
+      ? 'width:780px;background:#fff;color:#000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;'
+      : 'width:780px;min-height:1120px;background:#fff;color:#000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;'
+    const contentStyle = isFullPage
+      ? 'display:flex;flex-direction:column;align-items:center;'
+      : 'flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;'
     pages.push(
-      '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+      '<div style="' + containerStyle + '" dir="rtl">' +
       buildHeader(sl) +
-      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
+      '<div style="' + contentStyle + '">' +
       buildRoomsGrid(pageRooms, sl) +
       '</div>' +
       '</div>'
