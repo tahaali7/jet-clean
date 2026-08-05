@@ -317,10 +317,12 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   })
 
   // Helper: build rooms grid HTML from array of room cells
-  const buildRoomsGrid = (cells: string[]) => {
+  const buildRoomsGrid = (cells: string[], compact?: boolean) => {
     let html = ''
+    const gap = compact ? '5px' : '8px'
+    const mb = compact ? '4px' : '6px'
     for (let i = 0; i < cells.length; i += 2) {
-      html += '<div style="display:flex;gap:8px;margin-bottom:6px;">' +
+      html += '<div style="display:flex;gap:' + gap + ';margin-bottom:' + mb + ';">' +
         '<div style="flex:1;min-width:0;">' + cells[i] + '</div>' +
         (cells[i + 1] ? '<div style="flex:1;min-width:0;">' + cells[i + 1] + '</div>' : '') +
         '</div>'
@@ -365,9 +367,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Treasury page (always last) - includes overflow rooms if any
   const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses)
-  const overflowHtml = overflowRooms.length > 0 ? buildRoomsGrid(overflowRooms) : ''
+  const overflowHtml = overflowRooms.length > 0 ? buildRoomsGrid(overflowRooms, true) : ''
   pages.push(
-    '<div style="width:780px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+    '<div style="width:780px;background:#fff;color:#000;padding:8px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
     buildHeader('مصاريف العمال والخزينة') +
     overflowHtml +
     treasuryContent +
@@ -394,7 +396,7 @@ function buildWorkerExpensesAndTreasury(
     }
   }
 
-  const wCellPad = 'padding:10px 10px;border:1px solid #555;vertical-align:middle;'
+  const wCellPad = 'padding:7px 10px;border:1px solid #555;vertical-align:middle;'
 
   let workerRowsHtml = ''
   orderedRooms.forEach(room => {
@@ -422,7 +424,7 @@ function buildWorkerExpensesAndTreasury(
 
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="padding:10px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="padding:7px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -433,9 +435,9 @@ function buildWorkerExpensesAndTreasury(
   const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
   const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
 
-  const tCellPad = 'padding:10px 10px;border:1px solid #555;vertical-align:middle;'
-  const tLabelStyle = tCellPad + 'font-size:10px;'
-  const tValueStyle = tCellPad + 'text-align:center;font-size:11px;font-weight:bold;'
+  const tCellPad = 'padding:7px 10px;border:1px solid #555;vertical-align:middle;'
+  const tLabelStyle = tCellPad + 'font-size:9px;'
+  const tValueStyle = tCellPad + 'text-align:center;font-size:10px;font-weight:bold;'
 
   let treasuryRowsHtml = ''
   treasuryRowsHtml += '<tr style="background:#e0e0e0;">' +
@@ -479,12 +481,12 @@ function buildWorkerExpensesAndTreasury(
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="padding:7px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
 
-  return '<div style="margin-top:8px;border-top:2px solid #000;padding-top:6px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
+  return '<div style="margin-top:6px;border-top:2px solid #000;padding-top:6px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 
