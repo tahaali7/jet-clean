@@ -320,16 +320,12 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const orderedRooms = [...regularRooms]
   if (hasMachine) orderedRooms.push('مكينة الغسيل')
 
-  // Auto-adaptive: calculate size level based on total rooms
+  // Auto-adaptive: calculate GLOBAL size level based on total rooms
   // 0 = normal (<=4 rooms), 1 = compact (5-6), 2 = ultra-compact (7+)
-  const calcSizeLevel = (roomsOnPage: number, extraItems?: number) => {
-    const total = roomsOnPage + (extraItems || 0)
-    if (total <= 4) return 0
-    if (total <= 6) return 1
-    return 2
-  }
+  const totalRoomCount = orderedRooms.length
+  const globalSizeLevel = totalRoomCount <= 4 ? 0 : totalRoomCount <= 6 ? 1 : 2
 
-  // Build room data with adaptive sizing
+  // Build room data with global adaptive sizing
   const buildRoomCells = (sizeLevel: number) => {
     const cells: string[] = []
     orderedRooms.forEach(room => {
@@ -348,10 +344,10 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     return cells
   }
 
-  // Build normal room cells (sizeLevel=0) for main pages
-  const roomCells = buildRoomCells(0)
+  // Build ALL room cells with global sizeLevel
+  const roomCells = buildRoomCells(globalSizeLevel)
 
-  // Helper: build rooms grid HTML from array of room cells
+  // Helper: build rooms grid HTML from array of room cells (adaptive)
   const buildRoomsGrid = (cells: string[], sizeLevel?: number) => {
     let html = ''
     const sl = sizeLevel || 0
@@ -381,59 +377,41 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
       '</div>'
   }
 
+  // Adaptive page container padding
+  const roomPagePadMap = ['12px 10px', '10px 8px', '8px 6px']
+  const treasuryPagePadMap = ['8px 10px', '6px 8px', '4px 6px']
+  const sl = globalSizeLevel
+
   // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols)
   const MAX_ROOMS_PER_PAGE = 4
   const pages: string[] = []
 
-  // Room pages - if last room page is not full, merge it with treasury page
-  let overflowRoomCount = 0
   const totalFullPages = Math.floor(roomCells.length / MAX_ROOMS_PER_PAGE)
   const hasRemainder = roomCells.length % MAX_ROOMS_PER_PAGE > 0
 
-  // Full room pages (always sizeLevel 0 = normal)
+  // Full room pages - ALL use global adaptive sizeLevel
   for (let p = 0; p < totalFullPages; p++) {
     const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
     pages.push(
-      '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
-      buildHeader(0) +
+      '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+      buildHeader(sl) +
       '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
-      buildRoomsGrid(pageRooms, 0) +
+      buildRoomsGrid(pageRooms, sl) +
       '</div>' +
       '</div>'
     )
   }
 
-  // Calculate overflow rooms and auto size for treasury page
-  if (hasRemainder) {
-    overflowRoomCount = roomCells.length % MAX_ROOMS_PER_PAGE
-  }
+  // Overflow rooms for treasury page
+  const overflowRoomCount = hasRemainder ? roomCells.length % MAX_ROOMS_PER_PAGE : 0
+  const overflowCells = overflowRoomCount > 0 ? roomCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE) : []
 
-  // Treasury page - auto-adaptive sizing based on overflow rooms + treasury
-  // Overflow rooms need compact cells rebuilt with the right sizeLevel
-  const treasuryPageSizeLevel = calcSizeLevel(overflowRoomCount, 2) // +2 for worker expenses + treasury tables
-  const overflowCells = overflowRoomCount > 0 ? (() => {
-    const cells: string[] = []
-    // Rebuild only overflow rooms with adaptive size
-    const startIdx = totalFullPages * MAX_ROOMS_PER_PAGE
-    for (let i = startIdx; i < orderedRooms.length; i++) {
-      const room = orderedRooms[i]
-      const roomEntries = roomMap[room] || []
-      if (roomEntries.length > 0) {
-        cells.push(buildRoomTableHTML(room, roomEntries, branchName, treasuryPageSizeLevel))
-      } else {
-        cells.push(buildEmptyRoomTableHTML(room, treasuryPageSizeLevel))
-      }
-    }
-    return cells
-  })() : []
-
-  const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, treasuryPageSizeLevel)
-  const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, treasuryPageSizeLevel) : ''
-
-  const pagePadMap = ['8px 10px', '6px 8px', '4px 6px']
+  // Treasury page - uses same global sizeLevel
+  const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
+  const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, sl) : ''
   pages.push(
-    '<div style="width:780px;background:#fff;color:#000;padding:' + pagePadMap[treasuryPageSizeLevel] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-    buildHeader(treasuryPageSizeLevel) +
+    '<div style="width:780px;background:#fff;color:#000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+    buildHeader(sl) +
     overflowHtml +
     treasuryContent +
     '</div>'
