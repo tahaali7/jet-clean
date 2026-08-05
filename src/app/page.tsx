@@ -330,9 +330,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Helper: build page header
   const buildHeader = (title: string) => {
-    return '<div style="text-align:center;margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:8px;">' +
-      '<h1 style="font-size:20px;font-weight:bold;margin:0;">مغسلة ' + branchName + '</h1>' +
-      '<p style="font-size:13px;margin:4px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    return '<div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:10px;">' +
+      '<h1 style="font-size:22px;font-weight:bold;margin:0 0 10px 0;">مغسلة ' + branchName + '</h1>' +
+      '<p style="font-size:14px;margin:0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
