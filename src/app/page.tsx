@@ -134,7 +134,7 @@ function formatDateShort(dateStr: string) {
 }
 
 // ==================== PDF REPORT BUILDERS ====================
-function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string) {
+function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, compact?: boolean) {
   const prices = getPricesForRoom(room)
   let roomTotalAmount = 0
   let roomTotalCars = 0
@@ -165,8 +165,11 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const cellPad = 'padding:10px 10px;vertical-align:middle;'
-  const cellFs = 'font-size:10px;'
+  const _pad = compact ? '5px 8px' : '10px 10px'
+  const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
+  const cellFs = compact ? 'font-size:9px;' : 'font-size:10px;'
+  const titlePad = compact ? 'padding:6px 8px;' : 'padding:10px 10px;'
+  const titleFs = compact ? 'font-size:10px;' : 'font-size:11px;'
 
   let rowsHtml = ''
   let rowNum = 0
@@ -207,7 +210,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
     '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -217,12 +220,12 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     '<tr style="background:#e0e0e0;">' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
@@ -300,7 +303,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const orderedRooms = [...regularRooms]
   if (hasMachine) orderedRooms.push('مكينة الغسيل')
 
-  // Build room data
+  // Build room data (normal - for first page)
   const roomCells: string[] = []
   orderedRooms.forEach(room => {
     const roomEntries = roomMap[room] || []
@@ -315,6 +318,20 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
       roomCells.push(buildEmptyRoomTableHTML(room))
     }
   })
+
+  // Build compact room cells (for overflow/second page)
+  const buildCompactRoomCells = () => {
+    const cells: string[] = []
+    orderedRooms.forEach(room => {
+      const roomEntries = roomMap[room] || []
+      if (roomEntries.length > 0) {
+        cells.push(buildRoomTableHTML(room, roomEntries, branchName, true))
+      } else {
+        cells.push(buildEmptyRoomTableHTML(room))
+      }
+    })
+    return cells
+  }
 
   // Helper: build rooms grid HTML from array of room cells
   const buildRoomsGrid = (cells: string[], compact?: boolean) => {
@@ -360,9 +377,10 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     )
   }
 
-  // Remaining rooms go to treasury page (not a separate page)
+  // Remaining rooms go to treasury page (compact)
   if (hasRemainder) {
-    overflowRooms = roomCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE)
+    const compactCells = buildCompactRoomCells()
+    overflowRooms = compactCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE)
   }
 
   // Treasury page (always last) - includes overflow rooms if any
