@@ -207,7 +207,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="padding:15px 2px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
     '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -217,12 +217,12 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     '<tr style="background:#e0e0e0;">' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
@@ -243,7 +243,7 @@ function buildEmptyRoomTableHTML(room: string) {
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="padding:15px 2px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
     '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -252,12 +252,12 @@ function buildEmptyRoomTableHTML(room: string) {
     '</tr>' +
     rowsHtml +
     '<tr style="background:#e0e0e0;">' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"></td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="padding:5px 6px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;"></td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;"></td>' +
     '</tr>' +
     '</table>'
 }
@@ -395,7 +395,7 @@ function buildWorkerExpensesAndTreasury(
     }
   }
 
-  const wCellPad = 'padding:9px 9px;border:1px solid #555;vertical-align:middle;'
+  const wCellPad = 'padding:10px 10px;border:1px solid #555;vertical-align:middle;'
 
   let workerRowsHtml = ''
   orderedRooms.forEach(room => {
@@ -423,7 +423,7 @@ function buildWorkerExpensesAndTreasury(
 
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="padding:2px 5px;text-align:center;font-size:12px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="padding:10px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -434,7 +434,7 @@ function buildWorkerExpensesAndTreasury(
   const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
   const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
 
-  const tCellPad = 'padding:9px 9px;border:1px solid #555;vertical-align:middle;'
+  const tCellPad = 'padding:10px 10px;border:1px solid #555;vertical-align:middle;'
   const tLabelStyle = tCellPad + 'font-size:10px;'
   const tValueStyle = tCellPad + 'text-align:center;font-size:11px;font-weight:bold;'
 
@@ -480,7 +480,7 @@ function buildWorkerExpensesAndTreasury(
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="padding:2px 5px;text-align:center;font-size:12px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
