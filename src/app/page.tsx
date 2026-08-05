@@ -1105,25 +1105,31 @@ export default function JetCleanApp() {
   const handleSaveEditEmployee = async () => {
     if (!editEmp) return
     if (!editEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
-    if (editEmp.hasLogin && !editEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
+    if (editEmp.hasLogin && !editEmp.password?.trim()) return alert('الرجاء إدخال رمز المرور')
     try {
+      const body: any = {
+        id: editEmp.id,
+        name: editEmp.name.trim(),
+        shift: editEmp.shift,
+        role: editEmp.role,
+        hasLogin: editEmp.hasLogin,
+      }
+      if (editEmp.hasLogin && editEmp.password?.trim()) {
+        body.password = editEmp.password.trim()
+      }
       const res = await fetch('/api/employees', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editEmp.id,
-          name: editEmp.name.trim(),
-          shift: editEmp.shift,
-          role: editEmp.role,
-          hasLogin: editEmp.hasLogin,
-          password: editEmp.hasLogin ? editEmp.password.trim() : ''
-        })
+        body: JSON.stringify(body)
       })
       if (res.ok) {
         setShowEditEmpModal(false)
         setEditEmp(null)
         await loadEmployees()
-      } else { alert('حدث خطأ') }
-    } catch (e) { alert('حدث خطأ') }
+      } else {
+        const err = await res.json().catch(() => ({}))
+        alert('خطأ: ' + (err.error || 'غير معروف'))
+      }
+    } catch (e: any) { alert('خطأ: ' + (e.message || 'غير معروف')) }
   }
 
   const handleDeleteEmployee = async (id: string) => {
