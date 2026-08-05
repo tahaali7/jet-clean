@@ -351,8 +351,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const buildRoomsGrid = (cells: string[], sizeLevel?: number) => {
     let html = ''
     const sl = sizeLevel || 0
-    const gapMap = ['8px', '5px', '3px']
-    const mbMap = ['6px', '4px', '2px']
+    const gapMap = ['10px', '7px', '5px']
+    const mbMap = ['10px', '7px', '5px']
     const gap = gapMap[sl]
     const mb = mbMap[sl]
     for (let i = 0; i < cells.length; i += 2) {
