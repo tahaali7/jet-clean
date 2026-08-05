@@ -320,7 +320,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const buildRoomsGrid = (cells: string[]) => {
     let html = ''
     for (let i = 0; i < cells.length; i += 2) {
-      html += '<div style="display:flex;gap:8px;margin-bottom:6px;">' +
+      html += '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
         '<div style="flex:1;min-width:0;">' + cells[i] + '</div>' +
         (cells[i + 1] ? '<div style="flex:1;min-width:0;">' + cells[i + 1] + '</div>' : '') +
         '</div>'
@@ -330,10 +330,10 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Helper: build page header
   const buildHeader = (title: string) => {
-    return '<div style="text-align:center;margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:8px;">' +
-      '<h1 style="font-size:20px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
-      '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">' + title + '</p>' +
-      '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    return '<div style="text-align:center;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:10px;">' +
+      '<h1 style="font-size:20px;font-weight:bold;margin:0 0 8px 0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+      '<p style="font-size:13px;margin:0 0 6px 0;color:#333;">' + title + '</p>' +
+      '<p style="font-size:12px;margin:0 0 4px 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
@@ -485,7 +485,7 @@ function buildWorkerExpensesAndTreasury(
     '</table>' +
     '</div>'
 
-  return '<div style="margin-top:8px;border-top:2px solid #000;padding-top:6px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
+  return '<div style="margin-top:12px;border-top:2px solid #000;padding-top:10px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 
