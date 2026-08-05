@@ -40,19 +40,22 @@ export async function PUT(req: NextRequest) {
     const { id, name, shift, password, role, hasLogin } = await req.json()
     if (!id) return NextResponse.json({ error: 'معرف الموظف مطلوب' }, { status: 400 })
     const data: Record<string, any> = {}
-    if (name !== undefined) data.name = name.trim()
-    if (shift !== undefined) data.shift = shift
-    if (role !== undefined) data.role = role
-    if (hasLogin !== undefined) data.hasLogin = !!hasLogin
-    if (password !== undefined && password.trim()) data.password = password.trim()
+    if (name !== undefined && name !== null) data.name = String(name).trim()
+    if (shift !== undefined && shift !== null) data.shift = String(shift)
+    if (role !== undefined && role !== null) data.role = String(role)
+    if (hasLogin !== undefined && hasLogin !== null) data.hasLogin = hasLogin === true
+    if (password !== undefined && password !== null && String(password).trim() !== '') data.password = String(password).trim()
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: 'لا توجد بيانات للتحديث' }, { status: 400 })
+    }
     const employee = await db.employee.update({
       where: { id },
       data
     })
     return NextResponse.json(employee)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Update employee error:', error)
-    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
+    return NextResponse.json({ error: 'حدث خطأ: ' + (error?.message || '') }, { status: 500 })
   }
 }
 
