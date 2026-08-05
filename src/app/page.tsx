@@ -678,12 +678,13 @@ function buildEmployeeReportHTML(
     '</div></div>'
 
   const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;">صفحة __PAGE__</div>'
-  const baseStyle = 'width:800px;background:#fff;color:#1e293b;padding:24px;font-family:Cairo,sans-serif;min-height:1120px;'
+  const pageStyle = 'width:800px;background:#fff;color:#1e293b;padding:24px;font-family:Cairo,sans-serif;'
+  const pageWithMinHeight = pageStyle + 'min-height:1120px;'
 
-  // All branches on one page
-  let allBranchesHtml = ''
+  // Render each branch as a separate block, then pack into pages
+  const branchBlocks: { html: string; estimatedHeight: number }[] = []
   branchDatas.forEach(bd => {
-    allBranchesHtml += '<div style="margin-bottom:16px;">' +
+    const blockHtml = '<div style="margin-bottom:16px;">' +
       '<h3 style="background:#0e7490;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
       'فرع ' + bd.name + ' — سحوبات: ' + bd.withdrawals + ' د.ل | عجوزات: ' + bd.shortages + ' د.ل | الإجمالي: ' + (bd.withdrawals + bd.shortages) + ' د.ل' +
       '</h3>' +
@@ -696,12 +697,40 @@ function buildEmployeeReportHTML(
       '</tr></thead>' +
       '<tbody>' + bd.empsHtml + '</tbody>' +
       '</table></div>'
+    // Estimate: title ~30px + header row ~30px + each emp row ~35px + detail rows ~25px each
+    const rowCount = bd.empsHtml.split('<tr').length
+    branchBlocks.push({ html: blockHtml, estimatedHeight: 30 + 30 + rowCount * 35 })
   })
 
-  pages.push('<div style="' + baseStyle + '">' +
-    headerHtml + summaryHtml + allBranchesHtml +
-    footerHtml.replace('__PAGE__', '1') +
-    '</div>')
+  // Header + summary estimated ~200px, footer ~30px, page usable ~880px (1120 - 200 - 30)
+  const headerHeight = 200
+  const footerHeight = 30
+  const usableHeight = 890
+
+  let pageNum = 1
+  let currentPageContent = headerHtml + summaryHtml
+  let currentPageUsed = headerHeight
+
+  branchBlocks.forEach((block, idx) => {
+    if (currentPageUsed + block.estimatedHeight + footerHeight > 1120 && idx > 0) {
+      // Current page is full, start a new one
+      currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
+      pages.push('<div style="' + pageWithMinHeight + '">' + currentPageContent + '</div>')
+      pageNum++
+      currentPageContent = headerHtml + block.html
+      currentPageUsed = headerHeight + block.estimatedHeight
+    } else {
+      currentPageContent += block.html
+      currentPageUsed += block.estimatedHeight
+    }
+  })
+
+  // Last page
+  if (currentPageContent) {
+    currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
+    const isLastPage = branchBlocks.length <= 2
+    pages.push('<div style="' + (isLastPage ? pageWithMinHeight : pageStyle) + '">' + currentPageContent + '</div>')
+  }
 
   return pages
 }
