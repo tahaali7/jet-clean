@@ -672,6 +672,9 @@ export default function JetCleanApp() {
 
   // Employee screen state
   const [empDate, setEmpDate] = useState(todayISO())
+  const [showEmpCalendar, setShowEmpCalendar] = useState(false)
+  const [calMonth, setCalMonth] = useState(() => todayISO().slice(0, 7))
+  const [datesWithData, setDatesWithData] = useState<string[]>([])
   const [selectedRoom, setSelectedRoom] = useState('')
   const [priceInputs, setPriceInputs] = useState<Record<number, number>>({})
   const [customPricesData, setCustomPricesData] = useState<Record<string, { price: number; count: number }>>({})
@@ -966,6 +969,17 @@ export default function JetCleanApp() {
       })()
     }
   }, [screen])
+
+  // Fetch dates with data for calendar highlighting
+  useEffect(() => {
+    if (!calMonth) return
+    const branchId = isAdminMode ? adminSelectedBranch : user?.branchId
+    if (!branchId) return
+    fetch('/api/car-entries?datesOnly=true&branchId=' + branchId + '&month=' + calMonth)
+      .then(r => r.ok ? r.json() : [])
+      .then((dates: string[]) => setDatesWithData(dates))
+      .catch(() => setDatesWithData([]))
+  }, [calMonth, isAdminMode, adminSelectedBranch, user?.branchId])
 
   // Employee screen data fetching - sequential
   useEffect(() => {
@@ -2052,11 +2066,73 @@ export default function JetCleanApp() {
               </>
             )}
             <label className="text-sm text-slate-400 font-bold whitespace-nowrap">التاريخ:</label>
-            <input
-              type="date" value={empDate}
-              onChange={e => setEmpDate(e.target.value)}
-              className="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
-            />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => { setShowEmpCalendar(!showEmpCalendar); setCalMonth(empDate.slice(0, 7)) }}
+                className="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500 min-w-[140px] text-left"
+              >
+                📅 {empDate}
+              </button>
+              {showEmpCalendar && (
+                <div className="absolute top-full mt-2 right-0 z-50 bg-slate-800 border border-slate-600 rounded-xl p-3 shadow-2xl min-w-[280px]">
+                  {/* Month navigation */}
+                  <div className="flex items-center justify-between mb-2">
+                    <button type="button" onClick={() => { const [y, m] = calMonth.split('-').map(Number); const nm = m === 1 ? 12 : m - 1; const ny = m === 1 ? y - 1 : y; setCalMonth(ny + '-' + String(nm).padStart(2, '0')) }} className="text-white px-2 py-1 hover:bg-slate-700 rounded-lg text-lg">◀</button>
+                    <span className="text-white font-bold text-sm">
+                      {['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][parseInt(calMonth.split('-')[1]) - 1]} {calMonth.split('-')[0]}
+                    </span>
+                    <button type="button" onClick={() => { const [y, m] = calMonth.split('-').map(Number); const nm = m === 12 ? 1 : m + 1; const ny = m === 12 ? y + 1 : y; setCalMonth(ny + '-' + String(nm).padStart(2, '0')) }} className="text-white px-2 py-1 hover:bg-slate-700 rounded-lg text-lg">▶</button>
+                  </div>
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 gap-1 mb-1">
+                    {['أحد','إث','ثل','أر','خم','جم','سبت'].map(d => (
+                      <div key={d} className="text-center text-slate-400 text-xs font-bold py-1">{d}</div>
+                    ))}
+                  </div>
+                  {/* Calendar days */}
+                  {(() => {
+                    const [year, month] = calMonth.split('-').map(Number)
+                    const firstDay = new Date(year, month - 1, 1).getDay()
+                    const daysInMonth = new Date(year, month, 0).getDate()
+                    const today = todayISO()
+                    const cells: React.ReactNode[] = []
+                    // Empty cells before first day
+                    for (let i = 0; i < firstDay; i++) cells.push(<div key={'e' + i} />)
+                    // Day cells
+                    for (let d = 1; d <= daysInMonth; d++) {
+                      const dateStr = calMonth + '-' + String(d).padStart(2, '0')
+                      const hasData = datesWithData.includes(dateStr)
+                      const isToday = dateStr === today
+                      const isSelected = dateStr === empDate
+                      cells.push(
+                        <button
+                          key={dateStr}
+                          type="button"
+                          onClick={() => { setEmpDate(dateStr); setShowEmpCalendar(false) }}
+                          className={`relative w-8 h-8 rounded-lg text-sm font-semibold transition-all ${
+                            isSelected ? 'bg-cyan-600 text-white ring-2 ring-cyan-400' :
+                            isToday ? 'bg-slate-600 text-white' :
+                            'text-slate-300 hover:bg-slate-700'
+                          }`}
+                        >
+                          {d}
+                          {hasData && (
+                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                          )}
+                        </button>
+                      )
+                    }
+                    return <div className="grid grid-cols-7 gap-1">{cells}</div>
+                  })()}
+                  {/* Legend */}
+                  <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-700">
+                    <span className="flex items-center gap-1 text-xs text-slate-400"><span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" /> يوجد بيانات</span>
+                    <span className="flex items-center gap-1 text-xs text-slate-400"><span className="w-1.5 h-1.5 bg-cyan-400 rounded-full inline-block" /> محدد</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {!isViewer && (

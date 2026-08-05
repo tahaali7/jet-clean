@@ -15,6 +15,24 @@ export async function GET(req: NextRequest) {
     const date = searchParams.get('date')
     const branchId = searchParams.get('branchId')
     const empId = searchParams.get('empId')
+    const datesOnly = searchParams.get('datesOnly')
+    const month = searchParams.get('month') // format: YYYY-MM
+
+    // Return only dates that have entries (for calendar highlighting)
+    if (datesOnly === 'true' && branchId && month) {
+      const startDate = month + '-01'
+      const [year, mon] = month.split('-').map(Number)
+      const daysInMonth = new Date(year, mon, 0).getDate()
+      const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
+
+      const entries = await db.carEntry.findMany({
+        where: { branchId, date: { gte: startDate, lte: endDate } },
+        select: { date: true },
+        distinct: ['date']
+      })
+      const dates = entries.map(e => e.date)
+      return NextResponse.json(dates)
+    }
 
     const where: Record<string, unknown> = {}
     if (date) where.date = date
