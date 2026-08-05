@@ -102,3 +102,10 @@ model ClosedDay {
   branchId String
   branch   Branch @relation(fields: [branchId], references: [id])
 }
+
+model BackupFile {
+  id        String   @id @default(cuid())
+  label     String
+  data      String
+  createdAt DateTime @default(now())
+}

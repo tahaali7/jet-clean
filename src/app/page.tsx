@@ -594,6 +594,8 @@ export default function JetCleanApp() {
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false)
+  const [backupLoading, setBackupLoading] = useState(false)
+  const [restoreLoading, setRestoreLoading] = useState(false)
   const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
   const [exportMonth, setExportMonth] = useState('')
   const [exportDay, setExportDay] = useState('')
@@ -766,6 +768,73 @@ export default function JetCleanApp() {
     setIsAdminMode(false)
     setAdminSelectedBranch(null)
     setScreen('login')
+  }
+
+  const handleBackup = async () => {
+    if (!confirm('هل تريد حفظ نسخة احتياطية من جميع البيانات؟')) return
+    setBackupLoading(true)
+    try {
+      const res = await fetch('/api/backup', { method: 'POST' })
+      const result = await res.json()
+      if (res.ok) {
+        alert('✅ تم النسخ الاحتياطي بنجاح!\n' + JSON.stringify(result.records))
+      } else {
+        alert('❌ خطأ: ' + result.error)
+      }
+    } catch (e: any) { alert('❌ خطأ: ' + e.message) }
+    setBackupLoading(false)
+  }
+
+  const handleRestore = async () => {
+    setRestoreLoading(true)
+    try {
+      // Get list of backups
+      const listRes = await fetch('/api/backup')
+      const listData = await listRes.json()
+      const backups = listData.backups || []
+      if (backups.length === 0) {
+        alert('❌ لا توجد نسخ احتياطية')
+        setRestoreLoading(false)
+        return
+      }
+
+      // Show backup list to user
+      const options = backups.map((b: any, i: number) => `${i + 1}. ${b.label} (${new Date(b.createdAt).toLocaleString('ar-LY')})`).join('\n')
+      const choice = prompt(`⚠️ اختر رقم النسخة للاستعادة:\n${options}`)
+      if (!choice) { setRestoreLoading(false); return }
+
+      const idx = parseInt(choice) - 1
+      if (idx < 0 || idx >= backups.length) {
+        alert('❌ رقم غير صحيح')
+        setRestoreLoading(false)
+        return
+      }
+
+      if (!confirm('⚠️ سيتم حذف جميع البيانات الحالية واستبدالها بالنسخة المختارة!\nهل أنت متأكد؟')) {
+        setRestoreLoading(false)
+        return
+      }
+
+      const res = await fetch('/api/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: backups[idx].id })
+      })
+      const result = await res.json()
+      if (res.ok) {
+        alert('✅ تمت الاستعادة بنجاح!')
+        await loadBranches()
+        await loadEmployees()
+        if (adminDate) {
+          await loadRecords({ date: adminDate })
+          await loadAllCarEntries(adminDate)
+          await loadClosedDays(adminDate)
+        }
+      } else {
+        alert('❌ خطأ: ' + result.error)
+      }
+    } catch (e: any) { alert('❌ خطأ: ' + e.message) }
+    setRestoreLoading(false)
   }
 
   // ==================== EFFECTS ====================
@@ -2164,6 +2233,12 @@ export default function JetCleanApp() {
                 </button>
                 <button onClick={() => { setShowPasswordsModal(true); setAdminPassword('') }} className="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   🔑 كلمات السر
+                </button>
+                <button onClick={handleBackup} disabled={backupLoading} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-emerald-500/30">
+                  {backupLoading ? '⏳' : '💾'} نسخ احتياطي
+                </button>
+                <button onClick={handleRestore} disabled={restoreLoading} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-amber-500/30">
+                  {restoreLoading ? '⏳' : '📥'} استعادة
                 </button>
                 <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-rose-500/30">
                   🚪 خروج
