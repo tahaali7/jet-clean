@@ -722,7 +722,7 @@ export default function JetCleanApp() {
       setLoginEmpId('')
       setLoginLoading(false)
 
-      if (data.user.role === 'admin') {
+      if (data.user.role === 'admin' || data.user.role === 'viewer') {
         setIsAdminMode(false)
         setAdminSelectedBranch(null)
         setAdminDate(todayISO())
@@ -1150,7 +1150,7 @@ export default function JetCleanApp() {
 
   const handleCreateEmployee = async () => {
     if (!newEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
-    if (!newEmp.branchId) return alert('الرجاء اختيار الفرع')
+    if (newEmp.role !== 'viewer' && !newEmp.branchId) return alert('الرجاء اختيار الفرع')
     if (newEmp.hasLogin && !newEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
     try {
       const res = await fetch('/api/employees', {
@@ -2215,16 +2215,19 @@ export default function JetCleanApp() {
                 <img src="/logo.png" alt="logo" className="w-10 h-10 rounded-xl" />
                 <div>
                   <h1 className="text-base font-bold text-cyan-400">مغسلة جيت كلين - لوحة التحكم</h1>
-                  <p className="text-xs text-slate-400">مرحباً المسؤول طه علي 👨‍💼</p>
+                  <p className="text-xs text-slate-400">{user?.role === 'viewer' ? 'مرحباً المشاهد 👁️' : 'مرحباً المسؤول طه علي 👨‍💼'}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
+                {user?.role !== 'viewer' && <>
                 <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   🚗
                 </button>
+                </>}
                 <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   📄 تقارير
                 </button>
+                {user?.role !== 'viewer' && <>
                 <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   ➕ فرع
                 </button>
@@ -2237,6 +2240,7 @@ export default function JetCleanApp() {
                 <button onClick={handleRestore} disabled={restoreLoading} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-amber-500/30">
                   {restoreLoading ? '⏳' : '📥'} استعادة
                 </button>
+                </>}
                 <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-rose-500/30">
                   🚪 خروج
                 </button>
@@ -2312,7 +2316,7 @@ export default function JetCleanApp() {
                         {!emp.hasLogin && <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
                       </div>
                       <div className="flex gap-1.5">
-                        {!dayClosed && (
+                        {user?.role !== 'viewer' && !dayClosed && (
                           <button
                             onClick={() => {
                               setRecordModalData({
@@ -2324,8 +2328,10 @@ export default function JetCleanApp() {
                             className="bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition hover:bg-cyan-400"
                           >+ حركة</button>
                         )}
+                        {user?.role !== 'viewer' && <>
                         <button onClick={() => handleDeleteEmployee(emp.id)} className="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
                         <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
+                        </>}
                       </div>
                     </div>
 
@@ -2352,7 +2358,7 @@ export default function JetCleanApp() {
                           <span>{r.date?.substring(5)} {r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
-                            {!dayClosed && (
+                            {user?.role !== 'viewer' && !dayClosed && (
                               <>
                                 <button onClick={() => {
                                   setRecordModalData({
@@ -2552,6 +2558,7 @@ export default function JetCleanApp() {
                   placeholder="اسم الموظف"
                 />
               </div>
+              {newEmp.role !== 'viewer' && <>
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">الفرع</label>
                 <select value={newEmp.branchId}
@@ -2573,6 +2580,7 @@ export default function JetCleanApp() {
                   <option value="الفترة كاملة">الفترة كاملة</option>
                 </select>
               </div>
+              </>}
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
                 <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">

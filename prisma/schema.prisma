@@ -30,8 +30,8 @@ model Branch {
 model Employee {
   id        String  @id @default(cuid())
   name      String
-  branchId  String
-  branch    Branch  @relation(fields: [branchId], references: [id])
+  branchId  String?
+  branch    Branch? @relation(fields: [branchId], references: [id])
   shift     String
   password  String  @default("")
   role      String  @default("employee")
