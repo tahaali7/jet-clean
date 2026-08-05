@@ -1479,9 +1479,9 @@ export default function JetCleanApp() {
       } else {
         alert('لا توجد بيانات للتصدير في الفترة المحددة')
       }
-    } catch (err) {
-      console.error(err)
-      alert('حدث خطأ أثناء التصدير')
+    } catch (err: any) {
+      console.error('PDF Export Error:', err?.message, err?.stack)
+      alert('حدث خطأ أثناء التصدير: ' + (err?.message || ''))
     }
     setExporting(false)
   }
@@ -1632,9 +1632,9 @@ export default function JetCleanApp() {
       pdf.save('تقرير_سحوبات_وعجوزات_الموظفين.pdf')
       setShowExportModal(false)
       alert('تم تصدير تقرير السحوبات والعجوزات بنجاح!')
-    } catch (err) {
-      console.error(err)
-      alert('حدث خطأ أثناء تصدير تقرير الموظفين')
+    } catch (err: any) {
+      console.error('Emp PDF Error:', err?.message, err?.stack)
+      alert('حدث خطأ أثناء تصدير تقرير الموظفين: ' + (err?.message || ''))
     }
     setExportingEmp(false)
   }
@@ -1736,9 +1736,9 @@ export default function JetCleanApp() {
 
       const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
       pdf.save(fileName)
-    } catch (err) {
-      console.error(err)
-      alert('حدث خطأ أثناء إنشاء ملف PDF')
+    } catch (err: any) {
+      console.error('CarEntry PDF Error:', err?.message, err?.stack)
+      alert('حدث خطأ أثناء إنشاء ملف PDF: ' + (err?.message || ''))
     }
     setExportingEmp(false)
   }
