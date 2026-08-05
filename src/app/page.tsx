@@ -572,13 +572,14 @@ function buildEmployeeReportHTML(
   allRecords: FinancialRecord[],
   allBranches: Branch[],
   matchRecord: (r: FinancialRecord) => boolean
-): string {
+): string[] {
   const now = new Date()
   const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' })
+  const pages: string[] = []
 
   let grandWithdrawals = 0
   let grandShortages = 0
-  let branchesHtml = ''
+  const branchDatas: { name: string; withdrawals: number; shortages: number; empsHtml: string }[] = []
 
   allBranches.forEach(branch => {
     const branchEmps = allEmployees.filter(e => e.branchId === branch.id)
@@ -602,7 +603,6 @@ function buildEmployeeReportHTML(
       grandShortages += shortages
       if (empRecords.length > 0) branchHasRecords = true
 
-      // Build detail rows for each transaction
       let detailHtml = ''
       empRecords.forEach(r => {
         const typeLabel = r.type === 'withdrawal' ? 'سحب' : 'عجز'
@@ -636,45 +636,83 @@ function buildEmployeeReportHTML(
     })
 
     if (!branchHasRecords) return
-
-    branchesHtml += '<div style="margin-bottom:20px;">' +
-      '<h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:14px;margin-bottom:8px;">' +
-      '📍 فرع ' + branch.name + ' — سحوبات: ' + branchWithdrawals + ' د.ل | عجوزات: ' + branchShortages + ' د.ل | الإجمالي: ' + (branchWithdrawals + branchShortages) + ' د.ل' +
-      '</h3>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-      '<thead><tr style="background:#e2e8f0;">' +
-      '<th style="padding:8px;border:1px solid #ddd;">الموظف</th>' +
-      '<th style="padding:8px;border:1px solid #ddd;">السحبيات</th>' +
-      '<th style="padding:8px;border:1px solid #ddd;">العجوزات</th>' +
-      '<th style="padding:8px;border:1px solid #ddd;">الإجمالي</th>' +
-      '</tr></thead>' +
-      '<tbody>' + rowsHtml + '</tbody>' +
-      '</table></div>'
+    branchDatas.push({ name: branch.name, withdrawals: branchWithdrawals, shortages: branchShortages, empsHtml: rowsHtml })
   })
 
+  if (branchDatas.length === 0) {
+    pages.push('<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;">' +
+      '<div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
+      '<h1 style="font-size:22px;font-weight:800;color:#0e7490;margin:0;">مغسلة جيت كلين</h1>' +
+      '<p style="font-size:15px;font-weight:700;margin:6px 0 0;">تقرير مصاريف الموظفين التفصيلي</p>' +
+      '<p style="font-size:12px;color:#64748b;margin:4px 0 0;">' + periodLabel + '</p>' +
+      '</div>' +
+      '<p style="text-align:center;color:#94a3b8;font-size:14px;margin-top:60px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>' +
+      '</div>')
+    return pages
+  }
+
   const grandTotal = grandWithdrawals + grandShortages
-  return '<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;">' +
-    '<div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
-    '<h1 style="font-size:22px;font-weight:800;color:#0e7490;margin:0;">مغسلة جيت كلين</h1>' +
-    '<p style="font-size:15px;font-weight:700;margin:6px 0 0;">تقرير مصاريف الموظفين التفصيلي</p>' +
-    '<p style="font-size:12px;color:#64748b;margin:4px 0 0;">' + periodLabel + ' — تاريخ الإصدار: ' + generatedOn + '</p>' +
-    '</div>' +
-    '<div style="display:flex;gap:12px;margin-bottom:20px;">' +
-    '<div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;text-align:center;">' +
-    '<p style="font-size:11px;color:#92400e;margin:0;">إجمالي السحبيات</p>' +
-    '<p style="font-size:18px;font-weight:800;color:#b45309;margin:4px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
-    '</div>' +
-    '<div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:10px;text-align:center;">' +
-    '<p style="font-size:11px;color:#9f1239;margin:0;">إجمالي العجوزات</p>' +
-    '<p style="font-size:18px;font-weight:800;color:#be123c;margin:4px 0 0;">' + grandShortages + ' د.ل</p>' +
-    '</div>' +
-    '<div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;text-align:center;">' +
-    '<p style="font-size:11px;color:#166534;margin:0;">الإجمالي العام</p>' +
-    '<p style="font-size:18px;font-weight:800;color:#15803d;margin:4px 0 0;">' + grandTotal + ' د.ل</p>' +
-    '</div>' +
-    '</div>' +
-    (branchesHtml || '<p style="text-align:center;color:#94a3b8;">لا توجد بيانات لعرضها لهذه الفترة</p>') +
+  const headerHtml = '<div style="text-align:center;margin-bottom:16px;border-bottom:3px solid #0e7490;padding-bottom:12px;">' +
+    '<h1 style="font-size:20px;font-weight:800;color:#0e7490;margin:0;">مغسلة جيت كلين</h1>' +
+    '<p style="font-size:14px;font-weight:700;margin:4px 0 0;">تقرير مصاريف الموظفين التفصيلي</p>' +
+    '<p style="font-size:11px;color:#64748b;margin:4px 0 0;">' + periodLabel + ' — ' + generatedOn + '</p>' +
     '</div>'
+  const summaryHtml = '<div style="display:flex;gap:12px;margin-bottom:16px;">' +
+    '<div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px;text-align:center;">' +
+    '<p style="font-size:10px;color:#92400e;margin:0;">إجمالي السحبيات</p>' +
+    '<p style="font-size:16px;font-weight:800;color:#b45309;margin:2px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
+    '</div>' +
+    '<div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:8px;text-align:center;">' +
+    '<p style="font-size:10px;color:#9f1239;margin:0;">إجمالي العجوزات</p>' +
+    '<p style="font-size:16px;font-weight:800;color:#be123c;margin:2px 0 0;">' + grandShortages + ' د.ل</p>' +
+    '</div>' +
+    '<div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center;">' +
+    '<p style="font-size:10px;color:#166534;margin:0;">الإجمالي العام</p>' +
+    '<p style="font-size:16px;font-weight:800;color:#15803d;margin:2px 0 0;">' + grandTotal + ' د.ل</p>' +
+    '</div></div>'
+
+  const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;">صفحة ' +
+    '__PAGE__ / ' + (branchDatas.length + 1) + '</div>'
+  const baseStyle = 'width:800px;background:#fff;color:#1e293b;padding:24px;font-family:Cairo,sans-serif;min-height:1120px;'
+
+  // Page 1: header + summary + first branches
+  let pageContent = headerHtml + summaryHtml
+  let pageNum = 1
+
+  branchDatas.forEach((bd, idx) => {
+    const branchBlock = '<div style="margin-bottom:16px;">' +
+      '<h3 style="background:#0e7490;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
+      'فرع ' + bd.name + ' — سحوبات: ' + bd.withdrawals + ' د.ل | عجوزات: ' + bd.shortages + ' د.ل | الإجمالي: ' + (bd.withdrawals + bd.shortages) + ' د.ل' +
+      '</h3>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
+      '<thead><tr style="background:#e2e8f0;">' +
+      '<th style="padding:6px;border:1px solid #ddd;">الموظف</th>' +
+      '<th style="padding:6px;border:1px solid #ddd;">السحبيات</th>' +
+      '<th style="padding:6px;border:1px solid #ddd;">العجوزات</th>' +
+      '<th style="padding:6px;border:1px solid #ddd;">الإجمالي</th>' +
+      '</tr></thead>' +
+      '<tbody>' + bd.empsHtml + '</tbody>' +
+      '</table></div>'
+
+    // Estimate: header ~140px, summary ~70px, each branch ~200-400px
+    // Keep first page compact, fill remaining branches on subsequent pages
+    if (idx === 0) {
+      pageContent += branchBlock
+      pageContent += footerHtml.replace('__PAGE__', String(pageNum))
+      pages.push('<div style="' + baseStyle + '">' + pageContent + '</div>')
+      pageContent = ''
+    } else {
+      // Start a new page for each branch (clean separation, no cut tables)
+      pageNum++
+      let newPage = '<div style="' + baseStyle + '">' +
+        headerHtml + branchBlock +
+        footerHtml.replace('__PAGE__', String(pageNum)) +
+        '</div>'
+      pages.push(newPage)
+    }
+  })
+
+  return pages
 }
 
 // ==================== MAIN COMPONENT ====================
@@ -1722,8 +1760,8 @@ export default function JetCleanApp() {
         return
       }
 
-      // Build the report HTML
-      const reportHtml = buildEmployeeReportHTML(
+      // Build the report HTML pages
+      const reportPages = buildEmployeeReportHTML(
         periodLabel,
         employees,
         filteredRecords,
@@ -1731,44 +1769,15 @@ export default function JetCleanApp() {
         (r: FinancialRecord) => dates.includes(r.date)
       )
 
-      // Render in clean iframe
-      const canvas = await renderHtmlToCanvas(reportHtml, 800)
-
-      // Create PDF - handle multiple pages if content is tall
+      // Create PDF with proper pages
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * pageWidth) / canvas.width
 
-      if (imgHeight <= pageHeight) {
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight)
-      } else {
-        let remainingHeight = imgHeight
-        let yOffset = 0
-        let page = 0
-
-        while (remainingHeight > 0) {
-          if (page > 0) pdf.addPage()
-
-          const sourceY = (yOffset / imgHeight) * canvas.height
-          const sourceHeight = Math.min((pageHeight / imgHeight) * canvas.height, canvas.height - sourceY)
-
-          const pageCanvas = document.createElement('canvas')
-          pageCanvas.width = canvas.width
-          pageCanvas.height = sourceHeight
-          const ctx = pageCanvas.getContext('2d')
-          if (ctx) {
-            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight)
-          }
-
-          const pageImgHeight = (pageCanvas.height * pageWidth) / pageCanvas.width
-          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, pageImgHeight)
-
-          yOffset += pageHeight
-          remainingHeight -= pageHeight
-          page++
-        }
+      for (let i = 0; i < reportPages.length; i++) {
+        const canvas = await renderHtmlToCanvas(reportPages[i], 800)
+        const imgHeight = (canvas.height * pageWidth) / canvas.width
+        if (i > 0) pdf.addPage()
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
       }
 
       pdf.save('تقرير_سحوبات_وعجوزات_الموظفين.pdf')
@@ -1807,7 +1816,7 @@ export default function JetCleanApp() {
         return
       }
 
-      const reportHtml = buildEmployeeReportHTML(
+      const reportPages = buildEmployeeReportHTML(
         periodLabel,
         employees,
         filteredRecords,
@@ -1815,44 +1824,16 @@ export default function JetCleanApp() {
         (r: FinancialRecord) => dates.includes(r.date)
       )
 
-      const canvas = await renderHtmlToCanvas(reportHtml, 800)
-
       const jspdfModule = await import('jspdf')
       const jsPDF = jspdfModule.default
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = pageWidth
-      const imgHeight = (canvas.height * pageWidth) / canvas.width
 
-      if (imgHeight <= pageHeight) {
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight)
-      } else {
-        let remainingHeight = imgHeight
-        let yOffset = 0
-        let page = 0
-
-        while (remainingHeight > 0) {
-          if (page > 0) pdf.addPage()
-
-          const sourceY = (yOffset / imgHeight) * canvas.height
-          const sourceHeight = Math.min((pageHeight / imgHeight) * canvas.height, canvas.height - sourceY)
-
-          const pageCanvas = document.createElement('canvas')
-          pageCanvas.width = canvas.width
-          pageCanvas.height = sourceHeight
-          const ctx = pageCanvas.getContext('2d')
-          if (ctx) {
-            ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight)
-          }
-
-          const pageImgHeight = (pageCanvas.height * pageWidth) / pageCanvas.width
-          pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, pageImgHeight)
-
-          yOffset += pageHeight
-          remainingHeight -= pageHeight
-          page++
-        }
+      for (let i = 0; i < reportPages.length; i++) {
+        const canvas = await renderHtmlToCanvas(reportPages[i], 800)
+        const imgHeight = (canvas.height * pageWidth) / canvas.width
+        if (i > 0) pdf.addPage()
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
       }
 
       pdf.save('تقرير_مصاريف_الموظفين_' + periodLabel + '.pdf')
