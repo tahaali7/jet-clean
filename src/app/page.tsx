@@ -350,9 +350,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   for (let p = 0; p < totalFullPages; p++) {
     const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
     pages.push(
-      '<div style="width:780px;height:1120px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+      '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
       buildHeader('تقرير تسجيل السيارات') +
-      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">' +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
       buildRoomsGrid(pageRooms) +
       '</div>' +
       '</div>'
