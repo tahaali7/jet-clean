@@ -585,6 +585,8 @@ export default function JetCleanApp() {
   const [newBranchName, setNewBranchName] = useState('')
   const [showEmpModal, setShowEmpModal] = useState(false)
   const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
+  const [showEditEmpModal, setShowEditEmpModal] = useState(false)
+  const [editEmp, setEditEmp] = useState<any>(null)
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
   const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
   const [adminPassword, setAdminPassword] = useState('')
@@ -1096,6 +1098,30 @@ export default function JetCleanApp() {
         setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
         await loadEmployees()
         await loadBranches()
+      } else { alert('حدث خطأ') }
+    } catch (e) { alert('حدث خطأ') }
+  }
+
+  const handleSaveEditEmployee = async () => {
+    if (!editEmp) return
+    if (!editEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
+    if (editEmp.hasLogin && !editEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editEmp.id,
+          name: editEmp.name.trim(),
+          shift: editEmp.shift,
+          role: editEmp.role,
+          hasLogin: editEmp.hasLogin,
+          password: editEmp.hasLogin ? editEmp.password.trim() : ''
+        })
+      })
+      if (res.ok) {
+        setShowEditEmpModal(false)
+        setEditEmp(null)
+        await loadEmployees()
       } else { alert('حدث خطأ') }
     } catch (e) { alert('حدث خطأ') }
   }
@@ -2219,6 +2245,7 @@ export default function JetCleanApp() {
                           >+ حركة</button>
                         )}
                         <button onClick={() => handleDeleteEmployee(emp.id)} className="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
+                        <button onClick={() => { setEditEmp({ ...emp, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
                       </div>
                     </div>
 
@@ -2507,6 +2534,77 @@ export default function JetCleanApp() {
             <div className="flex gap-3">
               <button onClick={handleCreateEmployee} className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
               <button onClick={() => { setShowEmpModal(false); setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false }) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Employee Modal */}
+      {showEditEmpModal && editEmp && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white text-center">✏️ تعديل الموظف</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">الاسم</label>
+                <input type="text" value={editEmp.name}
+                  onChange={e => setEditEmp(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  placeholder="اسم الموظف"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">الوردية</label>
+                <select value={editEmp.shift}
+                  onChange={e => setEditEmp(prev => ({ ...prev, shift: e.target.value }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="الفترة الصباحية">الفترة الصباحية</option>
+                  <option value="الفترة المسائية">الفترة المسائية</option>
+                  <option value="الفترة كاملة">الفترة كاملة</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
+                <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditEmp(prev => ({ ...prev, hasLogin: !prev.hasLogin }))}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${editEmp.hasLogin ? 'bg-cyan-600' : 'bg-slate-600'}`}
+                  >
+                    <span className={`absolute top-0.5 ${editEmp.hasLogin ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                  </button>
+                  <span className={`text-sm ${editEmp.hasLogin ? 'text-cyan-400' : 'text-slate-500'}`}>
+                    {editEmp.hasLogin ? '✅ نعم، يملك حساب دخول' : '❌ لا، بدون يوزر دخول'}
+                  </span>
+                </div>
+              </div>
+              {editEmp.hasLogin && (
+              <>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">الدور</label>
+                  <select value={editEmp.role}
+                    onChange={e => setEditEmp(prev => ({ ...prev, role: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="employee">👤 موظف عادي</option>
+                    <option value="viewer">👁️ مشاهد فقط</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">رمز المرور</label>
+                  <input type="text" value={editEmp.password || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    placeholder="اتركه فارغاً إذا لا تريد تغييره"
+                  />
+                </div>
+              </>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleSaveEditEmployee} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ التعديلات</button>
+              <button onClick={() => { setShowEditEmpModal(false); setEditEmp(null) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>

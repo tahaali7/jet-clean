@@ -37,11 +37,17 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { id, password } = await req.json()
+    const { id, name, shift, password, role, hasLogin } = await req.json()
     if (!id) return NextResponse.json({ error: 'معرف الموظف مطلوب' }, { status: 400 })
+    const data: Record<string, any> = {}
+    if (name !== undefined) data.name = name.trim()
+    if (shift !== undefined) data.shift = shift
+    if (role !== undefined) data.role = role
+    if (hasLogin !== undefined) data.hasLogin = !!hasLogin
+    if (password !== undefined && password.trim()) data.password = password.trim()
     const employee = await db.employee.update({
       where: { id },
-      data: { password }
+      data
     })
     return NextResponse.json(employee)
   } catch (error) {
