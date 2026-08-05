@@ -16,11 +16,11 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name } = await req.json()
+    const { name, config } = await req.json()
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'الرجاء كتابة اسم الفرع' }, { status: 400 })
     }
-    const branch = await db.branch.create({ data: { name: name.trim() } })
+    const branch = await db.branch.create({ data: { name: name.trim(), config: config || null } })
     return NextResponse.json(branch)
   } catch (error: unknown) {
     const err = error as { code?: string }

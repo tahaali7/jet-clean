@@ -81,15 +81,15 @@ const ROOMS = ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة
 const ALL_PRICES = [5, 10, 15, 20, 30, 35, 45]
 const EXTRA_PRICES = [30, 35, 45]
 const ROOM_PRICES: Record<string, number[]> = { 'مكينة الغسيل': [10, 15] }
-const BRANCH_ROOMS: Record<string, string[]> = {
+let BRANCH_ROOMS: Record<string, string[]> = {
   'أبونواس': ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'مكينة الغسيل'],
   'المنصوره': ['غرفة 1', 'غرفة 2', 'غرفة 3']
 }
-const BRANCH_NET_DEDUCTION: Record<string, number> = {
+let BRANCH_NET_DEDUCTION: Record<string, number> = {
   'بن غرسه': 10, 'أبونواس': 5, 'المنصوره': 0, 'عين زاره': 0
 }
-const MACHINE_NO_DEDUCTION_BRANCHES = ['بن غرسه', 'أبونواس']
-const BRANCH_CLEANLINESS: Record<string, { type: string; value?: number; options?: number[] }> = {
+let MACHINE_NO_DEDUCTION_BRANCHES: string[] = ['بن غرسه', 'أبونواس']
+let BRANCH_CLEANLINESS: Record<string, { type: string; value?: number; options?: number[] }> = {
   'بن غرسه': { type: 'fixed', value: 100 },
   'أبونواس': { type: 'fixed', value: 50 },
   'المنصوره': { type: 'select', options: [10, 20] },
@@ -583,6 +583,13 @@ export default function JetCleanApp() {
   })
   const [showBranchModal, setShowBranchModal] = useState(false)
   const [newBranchName, setNewBranchName] = useState('')
+  const [newBranchRooms, setNewBranchRooms] = useState(6)
+  const [newBranchHasMachine, setNewBranchHasMachine] = useState(true)
+  const [newBranchNetDeduction, setNewBranchNetDeduction] = useState(0)
+  const [newBranchMachineNoDeduction, setNewBranchMachineNoDeduction] = useState(false)
+  const [newBranchCleanType, setNewBranchCleanType] = useState<'fixed' | 'select'>('select')
+  const [newBranchCleanValue, setNewBranchCleanValue] = useState(20)
+  const [newBranchCleanOptions, setNewBranchCleanOptions] = useState('10,20')
   const [showEmpModal, setShowEmpModal] = useState(false)
   const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
   const [showEditEmpModal, setShowEditEmpModal] = useState(false)
@@ -613,7 +620,25 @@ export default function JetCleanApp() {
   const loadBranches = async () => {
     try {
       const res = await fetch('/api/branches')
-      if (res.ok) setBranches(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setBranches(data)
+        // Sync branch configs to global constants
+        data.forEach((b: any) => {
+          if (b.config) {
+            const cfg = b.config as any
+            const rooms: string[] = []
+            for (let i = 1; i <= (cfg.rooms || 6); i++) rooms.push(`غرفة ${i}`)
+            if (cfg.hasMachine !== false) rooms.push('مكينة الغسيل')
+            BRANCH_ROOMS[b.name] = rooms
+            BRANCH_NET_DEDUCTION[b.name] = cfg.netDeduction ?? 0
+            if (cfg.machineNoDeduction && !MACHINE_NO_DEDUCTION_BRANCHES.includes(b.name)) {
+              MACHINE_NO_DEDUCTION_BRANCHES.push(b.name)
+            }
+            if (cfg.cleanliness) BRANCH_CLEANLINESS[b.name] = cfg.cleanliness
+          }
+        })
+      }
     } catch (e) { console.error(e) }
   }
 
@@ -1117,17 +1142,51 @@ export default function JetCleanApp() {
   }
 
   // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
+  const syncBranchConfigs = () => {
+    branches.forEach(b => {
+      if ((b as any).config) {
+        const cfg = (b as any).config as any
+        const rooms: string[] = []
+        for (let i = 1; i <= (cfg.rooms || 6); i++) rooms.push(`غرفة ${i}`)
+        if (cfg.hasMachine !== false) rooms.push('مكينة الغسيل')
+        BRANCH_ROOMS[b.name] = rooms
+        BRANCH_NET_DEDUCTION[b.name] = cfg.netDeduction ?? 0
+        if (cfg.machineNoDeduction && !MACHINE_NO_DEDUCTION_BRANCHES.includes(b.name)) {
+          MACHINE_NO_DEDUCTION_BRANCHES.push(b.name)
+        }
+        if (cfg.cleanliness) BRANCH_CLEANLINESS[b.name] = cfg.cleanliness
+      }
+    })
+  }
+
   const handleCreateBranch = async () => {
     if (!newBranchName.trim()) return alert('الرجاء كتابة اسم الفرع')
+    const config = {
+      rooms: newBranchRooms,
+      hasMachine: newBranchHasMachine,
+      netDeduction: newBranchNetDeduction,
+      machineNoDeduction: newBranchMachineNoDeduction,
+      cleanliness: newBranchCleanType === 'fixed'
+        ? { type: 'fixed', value: newBranchCleanValue }
+        : { type: 'select', options: newBranchCleanOptions.split(',').map(Number).filter(n => !isNaN(n)) }
+    }
     try {
       const res = await fetch('/api/branches', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newBranchName.trim() })
+        body: JSON.stringify({ name: newBranchName.trim(), config })
       })
       if (res.ok) {
         setShowBranchModal(false)
         setNewBranchName('')
+        setNewBranchRooms(6)
+        setNewBranchHasMachine(true)
+        setNewBranchNetDeduction(0)
+        setNewBranchMachineNoDeduction(false)
+        setNewBranchCleanType('select')
+        setNewBranchCleanValue(20)
+        setNewBranchCleanOptions('10,20')
         await loadBranches()
+        syncBranchConfigs()
       } else {
         const data = await res.json()
         alert(data.error || 'حدث خطأ')
@@ -2516,21 +2575,91 @@ export default function JetCleanApp() {
       {/* Branch Modal */}
       {showBranchModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
             <h3 className="text-lg font-bold text-white text-center">➕ إضافة فرع جديد</h3>
             <div>
               <label className="text-xs text-slate-400 mb-1 block">اسم الفرع</label>
               <input
                 type="text" value={newBranchName}
                 onChange={e => setNewBranchName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleCreateBranch()}
                 className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
                 placeholder="اسم الفرع الجديد"
               />
             </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">عدد الغرف ({newBranchRooms})</label>
+              <input type="range" min="1" max="6" value={newBranchRooms}
+                onChange={e => setNewBranchRooms(Number(e.target.value))}
+                className="w-full accent-cyan-500"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500"><span>1</span><span>6</span></div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">مكينة غسيل</label>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <button type="button"
+                  onClick={() => setNewBranchHasMachine(!newBranchHasMachine)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${newBranchHasMachine ? 'bg-cyan-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 ${newBranchHasMachine ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                </button>
+                <span className={`text-sm ${newBranchHasMachine ? 'text-cyan-400' : 'text-slate-500'}`}>
+                  {newBranchHasMachine ? '✅ نعم' : '❌ لا'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">خصم الصافي (لكل سيارة)</label>
+              <input type="number" min="0" max="20" value={newBranchNetDeduction}
+                onChange={e => setNewBranchNetDeduction(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">مكينة بدون خصم (الإجمالي ÷ 2 بدون خصم إضافي)</label>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <button type="button"
+                  onClick={() => setNewBranchMachineNoDeduction(!newBranchMachineNoDeduction)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${newBranchMachineNoDeduction ? 'bg-cyan-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 ${newBranchMachineNoDeduction ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                </button>
+                <span className={`text-sm ${newBranchMachineNoDeduction ? 'text-cyan-400' : 'text-slate-500'}`}>
+                  {newBranchMachineNoDeduction ? '✅ نعم' : '❌ لا'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">نوع النظافة</label>
+              <select value={newBranchCleanType}
+                onChange={e => setNewBranchCleanType(e.target.value as 'fixed' | 'select')}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+              >
+                <option value="select">اختيار من قيم</option>
+                <option value="fixed">قيمة ثابتة</option>
+              </select>
+            </div>
+            {newBranchCleanType === 'fixed' ? (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">قيمة النظافة (د.ل)</label>
+                <input type="number" min="0" value={newBranchCleanValue}
+                  onChange={e => setNewBranchCleanValue(Number(e.target.value))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">خيارات النظافة (مفصولة بفاصلة)</label>
+                <input type="text" value={newBranchCleanOptions}
+                  onChange={e => setNewBranchCleanOptions(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  placeholder="10,20,30"
+                />
+              </div>
+            )}
             <div className="flex gap-3">
               <button onClick={handleCreateBranch} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
-              <button onClick={() => { setShowBranchModal(false); setNewBranchName('') }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+              <button onClick={() => { setShowBranchModal(false); setNewBranchName(''); setNewBranchRooms(6); setNewBranchHasMachine(true); setNewBranchNetDeduction(0); setNewBranchMachineNoDeduction(false); setNewBranchCleanType('select'); setNewBranchCleanValue(20); setNewBranchCleanOptions('10,20') }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>

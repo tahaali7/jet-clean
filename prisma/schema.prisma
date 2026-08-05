@@ -19,6 +19,7 @@ datasource db {
 model Branch {
   id            String         @id @default(cuid())
   name          String         @unique
+  config        Json?
   employees     Employee[]
   carEntries    CarEntry[]
   workerExpenses WorkerExpense[]
