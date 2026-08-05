@@ -671,16 +671,13 @@ function buildEmployeeReportHTML(
     '<p style="font-size:16px;font-weight:800;color:#15803d;margin:2px 0 0;">' + grandTotal + ' د.ل</p>' +
     '</div></div>'
 
-  const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;">صفحة ' +
-    '__PAGE__ / ' + (branchDatas.length + 1) + '</div>'
+  const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#94a3b8;">صفحة __PAGE__</div>'
   const baseStyle = 'width:800px;background:#fff;color:#1e293b;padding:24px;font-family:Cairo,sans-serif;min-height:1120px;'
 
-  // Page 1: header + summary + first branches
-  let pageContent = headerHtml + summaryHtml
-  let pageNum = 1
-
-  branchDatas.forEach((bd, idx) => {
-    const branchBlock = '<div style="margin-bottom:16px;">' +
+  // All branches on one page
+  let allBranchesHtml = ''
+  branchDatas.forEach(bd => {
+    allBranchesHtml += '<div style="margin-bottom:16px;">' +
       '<h3 style="background:#0e7490;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
       'فرع ' + bd.name + ' — سحوبات: ' + bd.withdrawals + ' د.ل | عجوزات: ' + bd.shortages + ' د.ل | الإجمالي: ' + (bd.withdrawals + bd.shortages) + ' د.ل' +
       '</h3>' +
@@ -693,24 +690,12 @@ function buildEmployeeReportHTML(
       '</tr></thead>' +
       '<tbody>' + bd.empsHtml + '</tbody>' +
       '</table></div>'
-
-    // Estimate: header ~140px, summary ~70px, each branch ~200-400px
-    // Keep first page compact, fill remaining branches on subsequent pages
-    if (idx === 0) {
-      pageContent += branchBlock
-      pageContent += footerHtml.replace('__PAGE__', String(pageNum))
-      pages.push('<div style="' + baseStyle + '">' + pageContent + '</div>')
-      pageContent = ''
-    } else {
-      // Start a new page for each branch (clean separation, no cut tables)
-      pageNum++
-      let newPage = '<div style="' + baseStyle + '">' +
-        headerHtml + branchBlock +
-        footerHtml.replace('__PAGE__', String(pageNum)) +
-        '</div>'
-      pages.push(newPage)
-    }
   })
+
+  pages.push('<div style="' + baseStyle + '">' +
+    headerHtml + summaryHtml + allBranchesHtml +
+    footerHtml.replace('__PAGE__', '1') +
+    '</div>')
 
   return pages
 }
