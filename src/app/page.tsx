@@ -1961,11 +1961,6 @@ export default function JetCleanApp() {
                 ⚙️ إدارة النظام
               </button>
             )}
-            {isAdminMode && (
-              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-indigo-500/30">
-                📄 تصدير تقرير PDF
-              </button>
-            )}
             <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
               🚪 تسجيل خروج
             </button>
