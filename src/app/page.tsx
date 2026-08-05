@@ -337,8 +337,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
       '</div>'
   }
 
-  // Split rooms across pages: max 6 rooms per page (3 rows × 2 cols)
-  const MAX_ROOMS_PER_PAGE = 6
+  // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols)
+  const MAX_ROOMS_PER_PAGE = 4
   const pages: string[] = []
 
   // Room pages - if last room page is not full, merge it with treasury page
