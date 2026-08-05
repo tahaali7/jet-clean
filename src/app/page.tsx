@@ -2287,10 +2287,12 @@ export default function JetCleanApp() {
               let branchCarTotal = 0
               let branchCarCount = 0
 
+              const currentMonth = adminDate.substring(0, 7) // 'YYYY-MM'
               const empCards = branchEmps.map(emp => {
-                const empRecords = records.filter(r => r.empId === emp.id && r.date === adminDate)
-                const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
-                const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
+                const empRecordsDay = records.filter(r => r.empId === emp.id && r.date === adminDate)
+                const empRecordsMonth = records.filter(r => r.empId === emp.id && r.date.startsWith(currentMonth))
+                const withdrawals = empRecordsMonth.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
+                const shortages = empRecordsMonth.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
                 branchWithdrawals += withdrawals
                 branchShortages += shortages
 
@@ -2340,12 +2342,12 @@ export default function JetCleanApp() {
                       </div>
                     </div>
 
-                    {/* سجل الحركات */}
+                    {/* سجل حركات اليوم */}
                     <div className="space-y-1 mt-2 max-h-36 overflow-y-auto custom-scrollbar">
-                      {empRecords.length === 0 && (
+                      {empRecordsDay.length === 0 && (
                         <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
                       )}
-                      {empRecords.map(r => (
+                      {empRecordsDay.map(r => (
                         <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1.5 rounded-lg">
                           <span>{r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
                           <div className="flex items-center gap-2">
