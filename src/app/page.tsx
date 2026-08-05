@@ -775,6 +775,14 @@ export default function JetCleanApp() {
   const [exportTo, setExportTo] = useState('')
   const [exporting, setExporting] = useState(false)
   const [exportingEmp, setExportingEmp] = useState(false)
+  const [showEmpReportModal, setShowEmpReportModal] = useState(false)
+  const [empReportRange, setEmpReportRange] = useState<'month' | 'day' | 'range'>('month')
+  const [empReportMonth, setEmpReportMonth] = useState(() => {
+    const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0')
+  })
+  const [empReportDay, setEmpReportDay] = useState(() => new Date().toISOString().split('T')[0])
+  const [empReportFrom, setEmpReportFrom] = useState('')
+  const [empReportTo, setEmpReportTo] = useState('')
 
   // Worker expenses state
   const [cleanlinessAmount, setCleanlinessAmount] = useState(0)
@@ -1778,25 +1786,46 @@ export default function JetCleanApp() {
   // ==================== QUICK EMPLOYEE MONTHLY REPORT (from dropdown) ====================
   const handleQuickEmployeeReport = async () => {
     setExporting(true)
+    setShowEmpReportModal(false)
     try {
-      const now = new Date()
-      const year = now.getFullYear()
-      const month = now.getMonth() + 1
-      const daysInMonth = new Date(year, month, 0).getDate()
-      const dates: string[] = []
-      for (let d = 1; d <= daysInMonth; d++) {
-        dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+      let dates: string[] = []
+      let periodLabel = ''
+
+      if (empReportRange === 'month') {
+        if (!empReportMonth) { setExporting(false); return alert('الرجاء اختيار الشهر') }
+        const [yStr, mStr] = empReportMonth.split('-')
+        const year = parseInt(yStr)
+        const month = parseInt(mStr)
+        const daysInMonth = new Date(year, month, 0).getDate()
+        for (let d = 1; d <= daysInMonth; d++) {
+          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+        }
+        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+        periodLabel = arabicMonths[month - 1] + ' ' + year
+      } else if (empReportRange === 'day') {
+        if (!empReportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+        dates.push(empReportDay)
+        periodLabel = formatDateShort(empReportDay)
+      } else {
+        if (!empReportFrom || !empReportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+        const start = new Date(empReportFrom)
+        const end = new Date(empReportTo)
+        const curr = new Date(start)
+        while (curr <= end) {
+          dates.push(curr.toISOString().split('T')[0])
+          curr.setDate(curr.getDate() + 1)
+        }
+        periodLabel = formatDateShort(empReportFrom) + ' إلى ' + formatDateShort(empReportTo)
       }
 
-      const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
-      const periodLabel = arabicMonths[month - 1] + ' ' + year
+      if (dates.length === 0) { setExporting(false); return }
 
       const allRecordsRes = await fetch('/api/records')
       const allRecordsData: FinancialRecord[] = allRecordsRes.ok ? await allRecordsRes.json() : []
       const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
 
       if (filteredRecords.length === 0) {
-        alert('لا توجد سحوبات أو عجوزات في الشهر الحالي')
+        alert('لا توجد سحوبات أو عجوزات في الفترة المحددة')
         setExporting(false)
         return
       }
@@ -2510,8 +2539,8 @@ export default function JetCleanApp() {
                   </button>
                   {showAdminDropdown && (
                     <div className="absolute top-full mt-2 left-0 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-2 min-w-[180px]" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => { setShowAdminDropdown(false); handleQuickEmployeeReport() }} disabled={exporting} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition disabled:opacity-50">
-                        <span>{exporting ? '⏳' : '📄'}</span> {exporting ? 'جاري التصدير...' : 'تقرير الموظفين'}
+                      <button onClick={() => { setShowAdminDropdown(false); setShowEmpReportModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>📄</span> تقرير الموظفين
                       </button>
                       <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>➕</span> إضافة فرع
@@ -3176,6 +3205,75 @@ export default function JetCleanApp() {
                 {isDayClosed(adminDate) ? 'إعادة فتح الكل' : 'إغلاق جميع الفروع'}
               </button>
               <button onClick={() => setShowClosingModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm">إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Report Modal */}
+      {showEmpReportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white text-center">📄 تقرير مصاريف الموظفين</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">نوع الفترة</label>
+                <select
+                  value={empReportRange}
+                  onChange={e => setEmpReportRange(e.target.value as 'month' | 'day' | 'range')}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="month">شهر كامل</option>
+                  <option value="day">يوم واحد</option>
+                  <option value="range">فترة مخصصة</option>
+                </select>
+              </div>
+
+              {empReportRange === 'month' && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">اختر الشهر</label>
+                  <input type="month" value={empReportMonth}
+                    onChange={e => setEmpReportMonth(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
+
+              {empReportRange === 'day' && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">اختر اليوم</label>
+                  <input type="date" value={empReportDay}
+                    onChange={e => setEmpReportDay(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
+
+              {empReportRange === 'range' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">من تاريخ</label>
+                    <input type="date" value={empReportFrom}
+                      onChange={e => setEmpReportFrom(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">إلى تاريخ</label>
+                    <input type="date" value={empReportTo}
+                      onChange={e => setEmpReportTo(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleQuickEmployeeReport} disabled={exporting} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                {exporting ? '⏳ جاري التصدير...' : '📄 تصدير'}
+              </button>
+              <button onClick={() => setShowEmpReportModal(false)} disabled={exporting} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>
