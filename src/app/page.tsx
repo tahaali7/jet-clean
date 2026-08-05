@@ -414,6 +414,10 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
       tExpense = pdfWorkerExpInTreasury
       isAuto = true
     }
+    if (item.key === 'تم_التحويل') {
+      tExpense = Math.max(0, tRunningBalance)
+      isAuto = true
+    }
 
     tRunningBalance = tRunningBalance + tIncome - tExpense
     const balColor = tRunningBalance >= 0 ? '#1b7a3d' : '#dc2626'
@@ -2115,6 +2119,7 @@ export default function JetCleanApp() {
               let isAuto = false
               if (item.key === 'بدل_البطاقة') { expense = bankCardReplaceAuto; isAuto = true }
               if (item.key === 'مصاريف_العمال') { expense = workerExpInTreasury; isAuto = true }
+              if (item.key === 'تم_التحويل') { expense = Math.max(0, runningBalance); isAuto = true }
               runningBalance = runningBalance + income - expense
               const balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171'
               const rowBg = idx % 2 === 0 ? 'rgba(15,23,42,0.4)' : 'rgba(15,23,42,0.2)'
