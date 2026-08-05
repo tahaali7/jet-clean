@@ -168,12 +168,11 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   const cellPad = 'padding:10px 8px;vertical-align:middle;height:22px;'
   const cellFs = 'font-size:11px;'
 
-  // Build rows - only non-empty
+  // Build rows - show ALL prices (even 0) so all room tables are same height
   let rowsHtml = ''
   let rowNum = 0
-  prices.forEach(price => {
+  prices.forEach((price, idx) => {
     const count = mergedCounts[price] || 0
-    if (count === 0) return
     rowNum++
     const isExtra = EXTRA_PRICES.includes(price)
     const displayPrice = isExtra ? (price - 5) : price
