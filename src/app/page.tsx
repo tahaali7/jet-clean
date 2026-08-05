@@ -648,8 +648,6 @@ export default function JetCleanApp() {
     try {
       const searchParams = new URLSearchParams()
       if (params?.empId) searchParams.set('empId', params.empId)
-      if (params?.date) searchParams.set('date', params.date)
-      if (params?.branchId) searchParams.set('branchId', params.branchId)
       if (cacheBuster) searchParams.set('_t', String(Date.now()))
       const res = await fetch(`/api/records?${searchParams}`, { cache: 'no-store' })
       if (res.ok) setRecords(await res.json())
