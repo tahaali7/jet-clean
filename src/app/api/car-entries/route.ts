@@ -28,10 +28,9 @@ export async function GET(req: NextRequest) {
       const entries = await db.carEntry.findMany({
         where: { branchId, date: { gte: startDate, lte: endDate } },
         select: { date: true },
-        distinct: ['date']
       })
-      const dates = entries.map(e => e.date)
-      return NextResponse.json(dates)
+      const dateSet = new Set(entries.map(e => e.date))
+      return NextResponse.json(Array.from(dateSet))
     }
 
     const where: Record<string, unknown> = {}
