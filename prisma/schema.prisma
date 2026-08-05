@@ -37,6 +37,10 @@ model Employee {
   password  String  @default("")
   role      String  @default("employee")
   hasLogin  Boolean @default(false)
+  salary    Int     @default(0)
+  salaryAdditions Int @default(0)
+  startDate String  @default("")
+  endDate   String  @default("")
   records   Record[]
 }
 

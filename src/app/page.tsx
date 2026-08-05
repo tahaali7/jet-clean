@@ -23,6 +23,12 @@ interface Employee {
   branchId: string
   shift: string
   password: string
+  role: string
+  hasLogin: boolean
+  salary: number
+  salaryAdditions: number
+  startDate: string
+  endDate: string
   branch?: Branch
 }
 
@@ -756,7 +762,7 @@ export default function JetCleanApp() {
   const [newBranchCleanValue, setNewBranchCleanValue] = useState(20)
   const [newBranchCleanOptions, setNewBranchCleanOptions] = useState('10,20')
   const [showEmpModal, setShowEmpModal] = useState(false)
-  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
+  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, salary: 0, salaryAdditions: 0, startDate: '', endDate: '' })
   const [showEditEmpModal, setShowEditEmpModal] = useState(false)
   const [editEmp, setEditEmp] = useState<any>(null)
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
@@ -1401,7 +1407,7 @@ export default function JetCleanApp() {
       })
       if (res.ok) {
         setShowEmpModal(false)
-        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
+        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, salary: 0, salaryAdditions: 0, startDate: '', endDate: '' })
         await loadEmployees()
         await loadBranches()
       } else { alert('حدث خطأ') }
@@ -1420,6 +1426,11 @@ export default function JetCleanApp() {
         shift: editEmp.shift,
         role: editEmp.role,
         hasLogin: editEmp.hasLogin,
+        branchId: editEmp.branchId,
+        salary: Number(editEmp.salary) || 0,
+        salaryAdditions: Number(editEmp.salaryAdditions) || 0,
+        startDate: editEmp.startDate || '',
+        endDate: editEmp.endDate || '',
       }
       if (editEmp.hasLogin && editEmp.password?.trim()) {
         body.password = editEmp.password.trim()
@@ -2959,6 +2970,40 @@ export default function JetCleanApp() {
                   <option value="الفترة كاملة">الفترة كاملة</option>
                 </select>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">المرتب (د.ل)</label>
+                  <input type="number" value={newEmp.salary || ''}
+                    onChange={e => setNewEmp(prev => ({ ...prev, salary: Number(e.target.value) || 0 }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">إضافات المرتب</label>
+                  <input type="number" value={newEmp.salaryAdditions || ''}
+                    onChange={e => setNewEmp(prev => ({ ...prev, salaryAdditions: Number(e.target.value) || 0 }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة</label>
+                  <input type="date" value={newEmp.startDate}
+                    onChange={e => setNewEmp(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ التوقف</label>
+                  <input type="date" value={newEmp.endDate}
+                    onChange={e => setNewEmp(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
               </>}
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
@@ -3021,6 +3066,16 @@ export default function JetCleanApp() {
                 />
               </div>
               <div>
+                <label className="text-xs text-slate-400 mb-1 block">الفرع</label>
+                <select value={editEmp.branchId || ''}
+                  onChange={e => setEditEmp(prev => ({ ...prev, branchId: e.target.value }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="">-- اختر فرع --</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="text-xs text-slate-400 mb-1 block">الوردية</label>
                 <select value={editEmp.shift}
                   onChange={e => setEditEmp(prev => ({ ...prev, shift: e.target.value }))}
@@ -3030,6 +3085,40 @@ export default function JetCleanApp() {
                   <option value="الفترة المسائية">الفترة المسائية</option>
                   <option value="الفترة كاملة">الفترة كاملة</option>
                 </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">المرتب (د.ل)</label>
+                  <input type="number" value={editEmp.salary || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, salary: Number(e.target.value) || 0 }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">إضافات المرتب</label>
+                  <input type="number" value={editEmp.salaryAdditions || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, salaryAdditions: Number(e.target.value) || 0 }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة</label>
+                  <input type="date" value={editEmp.startDate || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ التوقف</label>
+                  <input type="date" value={editEmp.endDate || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
