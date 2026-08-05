@@ -2342,14 +2342,14 @@ export default function JetCleanApp() {
                       </div>
                     </div>
 
-                    {/* سجل حركات اليوم */}
-                    <div className="space-y-1 mt-2 max-h-36 overflow-y-auto custom-scrollbar">
-                      {empRecordsDay.length === 0 && (
+                    {/* سجل حركات الشهر */}
+                    <div className="space-y-1 mt-2 max-h-52 overflow-y-auto custom-scrollbar">
+                      {empRecordsMonth.length === 0 && (
                         <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
                       )}
-                      {empRecordsDay.map(r => (
+                      {empRecordsMonth.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(r => (
                         <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1.5 rounded-lg">
-                          <span>{r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
+                          <span>{r.date?.substring(5)} {r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
                             {!dayClosed && (
