@@ -1404,11 +1404,12 @@ export default function JetCleanApp() {
     
     // Write clean HTML with only our inline styles and Cairo font
     iframeDoc.open()
-    iframeDoc.write('<!DOCTYPE html><html><head><style>* { margin: 0; padding: 0; box-sizing: border-box; } @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"); body { font-family: Cairo, sans-serif; }</style></head><body>' + html + '</body></html>')
+    iframeDoc.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: Cairo, sans-serif; direction: rtl; } table { font-family: Cairo, sans-serif; } td, th { direction: rtl; unicode-bidi: isolate; }</style></head><body>' + html + '</body></html>')
     iframeDoc.close()
     
     // Wait for fonts to load
-    await new Promise(r => setTimeout(r, 800))
+    try { await (iframeDoc as any).fonts?.ready } catch(e) {}
+    await new Promise(r => setTimeout(r, 1500))
     
     const iframeBody = iframeDoc.body
     const canvas = await html2canvas(iframeBody, { 
