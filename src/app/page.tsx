@@ -134,7 +134,8 @@ function formatDateShort(dateStr: string) {
 }
 
 // ==================== PDF REPORT BUILDERS ====================
-function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, compact?: boolean) {
+// Auto-adaptive sizing: level 0=normal(<=4 rooms), 1=compact(5-6), 2=ultra-compact(7+)
+function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, sizeLevel?: number) {
   const prices = getPricesForRoom(room)
   let roomTotalAmount = 0
   let roomTotalCars = 0
@@ -165,11 +166,19 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const _pad = compact ? '5px 8px' : '10px 10px'
+  // Auto-adaptive: level 0=normal, 1=compact, 2=ultra-compact
+  const sl = sizeLevel || 0
+  const padMap = ['10px 10px', '5px 7px', '3px 5px']
+  const fsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const titlePadMap = ['padding:10px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
+  const titleFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const countFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const _pad = padMap[sl]
   const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
-  const cellFs = compact ? 'font-size:9px;' : 'font-size:10px;'
-  const titlePad = compact ? 'padding:6px 8px;' : 'padding:10px 10px;'
-  const titleFs = compact ? 'font-size:10px;' : 'font-size:11px;'
+  const cellFs = fsMap[sl]
+  const titlePad = titlePadMap[sl]
+  const titleFs = titleFsMap[sl]
+  const countFs = countFsMap[sl]
 
   let rowsHtml = ''
   let rowNum = 0
@@ -182,7 +191,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;">' + count + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + rowAmount + ' د.ل</td>' +
     '</tr>'
   })
@@ -194,7 +203,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'color:#7c3aed;">✦</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'color:#7c3aed;">' + item.price + ' د.ل</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + item.count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;">' + item.count + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">' + (item.price * item.count) + ' د.ل</td>' +
     '</tr>'
   })
@@ -202,9 +211,9 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   let extraRowHtml = ''
   if (roomExtraCars > 0) {
     extraRowHtml = '<tr style="background:#fffde7;">' +
-      '<td colspan="2" style="' + cellPad + 'border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#e65100;">⭐ إكسترا</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;color:#e65100;">' + roomExtraCars + '</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;color:#e65100;">' + roomExtraAmount + ' د.ل</td>' +
+      '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">⭐ إكسترا</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraCars + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraAmount + ' د.ل</td>' +
     '</tr>'
   }
 
@@ -231,22 +240,30 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 }
 
 
-function buildEmptyRoomTableHTML(room: string) {
+function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   const prices = getPricesForRoom(room)
-  const cellPad = 'padding:10px 10px;vertical-align:middle;'
-  const cellFs = 'font-size:10px;'
+  const sl = sizeLevel || 0
+  const padMap = ['10px 10px', '5px 7px', '3px 5px']
+  const fsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const titlePadMap = ['padding:10px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
+  const titleFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const _pad = padMap[sl]
+  const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
+  const cellFs = fsMap[sl]
+  const titlePad = titlePadMap[sl]
+  const titleFs = titleFsMap[sl]
   let rowsHtml = ''
   prices.forEach(() => {
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;"></td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
     '</tr>'
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
     '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -255,12 +272,12 @@ function buildEmptyRoomTableHTML(room: string) {
     '</tr>' +
     rowsHtml +
     '<tr style="background:#e0e0e0;">' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;"></td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;"></td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;"></td>' +
     '</tr>' +
     '</table>'
 }
@@ -303,41 +320,45 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const orderedRooms = [...regularRooms]
   if (hasMachine) orderedRooms.push('مكينة الغسيل')
 
-  // Build room data (normal - for first page)
-  const roomCells: string[] = []
-  orderedRooms.forEach(room => {
-    const roomEntries = roomMap[room] || []
-    if (roomEntries.length > 0) {
-      const roomTotal = roomEntries.reduce((s, e) => s + e.totalAmount, 0)
-      const roomCars = roomEntries.reduce((s, e) => s + e.totalCars, 0)
-      grandTotalAmount += roomTotal
-      grandTotalCars += roomCars
-      grandTotalNet += getNetAmount(roomTotal, branchName, room)
-      roomCells.push(buildRoomTableHTML(room, roomEntries, branchName))
-    } else {
-      roomCells.push(buildEmptyRoomTableHTML(room))
-    }
-  })
+  // Auto-adaptive: calculate size level based on total rooms
+  // 0 = normal (<=4 rooms), 1 = compact (5-6), 2 = ultra-compact (7+)
+  const calcSizeLevel = (roomsOnPage: number, extraItems?: number) => {
+    const total = roomsOnPage + (extraItems || 0)
+    if (total <= 4) return 0
+    if (total <= 6) return 1
+    return 2
+  }
 
-  // Build compact room cells (for overflow/second page)
-  const buildCompactRoomCells = () => {
+  // Build room data with adaptive sizing
+  const buildRoomCells = (sizeLevel: number) => {
     const cells: string[] = []
     orderedRooms.forEach(room => {
       const roomEntries = roomMap[room] || []
       if (roomEntries.length > 0) {
-        cells.push(buildRoomTableHTML(room, roomEntries, branchName, true))
+        const roomTotal = roomEntries.reduce((s, e) => s + e.totalAmount, 0)
+        const roomCars = roomEntries.reduce((s, e) => s + e.totalCars, 0)
+        grandTotalAmount += roomTotal
+        grandTotalCars += roomCars
+        grandTotalNet += getNetAmount(roomTotal, branchName, room)
+        cells.push(buildRoomTableHTML(room, roomEntries, branchName, sizeLevel))
       } else {
-        cells.push(buildEmptyRoomTableHTML(room))
+        cells.push(buildEmptyRoomTableHTML(room, sizeLevel))
       }
     })
     return cells
   }
 
+  // Build normal room cells (sizeLevel=0) for main pages
+  const roomCells = buildRoomCells(0)
+
   // Helper: build rooms grid HTML from array of room cells
-  const buildRoomsGrid = (cells: string[], compact?: boolean) => {
+  const buildRoomsGrid = (cells: string[], sizeLevel?: number) => {
     let html = ''
-    const gap = compact ? '5px' : '8px'
-    const mb = compact ? '4px' : '6px'
+    const sl = sizeLevel || 0
+    const gapMap = ['8px', '5px', '3px']
+    const mbMap = ['6px', '4px', '2px']
+    const gap = gapMap[sl]
+    const mb = mbMap[sl]
     for (let i = 0; i < cells.length; i += 2) {
       html += '<div style="display:flex;gap:' + gap + ';margin-bottom:' + mb + ';">' +
         '<div style="flex:1;min-width:0;">' + cells[i] + '</div>' +
@@ -347,11 +368,16 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     return html
   }
 
-  // Helper: build page header
-  const buildHeader = (title: string) => {
-    return '<div style="text-align:center;margin-bottom:14px;border-bottom:2px solid #000;padding-bottom:10px;">' +
-      '<h1 style="font-size:22px;font-weight:bold;margin:0 0 10px 0;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
-      '<p style="font-size:14px;margin:0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+  // Helper: build page header (adaptive)
+  const buildHeader = (sizeLevel?: number) => {
+    const sl = sizeLevel || 0
+    const fsMap = ['22px', '18px', '15px']
+    const dateFsMap = ['14px', '12px', '10px']
+    const mbMap = ['14px', '10px', '6px']
+    const pbMap = ['10px', '6px', '4px']
+    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';border-bottom:2px solid #000;padding-bottom:' + pbMap[sl] + ';">' +
+      '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 6px 0;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
+      '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
@@ -360,35 +386,54 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const pages: string[] = []
 
   // Room pages - if last room page is not full, merge it with treasury page
-  let overflowRooms: string[] = []
+  let overflowRoomCount = 0
   const totalFullPages = Math.floor(roomCells.length / MAX_ROOMS_PER_PAGE)
   const hasRemainder = roomCells.length % MAX_ROOMS_PER_PAGE > 0
 
-  // Full room pages
+  // Full room pages (always sizeLevel 0 = normal)
   for (let p = 0; p < totalFullPages; p++) {
     const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
     pages.push(
       '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
-      buildHeader('تقرير تسجيل السيارات') +
+      buildHeader(0) +
       '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
-      buildRoomsGrid(pageRooms) +
+      buildRoomsGrid(pageRooms, 0) +
       '</div>' +
       '</div>'
     )
   }
 
-  // Remaining rooms go to treasury page (compact)
+  // Calculate overflow rooms and auto size for treasury page
   if (hasRemainder) {
-    const compactCells = buildCompactRoomCells()
-    overflowRooms = compactCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE)
+    overflowRoomCount = roomCells.length % MAX_ROOMS_PER_PAGE
   }
 
-  // Treasury page (always last) - includes overflow rooms if any
-  const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses)
-  const overflowHtml = overflowRooms.length > 0 ? buildRoomsGrid(overflowRooms, true) : ''
+  // Treasury page - auto-adaptive sizing based on overflow rooms + treasury
+  // Overflow rooms need compact cells rebuilt with the right sizeLevel
+  const treasuryPageSizeLevel = calcSizeLevel(overflowRoomCount, 2) // +2 for worker expenses + treasury tables
+  const overflowCells = overflowRoomCount > 0 ? (() => {
+    const cells: string[] = []
+    // Rebuild only overflow rooms with adaptive size
+    const startIdx = totalFullPages * MAX_ROOMS_PER_PAGE
+    for (let i = startIdx; i < orderedRooms.length; i++) {
+      const room = orderedRooms[i]
+      const roomEntries = roomMap[room] || []
+      if (roomEntries.length > 0) {
+        cells.push(buildRoomTableHTML(room, roomEntries, branchName, treasuryPageSizeLevel))
+      } else {
+        cells.push(buildEmptyRoomTableHTML(room, treasuryPageSizeLevel))
+      }
+    }
+    return cells
+  })() : []
+
+  const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, treasuryPageSizeLevel)
+  const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, treasuryPageSizeLevel) : ''
+
+  const pagePadMap = ['8px 10px', '6px 8px', '4px 6px']
   pages.push(
-    '<div style="width:780px;background:#fff;color:#000;padding:8px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
-    buildHeader('مصاريف العمال والخزينة') +
+    '<div style="width:780px;background:#fff;color:#000;padding:' + pagePadMap[treasuryPageSizeLevel] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+    buildHeader(treasuryPageSizeLevel) +
     overflowHtml +
     treasuryContent +
     '</div>'
@@ -398,10 +443,26 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 }
 
 // Helper: build worker expenses + treasury section (used on last page of car report)
+// sizeLevel: 0=normal, 1=compact, 2=ultra-compact
 function buildWorkerExpensesAndTreasury(
   branchName: string, selectedDate: string, orderedRooms: string[], entries: CarEntry[],
-  grandTotalNet: number, savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>
+  grandTotalNet: number, savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>,
+  sizeLevel?: number
 ): string {
+  const sl = sizeLevel || 0
+  // Adaptive sizing maps
+  const wPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
+  const wLabelFsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const wValueFsMap = ['font-size:12px;', 'font-size:10px;', 'font-size:9px;']
+  const wTotalFsMap = ['font-size:14px;', 'font-size:12px;', 'font-size:10px;']
+  const wTitlePadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
+  const wTitleFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const tPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
+  const tLabelFsMap = ['font-size:9px;', 'font-size:8px;', 'font-size:7px;']
+  const tValueFsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const sepMtMap = ['margin-top:6px;padding-top:6px;', 'margin-top:4px;padding-top:4px;', 'margin-top:2px;padding-top:2px;']
+  const sepGapMap = ['gap:8px;', 'gap:5px;', 'gap:3px;']
+
   const cleannessConfig = BRANCH_CLEANLINESS[branchName]
   const wKey = branchName + '_' + selectedDate
   const savedWE = savedWorkerExpenses?.[wKey] || {}
@@ -414,7 +475,10 @@ function buildWorkerExpensesAndTreasury(
     }
   }
 
-  const wCellPad = 'padding:7px 10px;border:1px solid #555;vertical-align:middle;'
+  const wPad = wPadMap[sl]
+  const wCellPad = wPad + 'border:1px solid #555;vertical-align:middle;'
+  const wLabelFs = wLabelFsMap[sl]
+  const wValueFs = wValueFsMap[sl]
 
   let workerRowsHtml = ''
   orderedRooms.forEach(room => {
@@ -424,25 +488,28 @@ function buildWorkerExpensesAndTreasury(
     if (roomNet === 0) return
     const icon = ROOM_ICONS[room] || '🏠'
     workerRowsHtml += '<tr>' +
-      '<td style="' + wCellPad + 'font-size:10px;text-align:center;">' + icon + ' ' + room + '</td>' +
-      '<td style="' + wCellPad + 'text-align:center;font-size:12px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
+      '<td style="' + wCellPad + wLabelFs + 'text-align:center;">' + icon + ' ' + room + '</td>' +
+      '<td style="' + wCellPad + 'text-align:center;' + wValueFs + 'font-weight:bold;">' + roomNet + ' د.ل</td>' +
     '</tr>'
   })
 
   workerRowsHtml += '<tr style="background:#fffde7;">' +
-    '<td style="' + wCellPad + 'font-size:10px;font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
-    '<td style="' + wCellPad + 'text-align:center;font-size:12px;font-weight:bold;color:#e65100;">' + savedCleanliness + ' د.ل</td>' +
+    '<td style="' + wCellPad + wLabelFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
+    '<td style="' + wCellPad + 'text-align:center;' + wValueFs + 'font-weight:bold;color:#e65100;">' + savedCleanliness + ' د.ل</td>' +
   '</tr>'
 
   const finalTotalAfterExpenses = grandTotalNet + savedCleanliness
+  const wTotalFs = wTotalFsMap[sl]
   workerRowsHtml += '<tr style="background:#e8f5e9;">' +
-    '<td style="' + wCellPad + 'border:2px solid #333;font-size:11px;font-weight:bold;text-align:center;">الإجمالي</td>' +
-    '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#2e7d32;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+    '<td style="' + wCellPad + 'border:2px solid #333;' + wLabelFs + 'font-weight:bold;text-align:center;">الإجمالي</td>' +
+    '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;' + wTotalFs + 'font-weight:bold;color:#2e7d32;">' + finalTotalAfterExpenses + ' د.ل</td>' +
   '</tr>'
 
+  const wTitlePad = wTitlePadMap[sl]
+  const wTitleFs = wTitleFsMap[sl]
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="padding:7px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -453,9 +520,10 @@ function buildWorkerExpensesAndTreasury(
   const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
   const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
 
-  const tCellPad = 'padding:7px 10px;border:1px solid #555;vertical-align:middle;'
-  const tLabelStyle = tCellPad + 'font-size:9px;'
-  const tValueStyle = tCellPad + 'text-align:center;font-size:10px;font-weight:bold;'
+  const tPad = tPadMap[sl]
+  const tCellPad = tPad + 'border:1px solid #555;vertical-align:middle;'
+  const tLabelStyle = tCellPad + tLabelFsMap[sl]
+  const tValueStyle = tCellPad + 'text-align:center;' + tValueFsMap[sl] + 'font-weight:bold;'
 
   let treasuryRowsHtml = ''
   treasuryRowsHtml += '<tr style="background:#e0e0e0;">' +
@@ -499,12 +567,12 @@ function buildWorkerExpensesAndTreasury(
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="padding:7px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
 
-  return '<div style="margin-top:6px;border-top:2px solid #000;padding-top:6px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
+  return '<div style="' + sepMtMap[sl] + 'border-top:2px solid #000;"><div style="display:flex;' + sepGapMap[sl] + '">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 
