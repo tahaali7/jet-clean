@@ -321,9 +321,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   if (hasMachine) orderedRooms.push('مكينة الغسيل')
 
   // Auto-adaptive: calculate GLOBAL size level based on total rooms
-  // 0 = normal (<=4 rooms), 1 = compact (5-6), 2 = ultra-compact (7+)
+  // 0 = normal (<=5 rooms), 1 = compact (never used currently), 2 = ultra-compact (6+)
   const totalRoomCount = orderedRooms.length
-  const globalSizeLevel = totalRoomCount <= 4 ? 0 : totalRoomCount <= 6 ? 1 : 2
+  const globalSizeLevel = totalRoomCount <= 5 ? 0 : 2
 
   // Build room data with global adaptive sizing
   const buildRoomCells = (sizeLevel: number) => {
