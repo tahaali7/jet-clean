@@ -594,7 +594,6 @@ export default function JetCleanApp() {
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false)
-  const [backupLoading, setBackupLoading] = useState(false)
   const [restoreLoading, setRestoreLoading] = useState(false)
   const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
   const [exportMonth, setExportMonth] = useState('')
@@ -770,19 +769,9 @@ export default function JetCleanApp() {
     setScreen('login')
   }
 
-  const handleBackup = async () => {
-    if (!confirm('هل تريد حفظ نسخة احتياطية من جميع البيانات؟')) return
-    setBackupLoading(true)
-    try {
-      const res = await fetch('/api/backup', { method: 'POST' })
-      const result = await res.json()
-      if (res.ok) {
-        alert('✅ تم النسخ الاحتياطي بنجاح!\n' + JSON.stringify(result.records))
-      } else {
-        alert('❌ خطأ: ' + result.error)
-      }
-    } catch (e: any) { alert('❌ خطأ: ' + e.message) }
-    setBackupLoading(false)
+  // نسخ احتياطي تلقائي صامت
+  const autoBackup = () => {
+    try { fetch('/api/backup', { method: 'POST' }) } catch (_) {}
   }
 
   const handleRestore = async () => {
@@ -1006,6 +995,7 @@ export default function JetCleanApp() {
       alert('حدث خطأ أثناء الحفظ')
     }
     setSaving(false)
+    autoBackup()
   }
 
   const handleDeleteCarEntry = async (id: string) => {
@@ -1018,6 +1008,7 @@ export default function JetCleanApp() {
         await loadCarEntries(empDate, user.branchId)
       }
     } catch (e) { alert('حدث خطأ أثناء الحذف') }
+    autoBackup()
   }
 
   const handleEditCarEntry = (entry: CarEntry) => {
@@ -1079,6 +1070,7 @@ export default function JetCleanApp() {
       await new Promise(r => setTimeout(r, 300))
       await loadRecords({ date: recordModalData.date }, true)
     } catch (e) { alert('حدث خطأ أثناء الحفظ') }
+    autoBackup()
   }
 
   const handleDeleteRecord = async (id: string) => {
@@ -1088,6 +1080,7 @@ export default function JetCleanApp() {
       await new Promise(r => setTimeout(r, 300))
       await loadRecords({ date: adminDate }, true)
     } catch (e) { alert('حدث خطأ أثناء الحذف') }
+    autoBackup()
   }
 
   // ==================== WORKER EXPENSES & TREASURY ====================
@@ -1142,6 +1135,7 @@ export default function JetCleanApp() {
         alert(data.error || 'حدث خطأ')
       }
     } catch (e) { alert('حدث خطأ') }
+    autoBackup()
   }
 
   const handleDeleteBranch = async (id: string) => {
@@ -1151,6 +1145,7 @@ export default function JetCleanApp() {
       await loadBranches()
       await loadEmployees()
     } catch (e) { alert('حدث خطأ') }
+    autoBackup()
   }
 
   const handleCreateEmployee = async () => {
@@ -1169,6 +1164,7 @@ export default function JetCleanApp() {
         await loadBranches()
       } else { alert('حدث خطأ') }
     } catch (e) { alert('حدث خطأ') }
+    autoBackup()
   }
 
   const handleSaveEditEmployee = async () => {
@@ -1199,6 +1195,7 @@ export default function JetCleanApp() {
         alert('خطأ: ' + (err.error || 'غير معروف'))
       }
     } catch (e: any) { alert('خطأ: ' + (e.message || 'غير معروف')) }
+    autoBackup()
   }
 
   const handleDeleteEmployee = async (id: string) => {
@@ -1208,6 +1205,7 @@ export default function JetCleanApp() {
       await loadEmployees()
       await loadBranches()
     } catch (e) { alert('حدث خطأ') }
+    autoBackup()
   }
 
   // ==================== PASSWORD MANAGEMENT ====================
@@ -1222,6 +1220,7 @@ export default function JetCleanApp() {
       alert('تم تحديث كلمة المرور')
       await loadEmployees()
     } catch (e) { alert('حدث خطأ') }
+    autoBackup()
   }
 
   const handleSaveAdminPassword = async () => {
@@ -1234,6 +1233,7 @@ export default function JetCleanApp() {
       alert('تم تحديث كلمة مرور المسؤول')
       setAdminPassword('')
     } catch (e) { alert('حدث خطأ') }
+    autoBackup()
   }
 
   // ==================== DAILY CLOSING ====================
@@ -2233,9 +2233,6 @@ export default function JetCleanApp() {
                 </button>
                 <button onClick={() => { setShowPasswordsModal(true); setAdminPassword('') }} className="bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   🔑 كلمات السر
-                </button>
-                <button onClick={handleBackup} disabled={backupLoading} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-emerald-500/30">
-                  {backupLoading ? '⏳' : '💾'} نسخ احتياطي
                 </button>
                 <button onClick={handleRestore} disabled={restoreLoading} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-amber-500/30">
                   {restoreLoading ? '⏳' : '📥'} استعادة
