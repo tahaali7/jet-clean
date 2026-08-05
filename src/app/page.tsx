@@ -584,7 +584,7 @@ export default function JetCleanApp() {
   const [showBranchModal, setShowBranchModal] = useState(false)
   const [newBranchName, setNewBranchName] = useState('')
   const [showEmpModal, setShowEmpModal] = useState(false)
-  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee' })
+  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
   const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
   const [adminPassword, setAdminPassword] = useState('')
@@ -1085,7 +1085,7 @@ export default function JetCleanApp() {
   const handleCreateEmployee = async () => {
     if (!newEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
     if (!newEmp.branchId) return alert('الرجاء اختيار الفرع')
-    if (!newEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
+    if (newEmp.hasLogin && !newEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
     try {
       const res = await fetch('/api/employees', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1093,7 +1093,7 @@ export default function JetCleanApp() {
       })
       if (res.ok) {
         setShowEmpModal(false)
-        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee' })
+        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
         await loadEmployees()
         await loadBranches()
       } else { alert('حدث خطأ') }
@@ -2202,6 +2202,8 @@ export default function JetCleanApp() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold text-white text-sm">{emp.name}</h3>
                         <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+                        {emp.hasLogin && emp.role === 'viewer' && <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
+                        {!emp.hasLogin && <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
                       </div>
                       <div className="flex gap-1.5">
                         {!dayClosed && (
@@ -2310,7 +2312,7 @@ export default function JetCleanApp() {
               >
                 <option value="">-- اختر اسمك --</option>
                 <option value="admin">👨‍💼 المسؤول (طه علي)</option>
-                {employees.map(emp => {
+                {employees.filter(emp => emp.hasLogin).map(emp => {
                   const brName = branches.find(b => b.id === emp.branchId)?.name || ''
                   return (
                     <option key={emp.id} value={emp.id}>{emp.name} ({brName}) - {emp.shift}{emp.role === 'viewer' ? ' 👁️ مشاهد' : ''}</option>
@@ -2465,27 +2467,46 @@ export default function JetCleanApp() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">الدور</label>
-                <select value={newEmp.role}
-                  onChange={e => setNewEmp(prev => ({ ...prev, role: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
-                >
-                  <option value="employee">👤 موظف عادي</option>
-                  <option value="viewer">👁️ مشاهد فقط</option>
-                </select>
+                <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
+                <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setNewEmp(prev => ({ ...prev, hasLogin: !prev.hasLogin }))}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${newEmp.hasLogin ? 'bg-cyan-600' : 'bg-slate-600'}`}
+                  >
+                    <span className={`absolute top-0.5 ${newEmp.hasLogin ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                  </button>
+                  <span className={`text-sm ${newEmp.hasLogin ? 'text-cyan-400' : 'text-slate-500'}`}>
+                    {newEmp.hasLogin ? '✅ نعم، يملك حساب دخول' : '❌ لا، بدون يوزر دخول'}
+                  </span>
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-slate-400 mb-1 block">رمز المرور</label>
-                <input type="text" value={newEmp.password}
-                  onChange={e => setNewEmp(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
-                  placeholder="رمز المرور"
-                />
-              </div>
+              {newEmp.hasLogin && (
+              <>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">الدور</label>
+                  <select value={newEmp.role}
+                    onChange={e => setNewEmp(prev => ({ ...prev, role: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="employee">👤 موظف عادي</option>
+                    <option value="viewer">👁️ مشاهد فقط</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">رمز المرور</label>
+                  <input type="text" value={newEmp.password}
+                    onChange={e => setNewEmp(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    placeholder="رمز المرور"
+                  />
+                </div>
+              </>
+              )}
             </div>
             <div className="flex gap-3">
               <button onClick={handleCreateEmployee} className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
-              <button onClick={() => { setShowEmpModal(false); setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee' }) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+              <button onClick={() => { setShowEmpModal(false); setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false }) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>
@@ -2512,7 +2533,7 @@ export default function JetCleanApp() {
             </div>
 
             {branches.map(branch => {
-              const branchEmps = employees.filter(e => e.branchId === branch.id)
+              const branchEmps = employees.filter(e => e.branchId === branch.id && e.hasLogin)
               if (branchEmps.length === 0) return null
               return (
                 <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">

@@ -28,14 +28,15 @@ model Branch {
 }
 
 model Employee {
-  id       String  @id @default(cuid())
-  name     String
-  branchId String
-  branch   Branch  @relation(fields: [branchId], references: [id])
-  shift    String
-  password String
-  role     String  @default("employee")
-  records  Record[]
+  id        String  @id @default(cuid())
+  name      String
+  branchId  String
+  branch    Branch  @relation(fields: [branchId], references: [id])
+  shift     String
+  password  String  @default("")
+  role      String  @default("employee")
+  hasLogin  Boolean @default(false)
+  records   Record[]
 }
 
 model AdminAccount {
