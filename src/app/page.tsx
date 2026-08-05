@@ -321,9 +321,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   if (hasMachine) orderedRooms.push('مكينة الغسيل')
 
   // Auto-adaptive: calculate GLOBAL size level based on total rooms
-  // 0 = normal (<=4 rooms), 1 = compact (5 rooms), 2 = ultra-compact (6+)
+  // 0 = normal (<=4 rooms), 1 = compact (5-6), 2 = ultra-compact (7+)
   const totalRoomCount = orderedRooms.length
-  const globalSizeLevel = totalRoomCount <= 4 ? 0 : totalRoomCount <= 5 ? 1 : 2
+  const globalSizeLevel = totalRoomCount <= 4 ? 0 : totalRoomCount <= 6 ? 1 : 2
 
   // Build room data with global adaptive sizing
   const buildRoomCells = (sizeLevel: number) => {
@@ -393,9 +393,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   for (let p = 0; p < totalFullPages; p++) {
     const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
     pages.push(
-      '<div style="width:780px;background:#fff;color:#000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+      '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
       buildHeader(sl) +
-      '<div style="display:flex;flex-direction:column;align-items:center;">' +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
       buildRoomsGrid(pageRooms, sl) +
       '</div>' +
       '</div>'
@@ -1797,7 +1797,6 @@ export default function JetCleanApp() {
 
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
 
       // Render all pages
       for (let pi = 0; pi < pages.length; pi++) {
@@ -1805,7 +1804,7 @@ export default function JetCleanApp() {
         const imgHeight = (canvas.height * pageWidth) / canvas.width
 
         if (pi > 0) pdf.addPage()
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, Math.min(imgHeight, pageHeight))
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
       }
 
       const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
