@@ -2196,11 +2196,12 @@ export default function JetCleanApp() {
   const renderAdminScreen = () => {
     const dayClosed = isDayClosed(adminDate)
 
-    // حساب الإجماليات مسبقاً
+    // حساب الإجماليات للشهر الحالي
+    const currentMonth = adminDate.substring(0, 7)
     let grandWithdrawals = 0
     let grandShortages = 0
     records.forEach(r => {
-      if (r.date === adminDate) {
+      if (r.date.startsWith(currentMonth)) {
         if (r.type === 'withdrawal') grandWithdrawals += r.amount
         if (r.type === 'shortage') grandShortages += r.amount
       }
@@ -2262,14 +2263,14 @@ export default function JetCleanApp() {
             </div>
             <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
               <div>
-                <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات اليوم</p>
+                <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات الشهر</p>
                 <h2 className="text-2xl font-black text-amber-400 mt-1">{grandWithdrawals} د.ل</h2>
               </div>
               <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
             </div>
             <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
               <div>
-                <p className="text-slate-400 text-xs font-bold">إجمالي عجوزات اليوم</p>
+                <p className="text-slate-400 text-xs font-bold">إجمالي عجوزات الشهر</p>
                 <h2 className="text-2xl font-black text-rose-400 mt-1">{grandShortages} د.ل</h2>
               </div>
               <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl text-2xl">📉</div>
