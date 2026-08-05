@@ -342,10 +342,14 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const pages: string[] = []
   let roomIndex = 0
 
-  // Room pages only
-  while (roomIndex < roomCells.length) {
-    const pageRooms = roomCells.slice(roomIndex, roomIndex + MAX_ROOMS_PER_PAGE)
-    roomIndex += MAX_ROOMS_PER_PAGE
+  // Room pages - if last room page is not full, merge it with treasury page
+  let overflowRooms: string[] = []
+  const totalFullPages = Math.floor(roomCells.length / MAX_ROOMS_PER_PAGE)
+  const hasRemainder = roomCells.length % MAX_ROOMS_PER_PAGE > 0
+
+  // Full room pages
+  for (let p = 0; p < totalFullPages; p++) {
+    const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
     pages.push(
       '<div style="width:780px;height:1120px;background:#fff;color:#000;padding:15px 12px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
       buildHeader('تقرير تسجيل السيارات') +
@@ -356,11 +360,18 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     )
   }
 
-  // Always add treasury page at the end
+  // Remaining rooms go to treasury page (not a separate page)
+  if (hasRemainder) {
+    overflowRooms = roomCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE)
+  }
+
+  // Treasury page (always last) - includes overflow rooms if any
   const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses)
+  const overflowHtml = overflowRooms.length > 0 ? buildRoomsGrid(overflowRooms) : ''
   pages.push(
     '<div style="width:780px;background:#fff;color:#000;padding:15px 12px;font-family:Cairo,sans-serif;" dir="rtl">' +
     buildHeader('مصاريف العمال والخزينة') +
+    overflowHtml +
     treasuryContent +
     '</div>'
   )
