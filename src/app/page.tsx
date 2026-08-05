@@ -2251,16 +2251,8 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-5xl mx-auto p-4 pb-24 space-y-4">
-          {/* صف واحد: التاريخ + السحبيات + العجوزات */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col justify-center">
-              <label className="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
-              <input
-                type="date" value={adminDate}
-                onChange={e => setAdminDate(e.target.value)}
-                className="bg-slate-900 border border-slate-600/50 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500"
-              />
-            </div>
+          {/* صف واحد: السحبيات + العجوزات */}
+          <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
               <div>
                 <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات الشهر</p>
