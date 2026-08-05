@@ -382,8 +382,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const treasuryPagePadMap = ['8px 10px', '6px 8px', '4px 6px']
   const sl = globalSizeLevel
 
-  // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols)
-  const MAX_ROOMS_PER_PAGE = 4
+  // Split rooms across pages: max 6 rooms per page (3 rows × 2 cols)
+  const MAX_ROOMS_PER_PAGE = 6
   const pages: string[] = []
 
   const totalFullPages = Math.floor(roomCells.length / MAX_ROOMS_PER_PAGE)
