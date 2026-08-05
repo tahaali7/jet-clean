@@ -282,7 +282,7 @@ function getTreasuryItems(branchName: string) {
   })
 }
 
-function buildCarReportHTML(selectedDate: string, branchId: string, branchName: string, entries: CarEntry[], savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>) {
+function buildCarReportHTML(selectedDate: string, branchId: string, branchName: string, entries: CarEntry[], savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>): string[] {
   // Group entries by room
   const roomMap: Record<string, CarEntry[]> = {}
   entries.forEach(e => {
@@ -317,26 +317,73 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     }
   })
 
-  // 2-column grid for rooms
-  let roomsGridHtml = ''
-  for (let i = 0; i < roomCells.length; i += 2) {
-    roomsGridHtml += '<div style="display:flex;gap:10px;margin-bottom:10px;">' +
-      '<div style="flex:1;min-width:0;">' + roomCells[i] + '</div>' +
-      (roomCells[i + 1] ? '<div style="flex:1;min-width:0;">' + roomCells[i + 1] + '</div>' : '') +
+  // Helper: build rooms grid HTML from array of room cells
+  const buildRoomsGrid = (cells: string[]) => {
+    let html = ''
+    for (let i = 0; i < cells.length; i += 2) {
+      html += '<div style="display:flex;gap:10px;margin-bottom:10px;">' +
+        '<div style="flex:1;min-width:0;">' + cells[i] + '</div>' +
+        (cells[i + 1] ? '<div style="flex:1;min-width:0;">' + cells[i + 1] + '</div>' : '') +
+        '</div>'
+    }
+    return html
+  }
+
+  // Helper: build page header
+  const buildHeader = (title: string) => {
+    return '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+      '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+      '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">' + title + '</p>' +
+      '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
-  // Page 1: Room tables only (no totals bar)
-  const page1 = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
-    '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
-    '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
-    '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">تقرير تسجيل السيارات</p>' +
-    '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
-    '</div>' +
-    roomsGridHtml +
-    '</div>'
+  // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols)
+  const MAX_ROOMS_PER_PAGE = 4
+  const pages: string[] = []
+  let roomIndex = 0
 
-  // ---- Page 2: Worker expenses + Treasury ----
+  // Page 1+: Room pages
+  while (roomIndex < roomCells.length) {
+    const pageRooms = roomCells.slice(roomIndex, roomIndex + MAX_ROOMS_PER_PAGE)
+    const isLastRoomPage = (roomIndex + MAX_ROOMS_PER_PAGE >= roomCells.length)
+    roomIndex += MAX_ROOMS_PER_PAGE
+
+    // If this is the last page of rooms, add worker expenses + treasury below
+    let extraContent = ''
+    if (isLastRoomPage) {
+      extraContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses)
+    }
+
+    const title = isLastRoomPage ? 'مصاريف العمال والخزينة' : 'تقرير تسجيل السيارات'
+    pages.push(
+      '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+      buildHeader(title) +
+      buildRoomsGrid(pageRooms) +
+      extraContent +
+      '</div>'
+    )
+  }
+
+  // Edge case: if no rooms at all, still output a page with worker expenses + treasury
+  if (roomCells.length === 0) {
+    const extraContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses)
+    pages.push(
+      '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
+      buildHeader('مصاريف العمال والخزينة') +
+      extraContent +
+      '</div>'
+    )
+  }
+
+  return pages
+}
+
+// Helper: build worker expenses + treasury section (used on last page of car report)
+function buildWorkerExpensesAndTreasury(
+  branchName: string, selectedDate: string, orderedRooms: string[], entries: CarEntry[],
+  grandTotalNet: number, savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>
+): string {
   const cleannessConfig = BRANCH_CLEANLINESS[branchName]
   const wKey = branchName + '_' + selectedDate
   const savedWE = savedWorkerExpenses?.[wKey] || {}
@@ -441,19 +488,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     '</table>' +
     '</div>'
 
-  const sideBySideHtml = '<div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div>'
-
-  // Page 2: Worker expenses + Treasury
-  const page2 = '<div style="width:780px;background:#fff;color:#000;padding:15px 10px;font-family:Cairo,sans-serif;" dir="rtl">' +
-    '<div style="text-align:center;margin-bottom:10px;border-bottom:2px solid #000;padding-bottom:8px;">' +
-    '<h1 style="font-size:20px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
-    '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">مصاريف العمال والخزينة</p>' +
-    '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
-    '</div>' +
-    sideBySideHtml +
-    '</div>'
-
-  return { page1, page2 }
+  return '<div style="margin-top:15px;border-top:2px solid #000;padding-top:12px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 // ==================== EMPLOYEE REPORT (WITHDRAWALS/SHORTAGES) ====================
@@ -1477,19 +1512,15 @@ export default function JetCleanApp() {
 
           const pages = buildCarReportHTML(date, bid, bName, bEntries, savedWEMap)
 
-          // Render Page 1
-          const canvas1 = await renderHtmlToCanvas(pages.page1, 800)
-          const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
+          // Render all pages
+          for (let pi = 0; pi < pages.length; pi++) {
+            const canvas = await renderHtmlToCanvas(pages[pi], 800)
+            const imgHeight = (canvas.height * pageWidth) / canvas.width
 
-          // Render Page 2
-          const canvas2 = await renderHtmlToCanvas(pages.page2, 800)
-          const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
-
-          if (!firstPage) pdf.addPage()
-          firstPage = false
-          pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight1)
-          pdf.addPage()
-          pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight2)
+            if (!firstPage) pdf.addPage()
+            firstPage = false
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+          }
           exportedCount++
         }
       }
@@ -1687,18 +1718,14 @@ export default function JetCleanApp() {
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
 
-      // Render Page 1 in clean iframe
-      const canvas1 = await renderHtmlToCanvas(pages.page1, 800)
-      const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
+      // Render all pages
+      for (let pi = 0; pi < pages.length; pi++) {
+        const canvas = await renderHtmlToCanvas(pages[pi], 800)
+        const imgHeight = (canvas.height * pageWidth) / canvas.width
 
-      // Render Page 2 in clean iframe
-      const canvas2 = await renderHtmlToCanvas(pages.page2, 800)
-      const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
-
-      // Add to PDF
-      pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight1)
-      pdf.addPage()
-      pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight2)
+        if (pi > 0) pdf.addPage()
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+      }
 
       const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
       pdf.save(fileName)
