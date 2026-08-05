@@ -165,7 +165,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const cellPad = 'padding:5px 10px;vertical-align:middle;'
+  const cellPad = 'padding:10px 10px;vertical-align:middle;'
   const cellFs = 'font-size:10px;'
 
   let rowsHtml = ''
@@ -177,10 +177,10 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     const displayPrice = isExtra ? (price - 5) : price
     const rowAmount = displayPrice * count
     rowsHtml += '<tr>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"><span class="num">' + rowNum + '</span></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"><span class="num">' + displayPrice + '</span> د.ل</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"><span class="num">' + count + '</span></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"><span class="num">' + rowAmount + '</span> د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + displayPrice + ' د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + rowAmount + ' د.ل</td>' +
     '</tr>'
   })
 
@@ -190,9 +190,9 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowNum++
     rowsHtml += '<tr>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'color:#7c3aed;">✦</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'color:#7c3aed;"><span class="num">' + item.price + '</span> د.ل</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"><span class="num">' + item.count + '</span></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;"><span class="num">' + (item.price * item.count) + '</span> د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'color:#7c3aed;">' + item.price + ' د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + item.count + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">' + (item.price * item.count) + ' د.ل</td>' +
     '</tr>'
   })
 
@@ -200,14 +200,14 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   if (roomExtraCars > 0) {
     extraRowHtml = '<tr style="background:#fffde7;">' +
       '<td colspan="2" style="' + cellPad + 'border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#e65100;">⭐ إكسترا</td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;color:#e65100;"><span class="num">' + roomExtraCars + '</span></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;color:#e65100;"><span class="num">' + roomExtraAmount + '</span> د.ل</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;color:#e65100;">' + roomExtraCars + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;color:#e65100;">' + roomExtraAmount + ' د.ل</td>' +
     '</tr>'
   }
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="padding:6px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
     '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -217,12 +217,12 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     '<tr style="background:#e0e0e0;">' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"><span class="num">' + roomTotalCars + '</span> سيارة = <span class="num">' + roomTotalAmount + '</span> د.ل</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;"><span class="num">' + roomNet + '</span> د.ل</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
@@ -230,7 +230,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
 function buildEmptyRoomTableHTML(room: string) {
   const prices = getPricesForRoom(room)
-  const cellPad = 'padding:5px 10px;vertical-align:middle;'
+  const cellPad = 'padding:10px 10px;vertical-align:middle;'
   const cellFs = 'font-size:10px;'
   let rowsHtml = ''
   prices.forEach(() => {
@@ -243,7 +243,7 @@ function buildEmptyRoomTableHTML(room: string) {
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="padding:6px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:11px;font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
     '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
@@ -252,12 +252,12 @@ function buildEmptyRoomTableHTML(room: string) {
     '</tr>' +
     rowsHtml +
     '<tr style="background:#e0e0e0;">' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"></td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:11px;font-weight:bold;"></td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="padding:5px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;"></td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
+    '<td colspan="2" style="padding:10px 10px;border:1px solid #555;text-align:center;font-size:12px;font-weight:bold;color:#2e7d32;"></td>' +
     '</tr>' +
     '</table>'
 }
@@ -320,7 +320,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const buildRoomsGrid = (cells: string[]) => {
     let html = ''
     for (let i = 0; i < cells.length; i += 2) {
-      html += '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+      html += '<div style="display:flex;gap:8px;margin-bottom:6px;">' +
         '<div style="flex:1;min-width:0;">' + cells[i] + '</div>' +
         (cells[i + 1] ? '<div style="flex:1;min-width:0;">' + cells[i + 1] + '</div>' : '') +
         '</div>'
@@ -330,15 +330,15 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Helper: build page header
   const buildHeader = (title: string) => {
-    return '<div style="text-align:center;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:10px;">' +
-      '<h1 style="font-size:20px;font-weight:bold;margin:0 0 8px 0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
-      '<p style="font-size:13px;margin:0 0 6px 0;color:#333;">' + title + '</p>' +
-      '<p style="font-size:12px;margin:0 0 4px 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    return '<div style="text-align:center;margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:8px;">' +
+      '<h1 style="font-size:20px;font-weight:bold;margin:0;">مغسلة جيت كلين - ' + branchName + '</h1>' +
+      '<p style="font-size:13px;margin:4px 0 0 0;color:#333;">' + title + '</p>' +
+      '<p style="font-size:12px;margin:2px 0 0 0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
   // Split rooms across pages: max 6 rooms per page (3 rows × 2 cols)
-  const MAX_ROOMS_PER_PAGE = 4
+  const MAX_ROOMS_PER_PAGE = 6
   const pages: string[] = []
 
   // Room pages - if last room page is not full, merge it with treasury page
@@ -350,9 +350,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   for (let p = 0; p < totalFullPages; p++) {
     const pageRooms = roomCells.slice(p * MAX_ROOMS_PER_PAGE, (p + 1) * MAX_ROOMS_PER_PAGE)
     pages.push(
-      '<div style="width:780px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;box-sizing:border-box;" dir="rtl">' +
+      '<div style="width:780px;min-height:1120px;background:#fff;color:#000;padding:12px 10px;font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
       buildHeader('تقرير تسجيل السيارات') +
-      '<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:1080px;">' +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
       buildRoomsGrid(pageRooms) +
       '</div>' +
       '</div>'
@@ -395,7 +395,7 @@ function buildWorkerExpensesAndTreasury(
     }
   }
 
-  const wCellPad = 'padding:5px 10px;border:1px solid #555;vertical-align:middle;'
+  const wCellPad = 'padding:10px 10px;border:1px solid #555;vertical-align:middle;'
 
   let workerRowsHtml = ''
   orderedRooms.forEach(room => {
@@ -406,24 +406,24 @@ function buildWorkerExpensesAndTreasury(
     const icon = ROOM_ICONS[room] || '🏠'
     workerRowsHtml += '<tr>' +
       '<td style="' + wCellPad + 'font-size:10px;text-align:center;">' + icon + ' ' + room + '</td>' +
-      '<td style="' + wCellPad + 'text-align:center;font-size:12px;font-weight:bold;"><span class="num">' + roomNet + '</span> د.ل</td>' +
+      '<td style="' + wCellPad + 'text-align:center;font-size:12px;font-weight:bold;">' + roomNet + ' د.ل</td>' +
     '</tr>'
   })
 
   workerRowsHtml += '<tr style="background:#fffde7;">' +
     '<td style="' + wCellPad + 'font-size:10px;font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
-    '<td style="' + wCellPad + 'text-align:center;font-size:12px;font-weight:bold;color:#e65100;"><span class="num">' + savedCleanliness + '</span> د.ل</td>' +
+    '<td style="' + wCellPad + 'text-align:center;font-size:12px;font-weight:bold;color:#e65100;">' + savedCleanliness + ' د.ل</td>' +
   '</tr>'
 
   const finalTotalAfterExpenses = grandTotalNet + savedCleanliness
   workerRowsHtml += '<tr style="background:#e8f5e9;">' +
     '<td style="' + wCellPad + 'border:2px solid #333;font-size:11px;font-weight:bold;text-align:center;">الإجمالي</td>' +
-    '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#2e7d32;"><span class="num">' + finalTotalAfterExpenses + '</span> د.ل</td>' +
+    '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;font-size:14px;font-weight:bold;color:#2e7d32;">' + finalTotalAfterExpenses + ' د.ل</td>' +
   '</tr>'
 
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="padding:6px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="padding:10px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -434,7 +434,7 @@ function buildWorkerExpensesAndTreasury(
   const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
   const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
 
-  const tCellPad = 'padding:5px 10px;border:1px solid #555;vertical-align:middle;'
+  const tCellPad = 'padding:10px 10px;border:1px solid #555;vertical-align:middle;'
   const tLabelStyle = tCellPad + 'font-size:10px;'
   const tValueStyle = tCellPad + 'text-align:center;font-size:11px;font-weight:bold;'
 
@@ -472,20 +472,20 @@ function buildWorkerExpensesAndTreasury(
 
     treasuryRowsHtml += '<tr>' +
       '<td style="' + tLabelStyle + 'text-align:center;">' + item.label + labelSuffix + '</td>' +
-      '<td style="' + tValueStyle + 'color:#2e7d32;"><span class="num">' + (tIncome > 0 ? tIncome : '') + '</span></td>' +
-      '<td style="' + tValueStyle + 'color:#c62828;"><span class="num">' + (tExpense > 0 ? tExpense : '') + '</span></td>' +
-      '<td style="' + tValueStyle + 'color:' + balColor + ';"><span class="num">' + tRunningBalance + '</span></td>' +
+      '<td style="' + tValueStyle + 'color:#2e7d32;">' + (tIncome > 0 ? tIncome : '') + '</td>' +
+      '<td style="' + tValueStyle + 'color:#c62828;">' + (tExpense > 0 ? tExpense : '') + '</td>' +
+      '<td style="' + tValueStyle + 'color:' + balColor + ';">' + tRunningBalance + '</td>' +
     '</tr>'
   })
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="padding:6px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="padding:10px 10px;text-align:center;font-size:12px;font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
 
-  return '<div style="margin-top:12px;border-top:2px solid #000;padding-top:10px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
+  return '<div style="margin-top:8px;border-top:2px solid #000;padding-top:6px;"><div style="display:flex;gap:8px;">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 
@@ -1405,14 +1405,11 @@ export default function JetCleanApp() {
     
     // Write clean HTML with only our inline styles and Cairo font
     iframeDoc.open()
-    iframeDoc.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: Cairo, sans-serif; direction: rtl; } td, th { direction: rtl; } .num { direction: ltr; unicode-bidi: embed; display: inline-block; }</style></head><body>' + html + '</body></html>')
+    iframeDoc.write('<!DOCTYPE html><html><head><style>* { margin: 0; padding: 0; box-sizing: border-box; } @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"); body { font-family: Cairo, sans-serif; }</style></head><body>' + html + '</body></html>')
     iframeDoc.close()
     
-    // Wait for fonts to load properly
-    try {
-      await (iframeDoc as any).fonts?.ready
-    } catch(e) {}
-    await new Promise(r => setTimeout(r, 1200))
+    // Wait for fonts to load
+    await new Promise(r => setTimeout(r, 800))
     
     const iframeBody = iframeDoc.body
     const canvas = await html2canvas(iframeBody, { 
