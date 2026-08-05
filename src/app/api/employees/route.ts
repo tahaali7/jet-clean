@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(employee)
   } catch (error) {
     console.error('Create employee error:', error)
-    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
+    const errMsg = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: 'حدث خطأ: ' + errMsg }, { status: 500 })
   }
 }
 
