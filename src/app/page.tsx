@@ -138,6 +138,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   const prices = getPricesForRoom(room)
   let roomTotalAmount = 0
   let roomTotalCars = 0
+  let roomExtraCars = 0
+  let roomExtraAmount = 0
   const mergedCounts: Record<string, number> = {}
   const mergedCustoms: Record<string, { price: number; count: number }> = {}
 
@@ -158,10 +160,12 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     }
     roomTotalAmount += entry.totalAmount
     roomTotalCars += entry.totalCars
+    roomExtraCars += (entry.extraCars || 0)
+    roomExtraAmount += (entry.extraAmount || 0)
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const cellPad = 'padding:8px 6px;vertical-align:middle;'
+  const cellPad = 'padding:10px 8px;vertical-align:middle;height:22px;'
   const cellFs = 'font-size:11px;'
 
   // Build rows - only non-empty
@@ -195,7 +199,18 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
       '</tr>'
   })
 
-  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+  // Extra row
+  let extraRowHtml = ''
+  if (roomExtraCars > 0) {
+    extraRowHtml = '<tr style="background:#fffbe6;">' +
+      '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;color:#b45309;">⭐ إكسترا</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;">' + roomExtraCars + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;color:#b45309;">' + roomExtraAmount + ' د.ل</td>' +
+      '</tr>'
+  }
+
+  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;">' +
+    '<colgroup><col style="width:12%;"/><col style="width:28%;"/><col style="width:25%;"/><col style="width:35%;"/></colgroup>' +
     '<tr><td colspan="4" style="border:1px solid #333;padding:8px 6px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
     '<tr style="background:#f0f0f0;">' +
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
@@ -204,6 +219,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
     '</tr>' +
     rowsHtml +
+    extraRowHtml +
     '<tr style="background:#f0f0f0;">' +
     '<td colspan="2" style="' + cellPad + 'border:1px solid #333;font-size:11px;font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + cellPad + 'border:1px solid #333;text-align:center;font-size:12px;font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
@@ -217,7 +233,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
 function buildEmptyRoomTableHTML(room: string) {
   const prices = getPricesForRoom(room)
-  const cellPad = 'padding:8px 6px;vertical-align:middle;'
+  const cellPad = 'padding:10px 8px;vertical-align:middle;height:22px;'
   const cellFs = 'font-size:11px;'
   let rowsHtml = ''
   prices.forEach(() => {
@@ -228,7 +244,8 @@ function buildEmptyRoomTableHTML(room: string) {
       '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + '"></td>' +
       '</tr>'
   })
-  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
+  return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;">' +
+    '<colgroup><col style="width:12%;"/><col style="width:28%;"/><col style="width:25%;"/><col style="width:35%;"/></colgroup>' +
     '<tr><td colspan="4" style="border:1px solid #333;padding:8px 6px;text-align:center;font-size:13px;font-weight:bold;background:#e8e8e8;vertical-align:middle;">' + room + '</td></tr>' +
     '<tr style="background:#f0f0f0;">' +
     '<td style="' + cellPad + 'border:1px solid #333;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
