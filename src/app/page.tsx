@@ -364,14 +364,16 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     return html
   }
 
-  // Helper: build page header (adaptive)
+  // Helper: build page header (adaptive with logo)
   const buildHeader = (sizeLevel?: number) => {
     const sl = sizeLevel || 0
     const fsMap = ['22px', '18px', '15px']
     const dateFsMap = ['14px', '12px', '10px']
     const mbMap = ['14px', '10px', '6px']
     const pbMap = ['10px', '6px', '4px']
+    const logoSizeMap = ['50px', '40px', '32px']
     return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';border-bottom:2px solid #000;padding-bottom:' + pbMap[sl] + ';">' +
+      '<img src="/logo.png" style="width:' + logoSizeMap[sl] + ';height:' + logoSizeMap[sl] + ';border-radius:12px;margin-bottom:6px;" />' +
       '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 6px 0;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
       '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#555;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
