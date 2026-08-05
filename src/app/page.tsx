@@ -2224,10 +2224,10 @@ export default function JetCleanApp() {
                   🚗
                 </button>
                 </>}
+                {user?.role !== 'viewer' && <>
                 <button onClick={() => setShowExportModal(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   📄 تقارير
                 </button>
-                {user?.role !== 'viewer' && <>
                 <button onClick={() => setShowBranchModal(true)} className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   ➕ فرع
                 </button>
@@ -2386,7 +2386,7 @@ export default function JetCleanApp() {
                       <span className="text-pink-400">📍</span>
                       <h2 className="text-base font-bold text-cyan-400">{branch.name}</h2>
                     </div>
-                    <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>
+                    {user?.role !== 'viewer' && <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>}
                   </div>
                   {/* محتوى الموظفين */}
                   <div className="p-3.5 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
