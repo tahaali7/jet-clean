@@ -1783,12 +1783,12 @@ export default function JetCleanApp() {
 
       if (!date) { setExportingEmp(false); return alert('الرجاء تحديد التاريخ') }
 
-      // Fetch car entries for this branch+date
-      const params = new URLSearchParams()
-      params.set('date', date)
-      params.set('branchId', branchId)
-      const res = await fetch(`/api/car-entries?${params}`)
-      const entries: CarEntry[] = res.ok ? await res.json() : []
+      // Use already loaded car entries from state instead of re-fetching
+      const entries = carEntries.filter(e => {
+        if (e.date !== date) return false
+        if (isAdminMode) return e.branchId === branchId
+        return true
+      })
 
       if (entries.length === 0) {
         alert('لا توجد تسجيلات في هذا التاريخ للتصدير')
