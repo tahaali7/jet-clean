@@ -1330,6 +1330,17 @@ export default function JetCleanApp() {
   }
 
   // ==================== PDF EXPORT ====================
+  const disableStylesForCapture = () => {
+    const sheets: any[] = []
+    for (let i = 0; i < document.styleSheets.length; i++) {
+      try { sheets.push({ sheet: document.styleSheets[i], wasDisabled: (document.styleSheets[i] as any).disabled }); (document.styleSheets[i] as any).disabled = true } catch(e) {}
+    }
+    return sheets
+  }
+  const restoreStylesAfterCapture = (sheets: any[]) => {
+    sheets.forEach(s => { try { s.sheet.disabled = s.wasDisabled } catch(e) {} })
+  }
+
   const handleExportPDF = async () => {
     setExporting(true)
     try {
@@ -1400,7 +1411,9 @@ export default function JetCleanApp() {
           reportArea.style.width = '800px'
 
           await new Promise(r => setTimeout(r, 200))
+          const savedSheets = disableStylesForCapture()
           const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+          restoreStylesAfterCapture(savedSheets)
           const imgHeight = (canvas.height * pageWidth) / canvas.width
 
           reportArea.style.position = ''
@@ -1438,7 +1451,9 @@ export default function JetCleanApp() {
           reportArea.style.width = '800px'
 
           await new Promise(r => setTimeout(r, 200))
+          const savedSheets1 = disableStylesForCapture()
           const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+          restoreStylesAfterCapture(savedSheets1)
           const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
 
           reportArea.style.position = ''
@@ -1454,7 +1469,9 @@ export default function JetCleanApp() {
           reportArea.style.width = '800px'
 
           await new Promise(r => setTimeout(r, 200))
+          const savedSheets2 = disableStylesForCapture()
           const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
+          restoreStylesAfterCapture(savedSheets2)
           const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
 
           reportArea.style.position = ''
@@ -1575,12 +1592,14 @@ export default function JetCleanApp() {
       await new Promise(r => setTimeout(r, 300))
 
       // Capture with html2canvas
+      const savedSheetsE = disableStylesForCapture()
       const canvas = await html2canvas(reportArea, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
         logging: false
       })
+      restoreStylesAfterCapture(savedSheetsE)
 
       // Clean up
       reportArea.style.position = ''
@@ -1699,7 +1718,9 @@ export default function JetCleanApp() {
       reportArea.style.zIndex = '-1'
 
       await new Promise(r => setTimeout(r, 300))
+      const savedSheetsC1 = disableStylesForCapture()
       const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+      restoreStylesAfterCapture(savedSheetsC1)
       const imgData1 = canvas1.toDataURL('image/png')
       const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
 
@@ -1718,7 +1739,9 @@ export default function JetCleanApp() {
       reportArea.style.zIndex = '-1'
 
       await new Promise(r => setTimeout(r, 300))
+      const savedSheetsC2 = disableStylesForCapture()
       const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
+      restoreStylesAfterCapture(savedSheetsC2)
       const imgData2 = canvas2.toDataURL('image/png')
       const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
 
