@@ -165,7 +165,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   })
 
   const roomNet = getNetAmount(roomTotalAmount, branchName, room)
-  const cellPad = 'padding:8px 10px;vertical-align:middle;line-height:1.5;'
+  const cellPad = 'padding:5px 6px;vertical-align:middle;height:20px;'
   const cellFs = 'font-size:11px;'
 
   let rowsHtml = ''
@@ -230,7 +230,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
 function buildEmptyRoomTableHTML(room: string) {
   const prices = getPricesForRoom(room)
-  const cellPad = 'padding:8px 10px;vertical-align:middle;line-height:1.5;'
+  const cellPad = 'padding:5px 6px;vertical-align:middle;height:20px;'
   const cellFs = 'font-size:11px;'
   let rowsHtml = ''
   prices.forEach(() => {
@@ -383,7 +383,7 @@ function buildWorkerExpensesAndTreasury(
     }
   }
 
-  const wCellPad = 'padding:8px 10px;border:1px solid #333;vertical-align:middle;line-height:1.5;'
+  const wCellPad = 'padding:6px 8px;border:1px solid #333;vertical-align:middle;'
 
   let workerRowsHtml = ''
   orderedRooms.forEach(room => {
@@ -422,7 +422,7 @@ function buildWorkerExpensesAndTreasury(
   const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
   const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
 
-  const tCellPad = 'padding:8px 10px;border:1px solid #333;vertical-align:middle;line-height:1.5;'
+  const tCellPad = 'padding:6px 8px;border:1px solid #333;vertical-align:middle;'
   const tLabelStyle = tCellPad + 'font-size:11px;'
   const tValueStyle = tCellPad + 'text-align:center;font-size:12px;font-weight:bold;'
 
