@@ -1330,15 +1330,44 @@ export default function JetCleanApp() {
   }
 
   // ==================== PDF EXPORT ====================
-  const disableStylesForCapture = () => {
-    const sheets: any[] = []
-    for (let i = 0; i < document.styleSheets.length; i++) {
-      try { sheets.push({ sheet: document.styleSheets[i], wasDisabled: (document.styleSheets[i] as any).disabled }); (document.styleSheets[i] as any).disabled = true } catch(e) {}
-    }
-    return sheets
-  }
-  const restoreStylesAfterCapture = (sheets: any[]) => {
-    sheets.forEach(s => { try { s.sheet.disabled = s.wasDisabled } catch(e) {} })
+  // Helper: render HTML in a clean iframe (no Tailwind CSS interference) and capture with html2canvas
+  const renderHtmlToCanvas = async (html: string, width: number): Promise<HTMLCanvasElement> => {
+    const html2canvasModule = await import('html2canvas')
+    const html2canvas = html2canvasModule.default
+    
+    // Create a hidden iframe with clean styles
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.top = '-99999px'
+    iframe.style.left = '-99999px'
+    iframe.style.width = width + 'px'
+    iframe.style.height = '3000px'
+    iframe.style.border = 'none'
+    document.body.appendChild(iframe)
+    
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+    if (!iframeDoc) throw new Error('Could not create iframe document')
+    
+    // Write clean HTML with only our inline styles and Cairo font
+    iframeDoc.open()
+    iframeDoc.write('<!DOCTYPE html><html><head><style>* { margin: 0; padding: 0; box-sizing: border-box; } @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap"); body { font-family: Cairo, sans-serif; }</style></head><body>' + html + '</body></html>')
+    iframeDoc.close()
+    
+    // Wait for fonts to load
+    await new Promise(r => setTimeout(r, 800))
+    
+    const iframeBody = iframeDoc.body
+    const canvas = await html2canvas(iframeBody, { 
+      scale: 2, 
+      backgroundColor: '#ffffff', 
+      useCORS: true,
+      logging: false,
+      width: width,
+      windowWidth: width
+    })
+    
+    document.body.removeChild(iframe)
+    return canvas
   }
 
   const handleExportPDF = async () => {
@@ -1374,14 +1403,9 @@ export default function JetCleanApp() {
 
       if (dates.length === 0) { setExporting(false); return }
 
-      // Load html2canvas and jsPDF dynamically
-      const html2canvasModule = await import('html2canvas')
-      const html2canvas = html2canvasModule.default
+      // Load jsPDF dynamically
       const jspdfModule = await import('jspdf')
       const jsPDF = jspdfModule.default
-
-      const reportArea = pdfAreaRef.current
-      if (!reportArea) { setExporting(false); return alert('خطأ في عنصر التقرير') }
 
       // Create a single PDF for all dates
       const pdf = new jsPDF('p', 'mm', 'a4')
@@ -1404,23 +1428,8 @@ export default function JetCleanApp() {
             '<h2 style="font-size:20px;color:#999;margin-top:60px;">لا توجد بيانات في ' + formatDateShort(date) + '</h2>' +
             '</div>'
 
-          reportArea.innerHTML = noDataHtml
-          reportArea.style.position = 'fixed'
-          reportArea.style.top = '0'
-          reportArea.style.left = '-99999px'
-          reportArea.style.width = '800px'
-
-          await new Promise(r => setTimeout(r, 200))
-          const savedSheets = disableStylesForCapture()
-          const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-          restoreStylesAfterCapture(savedSheets)
+          const canvas = await renderHtmlToCanvas(noDataHtml, 800)
           const imgHeight = (canvas.height * pageWidth) / canvas.width
-
-          reportArea.style.position = ''
-          reportArea.style.top = ''
-          reportArea.style.left = ''
-          reportArea.style.width = ''
-          reportArea.innerHTML = ''
 
           if (!firstPage) pdf.addPage()
           firstPage = false
@@ -1444,41 +1453,12 @@ export default function JetCleanApp() {
           const pages = buildCarReportHTML(date, bid, bName, bEntries)
 
           // Render Page 1
-          reportArea.innerHTML = pages.page1
-          reportArea.style.position = 'fixed'
-          reportArea.style.top = '0'
-          reportArea.style.left = '-99999px'
-          reportArea.style.width = '800px'
-
-          await new Promise(r => setTimeout(r, 200))
-          const savedSheets1 = disableStylesForCapture()
-          const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-          restoreStylesAfterCapture(savedSheets1)
+          const canvas1 = await renderHtmlToCanvas(pages.page1, 800)
           const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
 
-          reportArea.style.position = ''
-          reportArea.style.top = ''
-          reportArea.style.left = ''
-          reportArea.style.width = ''
-
           // Render Page 2
-          reportArea.innerHTML = pages.page2
-          reportArea.style.position = 'fixed'
-          reportArea.style.top = '0'
-          reportArea.style.left = '-99999px'
-          reportArea.style.width = '800px'
-
-          await new Promise(r => setTimeout(r, 200))
-          const savedSheets2 = disableStylesForCapture()
-          const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true })
-          restoreStylesAfterCapture(savedSheets2)
+          const canvas2 = await renderHtmlToCanvas(pages.page2, 800)
           const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
-
-          reportArea.style.position = ''
-          reportArea.style.top = ''
-          reportArea.style.left = ''
-          reportArea.style.width = ''
-          reportArea.innerHTML = ''
 
           if (!firstPage) pdf.addPage()
           firstPage = false
@@ -1507,14 +1487,13 @@ export default function JetCleanApp() {
   const handleExportEmployeePDF = async () => {
     setExportingEmp(true)
     try {
-      // Load html2canvas and jsPDF dynamically
-      const html2canvasModule = await import('html2canvas')
-      const html2canvas = html2canvasModule.default
+      // Load jsPDF dynamically
       const jspdfModule = await import('jspdf')
       const jsPDF = jspdfModule.default
 
-      // Determine dates - default to admin date if no export range set
+      // Determine dates - default to current month if no export range set
       let dates: string[] = []
+      const now = new Date()
       if (exportRangeType === 'month' && exportMonth) {
         const [yearStr, monthStr] = exportMonth.split('-')
         const year = parseInt(yearStr)
@@ -1535,9 +1514,14 @@ export default function JetCleanApp() {
         }
       }
 
-      // Default to admin date if no range was set
+      // Default to current month if no range was set
       if (dates.length === 0) {
-        dates.push(adminDate)
+        const year = now.getFullYear()
+        const month = now.getMonth() + 1
+        const daysInMonth = new Date(year, month, 0).getDate()
+        for (let d = 1; d <= daysInMonth; d++) {
+          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+        }
       }
 
       if (dates.length === 0) { setExportingEmp(false); return }
@@ -1557,7 +1541,7 @@ export default function JetCleanApp() {
       } else if (exportFrom && exportTo) {
         periodLabel = formatDateShort(exportFrom) + ' إلى ' + formatDateShort(exportTo)
       } else {
-        periodLabel = formatDateShort(adminDate)
+        periodLabel = arabicMonths[now.getMonth()] + ' ' + now.getFullYear()
       }
 
       // Filter records to only those within the date range
@@ -1578,36 +1562,8 @@ export default function JetCleanApp() {
         (r: FinancialRecord) => dates.includes(r.date)
       )
 
-      const reportArea = pdfAreaRef.current
-      if (!reportArea) { setExportingEmp(false); return alert('خطأ في عنصر التقرير') }
-
-      // Render HTML off-screen
-      reportArea.innerHTML = reportHtml
-      reportArea.style.position = 'fixed'
-      reportArea.style.top = '0'
-      reportArea.style.left = '-99999px'
-      reportArea.style.width = '800px'
-      reportArea.style.zIndex = '-1'
-
-      await new Promise(r => setTimeout(r, 300))
-
-      // Capture with html2canvas
-      const savedSheetsE = disableStylesForCapture()
-      const canvas = await html2canvas(reportArea, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        logging: false
-      })
-      restoreStylesAfterCapture(savedSheetsE)
-
-      // Clean up
-      reportArea.style.position = ''
-      reportArea.style.top = ''
-      reportArea.style.left = ''
-      reportArea.style.width = ''
-      reportArea.style.zIndex = ''
-      reportArea.innerHTML = ''
+      // Render in clean iframe
+      const canvas = await renderHtmlToCanvas(reportHtml, 800)
 
       // Create PDF - handle multiple pages if content is tall
       const pdf = new jsPDF('p', 'mm', 'a4')
@@ -1617,10 +1573,8 @@ export default function JetCleanApp() {
       const imgHeight = (canvas.height * pageWidth) / canvas.width
 
       if (imgHeight <= pageHeight) {
-        // Single page
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight)
       } else {
-        // Multiple pages - split the canvas
         let remainingHeight = imgHeight
         let yOffset = 0
         let page = 0
@@ -1662,8 +1616,6 @@ export default function JetCleanApp() {
   const handleExportCarEntryPDF = async () => {
     setExportingEmp(true)
     try {
-      const html2canvasModule = await import('html2canvas')
-      const html2canvas = html2canvasModule.default
       const jspdfModule = await import('jspdf')
       const jsPDF = jspdfModule.default
 
@@ -1702,60 +1654,21 @@ export default function JetCleanApp() {
       // Build report
       const pages = buildCarReportHTML(date, branchId, branchName, entries)
 
-      const reportArea = pdfAreaRef.current
-      if (!reportArea) { setExportingEmp(false); return alert('خطأ في عنصر التقرير') }
-
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
-      const pageHeight = pdf.internal.pageSize.getHeight()
 
-      // Render Page 1
-      reportArea.innerHTML = pages.page1
-      reportArea.style.position = 'fixed'
-      reportArea.style.top = '0'
-      reportArea.style.left = '-99999px'
-      reportArea.style.width = '800px'
-      reportArea.style.zIndex = '-1'
-
-      await new Promise(r => setTimeout(r, 300))
-      const savedSheetsC1 = disableStylesForCapture()
-      const canvas1 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
-      restoreStylesAfterCapture(savedSheetsC1)
-      const imgData1 = canvas1.toDataURL('image/png')
+      // Render Page 1 in clean iframe
+      const canvas1 = await renderHtmlToCanvas(pages.page1, 800)
       const imgHeight1 = (canvas1.height * pageWidth) / canvas1.width
 
-      reportArea.style.position = ''
-      reportArea.style.top = ''
-      reportArea.style.left = ''
-      reportArea.style.width = ''
-      reportArea.style.zIndex = ''
-
-      // Render Page 2
-      reportArea.innerHTML = pages.page2
-      reportArea.style.position = 'fixed'
-      reportArea.style.top = '0'
-      reportArea.style.left = '-99999px'
-      reportArea.style.width = '800px'
-      reportArea.style.zIndex = '-1'
-
-      await new Promise(r => setTimeout(r, 300))
-      const savedSheetsC2 = disableStylesForCapture()
-      const canvas2 = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false })
-      restoreStylesAfterCapture(savedSheetsC2)
-      const imgData2 = canvas2.toDataURL('image/png')
+      // Render Page 2 in clean iframe
+      const canvas2 = await renderHtmlToCanvas(pages.page2, 800)
       const imgHeight2 = (canvas2.height * pageWidth) / canvas2.width
 
-      reportArea.style.position = ''
-      reportArea.style.top = ''
-      reportArea.style.left = ''
-      reportArea.style.width = ''
-      reportArea.style.zIndex = ''
-      reportArea.innerHTML = ''
-
       // Add to PDF
-      pdf.addImage(imgData1, 'PNG', 0, 0, pageWidth, imgHeight1)
+      pdf.addImage(canvas1.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight1)
       pdf.addPage()
-      pdf.addImage(imgData2, 'PNG', 0, 0, pageWidth, imgHeight2)
+      pdf.addImage(canvas2.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight2)
 
       const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
       pdf.save(fileName)
