@@ -3125,22 +3125,14 @@ export default function JetCleanApp() {
                 </select>
               </div>
               <div>
-                <div className="flex items-center justify-between bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <div className="flex items-center justify-between bg-slate-900 border border-slate-600 rounded-lg p-2.5 cursor-pointer" onClick={(e) => { e.stopPropagation(); e.preventDefault() }}>
                   <span className="text-xs text-slate-400">🌐 موظف مشترك (أكثر من فرع)</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (showMultiBranchPicker) {
-                        setShowMultiBranchPicker(false)
-                        setNewEmp(prev => ({ ...prev, multiBranchIds: [] as string[] }))
-                      } else {
-                        setShowMultiBranchPicker(true)
-                      }
-                    }}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${showMultiBranchPicker ? 'bg-amber-500' : 'bg-slate-600'}`}
+                  <div
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); if (showMultiBranchPicker) { setShowMultiBranchPicker(false); setNewEmp(prev => ({ ...prev, multiBranchIds: [] as string[] })) } else { setShowMultiBranchPicker(true) } }}
+                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer select-none ${showMultiBranchPicker ? 'bg-amber-500' : 'bg-slate-600'}`}
                   >
-                    <span className={`absolute top-0.5 ${showMultiBranchPicker ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
-                  </button>
+                    <div className={`absolute top-0.5 ${showMultiBranchPicker ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all shadow`} />
+                  </div>
                 </div>
                 {showMultiBranchPicker && (
                   <div className="mt-2 bg-slate-900 border border-amber-500/30 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
