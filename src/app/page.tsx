@@ -1588,6 +1588,29 @@ export default function JetCleanApp() {
     }
   }
 
+  const handleEditRecord = async (id: string, amount: number, empDate: string) => {
+    try {
+      const res = await fetch('/api/records', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, amount })
+      })
+      if (res.ok) {
+        await loadRecords({ date: empDate }, true)
+      }
+    } catch (e) { console.error(e) }
+  }
+
+  const handleDeleteRecord = async (id: string, empDate: string) => {
+    if (!confirm('هل تريد حذف هذه الحركة؟')) return
+    try {
+      const res = await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await loadRecords({ date: empDate }, true)
+      }
+    } catch (e) { console.error(e) }
+  }
+
   // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
   const syncBranchConfigs = () => {
     branches.forEach(b => {
@@ -2957,7 +2980,7 @@ export default function JetCleanApp() {
             )
           })()}
 
-          {/* بطاقة المصروفات المدخلة لليوم */}
+          {/* بطاقة المصروفات والسحوبات المدخلة لليوم */}
           {branchName && empDate && (() => {
             const expWKey = branchName + '_' + empDate
             const expBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
@@ -2965,66 +2988,93 @@ export default function JetCleanApp() {
             const treasury = savedWE2.treasury || {}
             const expenseEntries = Object.keys(treasury)
               .filter(k => k.startsWith('مصروف_'))
-              .map(k => ({ key: k, name: k.replace('مصروف_', ''), amount: treasury[k].expense || 0 }))
-            if (expenseEntries.length === 0) return null
-            const totalExp = expenseEntries.reduce((s, e) => s + e.amount, 0)
+              .map(k => ({ key: k, name: k.replace('مصروف_', ''), amount: treasury[k].expense || 0, type: 'expense' as const }))
+
+            // سحوبات وعجوزات اليوم
+            const todayRecords = records
+              .filter(r => r.date === empDate && r.branchId === expBranchId)
+              .map(r => ({
+                key: r.id,
+                name: (r.type === 'withdrawal' ? '💸 سحب: ' : '📉 عجز: ') + (r.employee?.name || ''),
+                amount: r.amount,
+                type: r.type as 'withdrawal' | 'shortage'
+              }))
+
+            const allEntries = [...expenseEntries, ...todayRecords]
+            if (allEntries.length === 0) return null
+            const totalExp = allEntries.reduce((s, e) => s + e.amount, 0)
             const canEdit = user?.role !== 'viewer'
             return (
               <div className="bg-slate-800 border border-rose-500/30 rounded-2xl p-4 mt-4">
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">📋 مصروفات اليوم</h4>
+                  <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">📋 حركات اليوم</h4>
                   <span className="text-rose-400 text-sm font-black">{totalExp} د.ل</span>
                 </div>
                 <div className="space-y-2">
-                  {expenseEntries.map(exp => (
-                    <div key={exp.key} className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
-                      {canEdit ? (
-                        <input
-                          type="text"
-                          defaultValue={exp.name}
-                          onBlur={e => {
-                            const newName = e.target.value.trim()
-                            if (newName && newName !== exp.name) handleExpenseRename(expWKey, expBranchId, empDate, exp.key, newName)
-                            else e.target.value = exp.name
-                          }}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                          }}
-                          className="bg-slate-800 border border-slate-600 text-slate-200 rounded-md px-2 py-1 text-xs font-semibold flex-1 outline-none focus:border-cyan-400/50"
-                        />
+                  {allEntries.map(entry => (
+                    <div key={entry.key} className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
+                      {/* الاسم */}
+                      {entry.type === 'expense' ? (
+                        canEdit ? (
+                          <input
+                            type="text"
+                            defaultValue={entry.name}
+                            onBlur={e => {
+                              const newName = e.target.value.trim()
+                              if (newName && newName !== entry.name) handleExpenseRename(expWKey, expBranchId, empDate, entry.key, newName)
+                              else e.target.value = entry.name
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                            }}
+                            className="bg-slate-800 border border-slate-600 text-slate-200 rounded-md px-2 py-1 text-xs font-semibold flex-1 outline-none focus:border-cyan-400/50"
+                          />
+                        ) : (
+                          <span className="text-slate-300 text-sm flex-1">{entry.name}</span>
+                        )
                       ) : (
-                        <span className="text-slate-300 text-sm flex-1">{exp.name}</span>
+                        <span className={"text-sm flex-1 " + (entry.type === 'withdrawal' ? 'text-amber-300' : 'text-rose-300')}>{entry.name}</span>
                       )}
+                      {/* المبلغ */}
                       {canEdit ? (
                         <input
                           type="number"
-                          value={exp.amount || ''}
+                          value={entry.amount || ''}
                           placeholder="0"
                           onChange={e => {
                             const val = parseInt(e.target.value) || 0
-                            handleTreasuryFieldChange(expWKey, branchName, expBranchId, empDate, exp.key, 'expense', val)
+                            if (entry.type === 'expense') {
+                              handleTreasuryFieldChange(expWKey, branchName, expBranchId, empDate, entry.key, 'expense', val)
+                            } else {
+                              handleEditRecord(entry.key, val, empDate)
+                            }
                           }}
                           className="bg-slate-800 border border-red-400/30 text-red-300 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
                         />
                       ) : (
-                        <span className="text-rose-400 text-sm font-bold">{exp.amount} د.ل</span>
+                        <span className="text-rose-400 text-sm font-bold">{entry.amount} د.ل</span>
                       )}
+                      {/* حذف */}
                       {canEdit && (
                         <button
                           onClick={() => {
-                            setWorkerExpData(prev => {
-                              const updated = { ...prev }
-                              if (updated[expWKey]?.treasury) {
-                                const t = { ...updated[expWKey].treasury! }
-                                delete t[exp.key]
-                                updated[expWKey] = { ...updated[expWKey], treasury: t }
-                                void saveWorkerExpData(expBranchId, empDate, updated[expWKey])
-                              }
-                              return updated
-                            })
+                            if (entry.type === 'expense') {
+                              setWorkerExpData(prev => {
+                                const updated = { ...prev }
+                                if (updated[expWKey]?.treasury) {
+                                  const t = { ...updated[expWKey].treasury! }
+                                  delete t[entry.key]
+                                  updated[expWKey] = { ...updated[expWKey], treasury: t }
+                                  void saveWorkerExpData(expBranchId, empDate, updated[expWKey])
+                                }
+                                return updated
+                              })
+                            } else {
+                              handleDeleteRecord(entry.key, empDate)
+                            }
                           }}
                           className="text-slate-500 hover:text-rose-400 text-xs"
-                          title="حذف المصروف"
+                          title="حذف"
                         >🗑️</button>
                       )}
                     </div>

@@ -54,3 +54,20 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const { id, amount, note } = await req.json()
+    if (!id || amount === undefined) {
+      return NextResponse.json({ error: 'معرف ومبلغ مطلوبان' }, { status: 400 })
+    }
+    const record = await db.record.update({
+      where: { id },
+      data: { amount, note: note || '' }
+    })
+    return NextResponse.json(record)
+  } catch (error) {
+    console.error('Update record error:', error)
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
+  }
+}
