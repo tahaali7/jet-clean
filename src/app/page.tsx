@@ -678,9 +678,11 @@ function buildEmployeeReportHTML(
       empRecords.forEach(r => {
         const typeLabel = r.type === 'withdrawal' ? 'سحب' : 'عجز'
         const typeColor = r.type === 'withdrawal' ? '#b45309' : '#be123c'
+        const recordBranchName = allBranches.find(b => b.id === r.branchId)?.name || ''
         detailHtml += '<tr>' +
           '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:#666;">' + formatDateShort(r.date) + '</td>' +
           '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:' + typeColor + ';font-weight:600;">' + typeLabel + '</td>' +
+          '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:#0e7490;font-weight:600;">' + recordBranchName + '</td>' +
           '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;">' + r.amount + ' د.ل</td>' +
           '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:#888;">' + (r.note || '—') + '</td>' +
           '</tr>'
@@ -693,10 +695,11 @@ function buildEmployeeReportHTML(
         '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#1e293b;">' + total + ' د.ل</td>' +
         '</tr>'
       if (detailHtml) {
-        multiRowsHtml += '<tr><td colspan="4" style="padding:0;border:1px solid #ddd;">' +
+        multiRowsHtml += '<tr><td colspan="5" style="padding:0;border:1px solid #ddd;">' +
           '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="background:#f1f5f9;">' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">التاريخ</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">النوع</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">الفرع</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">المبلغ</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">ملاحظة</th>' +
           '</tr></thead><tbody>' + detailHtml + '</tbody></table></td></tr>'
