@@ -9,6 +9,7 @@ interface User {
   role: 'admin' | 'employee' | 'viewer'
   branchId?: string
   shift?: string
+  password?: string
 }
 
 interface Branch {
@@ -868,6 +869,8 @@ export default function JetCleanApp() {
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
   const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
   const [adminPassword, setAdminPassword] = useState('')
+  const [showChangePwdModal, setShowChangePwdModal] = useState(false)
+  const [empNewPwd, setEmpNewPwd] = useState('')
   const [showClosingModal, setShowClosingModal] = useState(false)
 
   // Export modal state
@@ -1077,6 +1080,27 @@ export default function JetCleanApp() {
     setIsAdminMode(false)
     setAdminSelectedBranch(null)
     setScreen('login')
+  }
+
+  const handleChangeOwnPassword = async () => {
+    if (!user) return
+    const trimmed = empNewPwd.trim()
+    if (!trimmed) return alert('الرجاء إدخال كلمة المرور الجديدة')
+    if (trimmed.length < 4) return alert('كلمة المرور يجب أن تكون 4 أرقام على الأقل')
+    try {
+      const res = await fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, password: trimmed })
+      })
+      if (res.ok) {
+        alert('✅ تم تغيير كلمة المرور بنجاح')
+        setEmpNewPwd('')
+        setShowChangePwdModal(false)
+      } else {
+        alert('حدث خطأ أثناء تغيير كلمة المرور')
+      }
+    } catch (e) { alert('حدث خطأ') }
   }
 
   // نسخ احتياطي تلقائي صامت
@@ -2274,6 +2298,11 @@ export default function JetCleanApp() {
               📋 تقرير الإغلاق اليومي
             </button>
             )}
+            {user?.role !== 'admin' && (
+            <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-cyan-500/30">
+              🔑 كلمة المرور
+            </button>
+            )}
             <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
               🚪 تسجيل خروج
             </button>
@@ -3432,6 +3461,39 @@ export default function JetCleanApp() {
             <div className="flex gap-3">
               <button onClick={handleSaveEditEmployee} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ التعديلات</button>
               <button onClick={() => { setShowEditEmpModal(false); setEditEmp(null) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Own Password Modal */}
+      {showChangePwdModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">🔑 تغيير كلمة المرور</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900 rounded-xl p-3 border border-slate-600">
+                <p className="text-xs text-slate-400 mb-1">رمز المرور الحالي</p>
+                <p className="text-2xl font-black text-amber-400 tracking-widest text-center">{user?.password || '—'}</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-300 mb-1 block">كلمة المرور الجديدة</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={empNewPwd}
+                  onChange={e => setEmpNewPwd(e.target.value)}
+                  placeholder="أدخل الرمز الجديد"
+                  className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-lg font-bold text-center tracking-widest focus:outline-none focus:border-cyan-500"
+                  maxLength={20}
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') handleChangeOwnPassword() }}
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleChangeOwnPassword} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+                <button onClick={() => setShowChangePwdModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+              </div>
             </div>
           </div>
         </div>

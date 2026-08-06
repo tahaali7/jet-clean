@@ -38,7 +38,8 @@ export async function POST(req: NextRequest) {
         name: employee.name,
         role: (employee.role || 'employee') as 'employee' | 'viewer',
         branchId: employee.branchId,
-        shift: employee.shift
+        shift: employee.shift,
+        password: employee.password
       }
     })
   } catch (error) {
