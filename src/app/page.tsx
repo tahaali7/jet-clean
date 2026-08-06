@@ -2281,7 +2281,7 @@ export default function JetCleanApp() {
 
         <main className="max-w-4xl mx-auto px-4 pb-24 space-y-4">
           <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
-            {isAdminMode && (
+            {(isAdminMode || isViewer) && (
               <>
                 <label className="text-sm text-amber-300 font-semibold whitespace-nowrap">📍 اختر الفرع:</label>
                 <select
