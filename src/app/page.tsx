@@ -3124,28 +3124,43 @@ export default function JetCleanApp() {
                 </select>
               </div>
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">فروع إضافية <span className="text-[10px] text-amber-400">(اختياري - للموظفين اللي يخدموا في أكثر من فرع)</span></label>
-                <div className="bg-slate-900 border border-slate-600 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
-                  {branches.filter(b => b.id !== newEmp.branchId).map(b => (
-                    <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
-                      <input type="checkbox"
-                        checked={newEmp.multiBranchIds.includes(b.id)}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setNewEmp(prev => ({ ...prev, multiBranchIds: [...prev.multiBranchIds, b.id] }))
-                          } else {
-                            setNewEmp(prev => ({ ...prev, multiBranchIds: prev.multiBranchIds.filter(id => id !== b.id) }))
-                          }
-                        }}
-                        className="rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500"
-                      />
-                      <span>{b.name}</span>
-                    </label>
-                  ))}
-                  {branches.filter(b => b.id !== newEmp.branchId).length === 0 && (
-                    <span className="text-slate-500 text-xs">اختر الفرع الأساسي أولاً</span>
-                  )}
+                <div className="flex items-center justify-between bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                  <span className="text-xs text-slate-400">🌐 موظف مشترك (أكثر من فرع)</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newEmp.multiBranchIds.length > 0) {
+                        setNewEmp(prev => ({ ...prev, multiBranchIds: [] as string[] }))
+                      }
+                    }}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${newEmp.multiBranchIds.length > 0 ? 'bg-amber-500' : 'bg-slate-600'}`}
+                  >
+                    <span className={`absolute top-0.5 ${newEmp.multiBranchIds.length > 0 ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                  </button>
                 </div>
+                {newEmp.multiBranchIds.length > 0 && (
+                  <div className="mt-2 bg-slate-900 border border-amber-500/30 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
+                    {branches.filter(b => b.id !== newEmp.branchId).map(b => (
+                      <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
+                        <input type="checkbox"
+                          checked={newEmp.multiBranchIds.includes(b.id)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setNewEmp(prev => ({ ...prev, multiBranchIds: [...prev.multiBranchIds, b.id] }))
+                            } else {
+                              setNewEmp(prev => ({ ...prev, multiBranchIds: prev.multiBranchIds.filter(id => id !== b.id) }))
+                            }
+                          }}
+                          className="rounded border-slate-500 bg-slate-700 text-amber-500 focus:ring-amber-500"
+                        />
+                        <span>{b.name}</span>
+                      </label>
+                    ))}
+                    {branches.filter(b => b.id !== newEmp.branchId).length === 0 && (
+                      <span className="text-slate-500 text-xs">اختر الفرع الأساسي أولاً</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">الوردية</label>
