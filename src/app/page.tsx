@@ -844,6 +844,9 @@ export default function JetCleanApp() {
   const [saving, setSaving] = useState(false)
   const [quickBankCardSale, setQuickBankCardSale] = useState('')
   const [quickCoupons, setQuickCoupons] = useState('')
+  const [quickExpName, setQuickExpName] = useState('')
+  const [quickExpAmount, setQuickExpAmount] = useState('')
+  const [quickExpenses, setQuickExpenses] = useState<{ name: string; amount: number }[]>([])
 
   // Admin screen state
   const [adminDate, setAdminDate] = useState(todayISO())
@@ -1490,6 +1493,42 @@ export default function JetCleanApp() {
     })
     setQuickBankCardSale('')
     setQuickCoupons('')
+  }
+
+  const handleAddQuickExpense = () => {
+    const name = quickExpName.trim()
+    const amount = parseInt(quickExpAmount) || 0
+    if (!name || amount <= 0) return alert('الرجاء إدخال اسم المصروف وقيمته')
+    setQuickExpenses(prev => [...prev, { name, amount }])
+    setQuickExpName('')
+    setQuickExpAmount('')
+  }
+
+  const handleRemoveQuickExpense = (idx: number) => {
+    setQuickExpenses(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleSaveQuickExpenses = (branchId: string, branchName: string, date: string) => {
+    if (quickExpenses.length === 0) return
+    const wKey = branchName + '_' + date
+
+    setWorkerExpData(prev => {
+      const updated = { ...prev }
+      if (!updated[wKey]) updated[wKey] = {}
+      if (!updated[wKey].treasury) updated[wKey].treasury = {}
+
+      const treasury = { ...updated[wKey].treasury! }
+      quickExpenses.forEach(exp => {
+        const key = 'مصروف_' + exp.name
+        const existing = treasury[key] || { income: 0, expense: 0 }
+        treasury[key] = { ...existing, expense: (existing.expense || 0) + exp.amount }
+      })
+      updated[wKey] = { ...updated[wKey], treasury }
+
+      void saveWorkerExpData(branchId, date, updated[wKey])
+      return updated
+    })
+    setQuickExpenses([])
   }
 
   // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
@@ -2505,6 +2544,59 @@ export default function JetCleanApp() {
                 >
                   💾 حفظ البيانات الإضافية
                 </button>
+              </div>
+              ) : null
+            })()}
+
+            {/* إدخال مصروفات إضافية */}
+            {selectedRoom && branchName && user?.role !== 'viewer' && (() => {
+              const qBranchId2 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+              return qBranchId2 ? (
+              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mt-4">
+                <h3 className="text-sm font-bold text-rose-400 mb-3 flex items-center gap-2">📋 إدخال مصروفات</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={quickExpName}
+                    onChange={e => setQuickExpName(e.target.value)}
+                    placeholder="اسم المصروف (مثلاً: صيانة)"
+                    className="sm:col-span-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={quickExpAmount}
+                      onChange={e => setQuickExpAmount(e.target.value)}
+                      placeholder="المبلغ"
+                      className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+                    />
+                    <button
+                      onClick={handleAddQuickExpense}
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg transition text-sm"
+                    >
+                      ➕
+                    </button>
+                  </div>
+                </div>
+                {quickExpenses.length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {quickExpenses.map((exp, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
+                        <span className="text-slate-300 text-sm">{exp.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-rose-400 font-bold text-sm">{exp.amount} د.ل</span>
+                          <button onClick={() => handleRemoveQuickExpense(idx)} className="text-slate-500 hover:text-rose-400 text-xs">✕</button>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => handleSaveQuickExpenses(qBranchId2, branchName, empDate)}
+                      className="w-full bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold py-2.5 rounded-xl transition text-sm border border-rose-500/30"
+                    >
+                      💾 حفظ المصروفات ({quickExpenses.reduce((s, e) => s + e.amount, 0)} د.ل)
+                    </button>
+                  </div>
+                )}
               </div>
               ) : null
             })()}
