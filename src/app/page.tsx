@@ -1150,7 +1150,7 @@ export default function JetCleanApp() {
   // Fetch dates with data for calendar highlighting
   useEffect(() => {
     if (!calMonth) return
-    const branchId = isAdminMode ? adminSelectedBranch : user?.branchId
+    const branchId = (isAdminMode || user?.role === 'viewer') ? (adminSelectedBranch || user?.branchId) : user?.branchId
     if (!branchId) return
     fetch('/api/car-entries?datesOnly=true&branchId=' + branchId + '&month=' + calMonth)
       .then(r => r.ok ? r.json() : [])
@@ -1164,10 +1164,10 @@ export default function JetCleanApp() {
       ;(async () => {
         try { await loadBranches() } catch(e) { console.error(e) }
         try { await loadEmployees() } catch(e) { console.error(e) }
-        if (isAdminMode && adminSelectedBranch) {
+        if ((isAdminMode || user?.role === 'viewer') && adminSelectedBranch) {
           try { await loadCarEntries(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
           try { await loadWorkerExpenses(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
-        } else if (!isAdminMode && (user?.role === 'employee' || user?.role === 'viewer') && user.branchId) {
+        } else if (!isAdminMode && user?.role !== 'viewer' && user?.role === 'employee' && user.branchId) {
           try { await loadCarEntries(empDate, user.branchId) } catch(e) { console.error(e) }
           try { await loadWorkerExpenses(empDate, user.branchId) } catch(e) { console.error(e) }
         }
@@ -2205,19 +2205,20 @@ export default function JetCleanApp() {
 
   // ==================== EMPLOYEE SCREEN ====================
   const renderEmployeeScreen = () => {
-    const currentBranch = isAdminMode
-      ? (adminSelectedBranch ? branches.find(b => b.id === adminSelectedBranch) : null)
+    const currentBranch = (isAdminMode || user?.role === 'viewer')
+      ? (adminSelectedBranch ? branches.find(b => b.id === adminSelectedBranch) : (user?.role === 'viewer' ? getEmployeeBranch() : null))
       : getEmployeeBranch()
     const branchName = currentBranch?.name || ''
     const branchId = currentBranch?.id || ''
     const availableRooms = branchName ? getRoomsForBranch(branchName) : []
 
     let displayEntries: CarEntry[] = []
-    if (isAdminMode) {
-      if (adminSelectedBranch && empDate) {
-        const adminEmpId = 'admin_' + adminSelectedBranch
+    if (isAdminMode || user?.role === 'viewer') {
+      const selectedBranch = user?.role === 'viewer' ? (adminSelectedBranch || user?.branchId) : adminSelectedBranch
+      if (selectedBranch && empDate) {
+        const adminEmpId = 'admin_' + selectedBranch
         displayEntries = carEntries.filter(e =>
-          (e.branchId === adminSelectedBranch || e.empId === adminEmpId) && e.date === empDate
+          (e.branchId === selectedBranch || e.empId === adminEmpId) && e.date === empDate
         )
       }
     } else {
@@ -2281,7 +2282,7 @@ export default function JetCleanApp() {
 
         <main className="max-w-4xl mx-auto px-4 pb-24 space-y-4">
           <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
-            {(isAdminMode || isViewer) && (
+            {(isAdminMode || user?.role === 'viewer') && (
               <>
                 <label className="text-sm text-amber-300 font-semibold whitespace-nowrap">📍 اختر الفرع:</label>
                 <select
@@ -2545,7 +2546,7 @@ export default function JetCleanApp() {
                     </div>
 
                     {/* الخزينة */}
-                    {(isAdminMode || isViewer) && (
+                    {(isAdminMode || user?.role === 'viewer') && (
                       <div>
                         <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
                         <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
@@ -2573,9 +2574,9 @@ export default function JetCleanApp() {
                                     type="number"
                                     value={row.income || ''}
                                     placeholder="0"
-                                    readOnly={isViewer}
+                                    readOnly={user?.role === 'viewer'}
                                     onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'income', parseInt(e.target.value) || 0)}
-                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (isViewer ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-blue-400/30 text-emerald-400')}
+                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (user?.role === 'viewer' ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-blue-400/30 text-emerald-400')}
                                   />
                                 </div>
                               )}
@@ -2595,9 +2596,9 @@ export default function JetCleanApp() {
                                     type="number"
                                     value={row.expense || ''}
                                     placeholder="0"
-                                    readOnly={isViewer}
+                                    readOnly={user?.role === 'viewer'}
                                     onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'expense', parseInt(e.target.value) || 0)}
-                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (isViewer ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-red-400/30 text-red-300')}
+                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (user?.role === 'viewer' ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-red-400/30 text-red-300')}
                                   />
                                 </div>
                               )}
