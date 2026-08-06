@@ -258,12 +258,14 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   const titlePad = titlePadMap[sl]
   const titleFs = titleFsMap[sl]
   let rowsHtml = ''
-  prices.forEach(() => {
+  let rowNum = 0
+  prices.forEach(price => {
+    rowNum++
     rowsHtml += '<tr>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
-      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '"></td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + rowNum + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">' + price + '</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">0</td>' +
+      '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + '">0</td>' +
     '</tr>'
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
@@ -278,11 +280,11 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
     rowsHtml +
     '<tr style="background:#e0e0e0;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;"></td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">0</td>' +
     '</tr>' +
     '<tr style="background:#e8f5e9;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;"></td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">0</td>' +
     '</tr>' +
     '</table>'
 }
