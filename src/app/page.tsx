@@ -2632,8 +2632,7 @@ export default function JetCleanApp() {
           {/* بطاقات الفروع - شبكة عمودين */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {branches.map(branch => {
-              const isMultiBranch = (e: any) => { try { const ids = JSON.parse(e.multiBranchIds || '[]'); return ids.includes(branch.id) } catch { return false } }
-              const branchEmps = employees.filter(e => e.branchId === branch.id || isMultiBranch(e))
+              const branchEmps = employees.filter(e => e.branchId === branch.id)
               let branchWithdrawals = 0
               let branchShortages = 0
               let branchCarTotal = 0
@@ -2755,6 +2754,106 @@ export default function JetCleanApp() {
               )
             })}
           </div>
+
+          {/* بطاقة الموظفين متعددي الفروع */}
+          {(() => {
+            const multiEmps = employees.filter(e => {
+              try { const ids = JSON.parse(e.multiBranchIds || '[]'); return ids.length > 0 } catch { return false }
+            })
+            if (multiEmps.length === 0) return null
+            const currentMonth = adminDate.substring(0, 7)
+            return (
+              <div className="mt-4 bg-slate-800 border border-amber-500/30 rounded-2xl overflow-hidden shadow-lg">
+                <div className="flex justify-between items-center px-5 py-3.5 border-b border-amber-500/20">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-400">🌐</span>
+                    <h2 className="text-base font-bold text-amber-400">موظفين مشتركين (أكثر من فرع)</h2>
+                  </div>
+                </div>
+                <div className="p-3.5 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                  {multiEmps.map(emp => {
+                    const empRecordsMonth = records.filter(r => r.empId === emp.id && r.date.startsWith(currentMonth))
+                    const withdrawals = empRecordsMonth.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+                    const shortages = empRecordsMonth.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+                    const total = withdrawals + shortages
+                    const branchNames = (() => {
+                      try {
+                        const ids: string[] = JSON.parse(emp.multiBranchIds || '[]')
+                        const names = ids.map(id => branches.find(b => b.id === id)?.name).filter(Boolean)
+                        const mainBranch = branches.find(b => b.id === emp.branchId)?.name
+                        return mainBranch ? [mainBranch, ...names] : names
+                      } catch { return [] }
+                    })()
+                    return (
+                      <div key={emp.id} className="bg-slate-900 border border-amber-500/20 rounded-xl p-3.5">
+                        <div className="flex justify-between items-center mb-2.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-bold text-white text-sm">{emp.name}</h3>
+                            <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+                            <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">🌐 {branchNames.join(' | ')}</span>
+                          </div>
+                          <div className="flex gap-1.5">
+                            {!dayClosed && (
+                              <button
+                                onClick={() => {
+                                  setRecordModalData({
+                                    id: '', empId: emp.id, empName: emp.name, type: 'withdrawal',
+                                    amount: '', note: '', date: adminDate, branchId: emp.branchId
+                                  })
+                                  setShowRecordModal(true)
+                                }}
+                                className="bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition hover:bg-cyan-400"
+                              >+ حركة</button>
+                            )}
+                            <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mb-2">
+                          <div className="bg-slate-800/80 rounded-lg p-2 text-center">
+                            <div className="text-[10px] text-slate-400">سحوبات الشهر</div>
+                            <div className="text-sm font-bold text-amber-400">{withdrawals} د.ل</div>
+                          </div>
+                          <div className="bg-slate-800/80 rounded-lg p-2 text-center">
+                            <div className="text-[10px] text-slate-400">عجز الشهر</div>
+                            <div className="text-sm font-bold text-rose-400">{shortages} د.ل</div>
+                          </div>
+                          <div className="bg-slate-800/80 rounded-lg p-2 text-center">
+                            <div className="text-[10px] text-slate-400">الإجمالي</div>
+                            <div className="text-sm font-bold text-white">{total} د.ل</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1 mt-2 max-h-52 overflow-y-auto custom-scrollbar">
+                          {empRecordsMonth.length === 0 && (
+                            <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
+                          )}
+                          {empRecordsMonth.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(r => (
+                            <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1.5 rounded-lg">
+                              <span>{r.date?.substring(5)} {r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
+                                {!dayClosed && (
+                                  <>
+                                    <button onClick={() => {
+                                      setRecordModalData({
+                                        id: r.id, empId: r.empId, empName: emp.name, type: r.type,
+                                        amount: String(r.amount), note: r.note, date: r.date, branchId: r.branchId
+                                      })
+                                      setShowRecordModal(true)
+                                    }} className="text-slate-600 hover:text-cyan-400">✏️</button>
+                                    <button onClick={() => handleDeleteRecord(r.id)} className="text-slate-600 hover:text-rose-400">×</button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
         </main>
       </div>
     )
@@ -3236,7 +3335,7 @@ export default function JetCleanApp() {
             </div>
 
             {branches.map(branch => {
-              const branchEmps = employees.filter(e => (e.branchId === branch.id || (() => { try { return JSON.parse(e.multiBranchIds || '[]').includes(branch.id) } catch { return false } })()) && e.hasLogin)
+              const branchEmps = employees.filter(e => e.branchId === branch.id && e.hasLogin)
               if (branchEmps.length === 0) return null
               return (
                 <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
@@ -3279,7 +3378,7 @@ export default function JetCleanApp() {
               {(() => {
                 let gw = 0, gs = 0
                 branches.forEach(branch => {
-                  const bEmps = employees.filter(e => e.branchId === branch.id || (() => { try { return JSON.parse(e.multiBranchIds || '[]').includes(branch.id) } catch { return false } })())
+                  const bEmps = employees.filter(e => e.branchId === branch.id)
                   bEmps.forEach(emp => {
                     const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate)
                     gw += eRecs.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
@@ -3303,7 +3402,7 @@ export default function JetCleanApp() {
 
             <div className="space-y-2">
               {branches.map(branch => {
-                const bEmps = employees.filter(e => e.branchId === branch.id || (() => { try { return JSON.parse(e.multiBranchIds || '[]').includes(branch.id) } catch { return false } })())
+                const bEmps = employees.filter(e => e.branchId === branch.id)
                 const isClosed = isDayClosedForBranch(adminDate, branch.id)
                 let bw = 0, bs = 0
                 const rows = bEmps.map(emp => {
