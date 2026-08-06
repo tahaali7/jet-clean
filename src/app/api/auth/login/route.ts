@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Employee login
     const employee = await db.employee.findUnique({ where: { id: empId } })
-    if (!employee) {
+    if (!employee || employee.deleted) {
       return NextResponse.json({ success: false, error: 'الموظف غير موجود' }, { status: 404 })
     }
 
