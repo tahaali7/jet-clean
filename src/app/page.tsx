@@ -2680,6 +2680,11 @@ export default function JetCleanApp() {
                 <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   🚗 إعداد الغرف
                 </button>
+                {user?.role === 'viewer' && (
+                  <button onClick={() => setShowEmpReportModal(true)} className="bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-blue-500/30">
+                    📄 تقرير الموظفين
+                  </button>
+                )}
                 {user?.role !== 'viewer' && <>
                 <div className="relative">
                   <button onClick={(e) => { e.stopPropagation(); setShowAdminDropdown(!showAdminDropdown) }} className="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-slate-600">
