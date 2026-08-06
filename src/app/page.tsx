@@ -1482,18 +1482,9 @@ export default function JetCleanApp() {
     autoBackup()
   }
 
-  const handleDeleteEmployee = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف الموظف؟')) return
-    try {
-      await fetch(`/api/employees?id=${id}`, { method: 'DELETE' })
-      await loadEmployees()
-      await loadBranches()
-    } catch (e) { alert('حدث خطأ') }
-    autoBackup()
-  }
-
-  const handleDeleteMultiBranchEmployee = async (id: string, name: string) => {
-    if (!confirm(`⚠️ سيتم حذف الموظف "${name}" لكن تبقى جميع حركاته (سحوبات/عجوزات) مسجلة في النظام.
+  const handleDeleteEmployee = async (id: string, name?: string) => {
+    const displayName = name || 'هذا الموظف'
+    if (!confirm(`⚠️ سيتم حذف "${displayName}" لكن تبقى جميع حركاته مسجلة في النظام.
 
 هل أنت متأكد؟`)) return
     try {
@@ -2701,7 +2692,7 @@ export default function JetCleanApp() {
                           >+ حركة</button>
                         )}
                         {user?.role !== 'viewer' && <>
-                        <button onClick={() => handleDeleteEmployee(emp.id)} className="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
+                        <button onClick={() => handleDeleteEmployee(emp.id, emp.name)} className="text-slate-500 hover:text-rose-400 text-xs p-1" title="حذف الموظف مع بقاء الحركات">🗑️</button>
                         <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
                         </>}
                       </div>
@@ -2823,7 +2814,7 @@ export default function JetCleanApp() {
                               >+ حركة</button>
                             )}
                             <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
-                            <button onClick={() => handleDeleteMultiBranchEmployee(emp.id, emp.name)} className="text-slate-500 hover:text-rose-400 text-xs p-1" title="حذف الموظف مع بقاء الحركات">🗑️</button>
+                            <button onClick={() => handleDeleteEmployee(emp.id, emp.name)} className="text-slate-500 hover:text-rose-400 text-xs p-1" title="حذف الموظف مع بقاء الحركات">🗑️</button>
                           </div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mb-2">
