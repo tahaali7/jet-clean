@@ -2916,7 +2916,7 @@ export default function JetCleanApp() {
                                 className="bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition hover:bg-cyan-400"
                               >+ حركة</button>
                             )}
-                            <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
+                            {user?.role !== 'viewer' && <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>}
                             {user?.role !== 'viewer' && (
                               <button onClick={() => handleDeleteEmployee(emp.id, emp.name)} className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs px-2 py-1 rounded-lg border border-rose-500/20 transition font-bold">🗑️ حذف</button>
                             )}
