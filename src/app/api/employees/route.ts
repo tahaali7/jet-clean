@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   try {
     const { name, branchId, shift, password, role, hasLogin, startDate, endDate, multiBranchIds } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: 'الرجاء كتابة اسم الموظف' }, { status: 400 })
-    if (role !== 'viewer' && !branchId) return NextResponse.json({ error: 'الرجاء اختيار الفرع' }, { status: 400 })
+    if (role !== 'viewer' && !branchId && (!multiBranchIds || multiBranchIds.length === 0)) return NextResponse.json({ error: 'الرجاء اختيار الفرع' }, { status: 400 })
     if (hasLogin && !password?.trim()) return NextResponse.json({ error: 'الرجاء إدخال رمز المرور' }, { status: 400 })
 
     const id = name.trim().replace(/\s+/g, '_') + '_' + (branchId || 'viewer') + '_' + Date.now()
