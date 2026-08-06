@@ -1454,6 +1454,24 @@ export default function JetCleanApp() {
     })
   }
 
+  const handleExpenseRename = (wKey: string, branchId: string, date: string, oldKey: string, newName: string) => {
+    if (!newName.trim()) return
+    const newKey = 'مصروف_' + newName.trim()
+    if (newKey === oldKey) return
+    setWorkerExpData(prev => {
+      const updated = { ...prev }
+      if (!updated[wKey]?.treasury) return updated
+      const t = { ...updated[wKey].treasury! }
+      const oldData = t[oldKey]
+      if (!oldData) return updated
+      delete t[oldKey]
+      t[newKey] = { ...oldData }
+      updated[wKey] = { ...updated[wKey], treasury: t }
+      void saveWorkerExpData(branchId, date, updated[wKey])
+      return updated
+    })
+  }
+
   const handleTreasuryFieldChange = (key: string, branchName: string, branchId: string, date: string, itemKey: string, fieldType: 'income' | 'expense', value: number) => {
     setWorkerExpData(prev => {
       const updated = { ...prev }
@@ -2830,7 +2848,23 @@ export default function JetCleanApp() {
                 <div className="space-y-2">
                   {expenseEntries.map(exp => (
                     <div key={exp.key} className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
-                      <span className="text-slate-300 text-sm flex-1">{exp.name}</span>
+                      {canEdit ? (
+                        <input
+                          type="text"
+                          defaultValue={exp.name}
+                          onBlur={e => {
+                            const newName = e.target.value.trim()
+                            if (newName && newName !== exp.name) handleExpenseRename(expWKey, expBranchId, empDate, exp.key, newName)
+                            else e.target.value = exp.name
+                          }}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                          }}
+                          className="bg-slate-800 border border-slate-600 text-slate-200 rounded-md px-2 py-1 text-xs font-semibold flex-1 outline-none focus:border-cyan-400/50"
+                        />
+                      ) : (
+                        <span className="text-slate-300 text-sm flex-1">{exp.name}</span>
+                      )}
                       {canEdit ? (
                         <input
                           type="number"
