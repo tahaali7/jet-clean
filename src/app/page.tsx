@@ -1429,12 +1429,12 @@ export default function JetCleanApp() {
     autoBackup()
   }
 
-  const handleDeleteRecord = async (id: string) => {
+  const handleDeleteRecord = async (id: string, empDate?: string) => {
     if (!confirm('هل تريد حذف هذه الحركة؟')) return
     try {
       await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
       await new Promise(r => setTimeout(r, 300))
-      await loadRecords({ date: adminDate }, true)
+      await loadRecords({ date: empDate || adminDate }, true)
     } catch (e) { alert('حدث خطأ أثناء الحذف') }
     autoBackup()
   }
@@ -1595,16 +1595,6 @@ export default function JetCleanApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, amount })
       })
-      if (res.ok) {
-        await loadRecords({ date: empDate }, true)
-      }
-    } catch (e) { console.error(e) }
-  }
-
-  const handleDeleteRecord = async (id: string, empDate: string) => {
-    if (!confirm('هل تريد حذف هذه الحركة؟')) return
-    try {
-      const res = await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
       if (res.ok) {
         await loadRecords({ date: empDate }, true)
       }
