@@ -2804,64 +2804,67 @@ export default function JetCleanApp() {
                     )}
                   </div>
 
-                  {/* بطاقة المصروفات المدخلة لليوم */}
-                  {(() => {
-                    const savedWE2 = workerExpData[wKey] || {}
-                    const treasury = savedWE2.treasury || {}
-                    const expenseEntries = Object.keys(treasury)
-                      .filter(k => k.startsWith('مصروف_'))
-                      .map(k => ({ key: k, name: k.replace('مصروف_', ''), amount: treasury[k].expense || 0 }))
-                    if (expenseEntries.length === 0) return null
-                    const totalExp = expenseEntries.reduce((s, e) => s + e.amount, 0)
-                    const canEdit = user?.role !== 'viewer' && !dayClosed
-                    return (
-                      <div className="bg-slate-800 border border-rose-500/30 rounded-2xl p-4 mt-3">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">📋 مصروفات اليوم</h4>
-                          <span className="text-rose-400 text-sm font-black">{totalExp} د.ل</span>
-                        </div>
-                        <div className="space-y-2">
-                          {expenseEntries.map(exp => (
-                            <div key={exp.key} className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
-                              <span className="text-slate-300 text-sm flex-1">{exp.name}</span>
-                              {canEdit ? (
-                                <input
-                                  type="number"
-                                  value={exp.amount || ''}
-                                  placeholder="0"
-                                  onChange={e => {
-                                    const val = parseInt(e.target.value) || 0
-                                    handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, exp.key, 'expense', val)
-                                  }}
-                                  className="bg-slate-800 border border-red-400/30 text-red-300 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
-                                />
-                              ) : (
-                                <span className="text-rose-400 text-sm font-bold">{exp.amount} د.ل</span>
-                              )}
-                              {canEdit && (
-                                <button
-                                  onClick={() => {
-                                    setWorkerExpData(prev => {
-                                      const updated = { ...prev }
-                                      if (updated[wKey]?.treasury) {
-                                        const t = { ...updated[wKey].treasury! }
-                                        delete t[exp.key]
-                                        updated[wKey] = { ...updated[wKey], treasury: t }
-                                        void saveWorkerExpData(currentBranchId, empDate, updated[wKey])
-                                      }
-                                      return updated
-                                    })
-                                  }}
-                                  className="text-slate-500 hover:text-rose-400 text-xs"
-                                  title="حذف المصروف"
-                                >🗑️</button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })()}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* بطاقة المصروفات المدخلة لليوم */}
+          {branchName && empDate && (() => {
+            const expWKey = branchName + '_' + empDate
+            const expBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+            const savedWE2 = workerExpData[expWKey] || {}
+            const treasury = savedWE2.treasury || {}
+            const expenseEntries = Object.keys(treasury)
+              .filter(k => k.startsWith('مصروف_'))
+              .map(k => ({ key: k, name: k.replace('مصروف_', ''), amount: treasury[k].expense || 0 }))
+            if (expenseEntries.length === 0) return null
+            const totalExp = expenseEntries.reduce((s, e) => s + e.amount, 0)
+            const canEdit = user?.role !== 'viewer'
+            return (
+              <div className="bg-slate-800 border border-rose-500/30 rounded-2xl p-4 mt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-sm font-bold text-rose-400 flex items-center gap-2">📋 مصروفات اليوم</h4>
+                  <span className="text-rose-400 text-sm font-black">{totalExp} د.ل</span>
+                </div>
+                <div className="space-y-2">
+                  {expenseEntries.map(exp => (
+                    <div key={exp.key} className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
+                      <span className="text-slate-300 text-sm flex-1">{exp.name}</span>
+                      {canEdit ? (
+                        <input
+                          type="number"
+                          value={exp.amount || ''}
+                          placeholder="0"
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 0
+                            handleTreasuryFieldChange(expWKey, branchName, expBranchId, empDate, exp.key, 'expense', val)
+                          }}
+                          className="bg-slate-800 border border-red-400/30 text-red-300 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
+                        />
+                      ) : (
+                        <span className="text-rose-400 text-sm font-bold">{exp.amount} د.ل</span>
+                      )}
+                      {canEdit && (
+                        <button
+                          onClick={() => {
+                            setWorkerExpData(prev => {
+                              const updated = { ...prev }
+                              if (updated[expWKey]?.treasury) {
+                                const t = { ...updated[expWKey].treasury! }
+                                delete t[exp.key]
+                                updated[expWKey] = { ...updated[expWKey], treasury: t }
+                                void saveWorkerExpData(expBranchId, empDate, updated[expWKey])
+                              }
+                              return updated
+                            })
+                          }}
+                          className="text-slate-500 hover:text-rose-400 text-xs"
+                          title="حذف المصروف"
+                        >🗑️</button>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )
