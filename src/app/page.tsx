@@ -2547,7 +2547,7 @@ export default function JetCleanApp() {
                 {availableRooms.map(room => (
                   <option key={room} value={room}>{ROOM_ICONS[room] || '🏠'} {room}</option>
                 ))}
-                <option value="__extra__">💳 البيانات الإضافية</option>
+                <option value="__extra__">💳 {branchName === 'بن غرسه' ? 'البطاقة المصرفية / الكوبونات' : 'البطاقة المصرفية'}</option>
                 <option value="__expenses__">📋 إدخال مصروفات</option>
                 <option value="__withdrawal__">💰 سحب أو عجز لموظف</option>
               </select>
@@ -2583,7 +2583,7 @@ export default function JetCleanApp() {
               const qBranchId = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
               return (
               <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/30">
-                <h3 className="text-lg font-bold text-amber-400 mb-4">💳 البيانات الإضافية</h3>
+                <h3 className="text-lg font-bold text-amber-400 mb-4">💳 {branchName === 'بن غرسه' ? 'البطاقة المصرفية / الكوبونات' : 'البطاقة المصرفية'}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">💳 بيع البطاقة المصرفية</label>
@@ -2612,7 +2612,7 @@ export default function JetCleanApp() {
                   onClick={() => { handleQuickTreasurySave(qBranchId, branchName, empDate); setSelectedRoom('') }}
                   className="mt-3 w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-3 rounded-xl transition text-sm"
                 >
-                  💾 حفظ البيانات الإضافية
+                  💾 حفظ البيانات
                 </button>
               </div>
               )
