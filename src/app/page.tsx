@@ -2536,7 +2536,7 @@ export default function JetCleanApp() {
                 ))}
                 <option value="__extra__">💳 البيانات الإضافية</option>
                 <option value="__expenses__">📋 إدخال مصروفات</option>
-                {(isAdminMode || user?.role === 'viewer') && <option value="__withdrawal__">💰 سحب أو عجز لموظف</option>}
+                <option value="__withdrawal__">💰 سحب أو عجز لموظف</option>
               </select>
             </div>
 
@@ -2661,7 +2661,13 @@ export default function JetCleanApp() {
             {/* سحب أو عجز لموظف */}
             {selectedRoom === '__withdrawal__' && (() => {
               const qBranchId3 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
-              const branchEmps = employees.filter(e => e.branchId === qBranchId3 && !e.deleted)
+              const isViewerOnly = user?.role === 'viewer'
+              const isEmployee = !isAdminMode && !isViewerOnly
+              const branchEmps = employees.filter(e => {
+                if (e.deleted) return false
+                if (e.branchId === qBranchId3) return true
+                try { const ids: string[] = JSON.parse(e.multiBranchIds || '[]'); return ids.includes(qBranchId3) } catch { return false }
+              })
               return (
               <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/30">
                 <h3 className="text-lg font-bold text-amber-400 mb-4">💰 سحب أو عجز لموظف</h3>
@@ -2682,6 +2688,7 @@ export default function JetCleanApp() {
                   </div>
 
                   {/* اختيار النوع */}
+                  {!isEmployee && (
                   <div>
                     <label className="block text-xs text-slate-400 mb-1">📝 النوع</label>
                     <div className="grid grid-cols-2 gap-2">
@@ -2703,6 +2710,7 @@ export default function JetCleanApp() {
                       </button>
                     </div>
                   </div>
+                  )}
 
                   {/* المبلغ */}
                   <div>
@@ -2733,7 +2741,7 @@ export default function JetCleanApp() {
                     disabled={saving || !qEmpId || !qRecordAmount}
                     className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition text-sm"
                   >
-                    {saving ? '⏳ جاري الحفظ...' : qRecordType === 'withdrawal' ? '💸 تسجيل سحب' : '📉 تسجيل عجز'}
+                    {saving ? '⏳ جاري الحفظ...' : isEmployee ? '💸 تسجيل سحب' : (qRecordType === 'withdrawal' ? '💸 تسجيل سحب' : '📉 تسجيل عجز')}
                   </button>
                 </div>
               </div>
