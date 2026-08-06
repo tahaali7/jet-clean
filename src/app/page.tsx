@@ -25,6 +25,8 @@ interface Employee {
   password: string
   role: string
   hasLogin: boolean
+  startDate: string
+  endDate: string
   branch?: Branch
 }
 
@@ -787,7 +789,7 @@ export default function JetCleanApp() {
   const [newBranchCleanValue, setNewBranchCleanValue] = useState(20)
   const [newBranchCleanOptions, setNewBranchCleanOptions] = useState('10,20')
   const [showEmpModal, setShowEmpModal] = useState(false)
-  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
+  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '' })
   const [showEditEmpModal, setShowEditEmpModal] = useState(false)
   const [editEmp, setEditEmp] = useState<any>(null)
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
@@ -1432,7 +1434,7 @@ export default function JetCleanApp() {
       })
       if (res.ok) {
         setShowEmpModal(false)
-        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false })
+        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '' })
         await loadEmployees()
         await loadBranches()
       } else { alert('حدث خطأ') }
@@ -1451,6 +1453,9 @@ export default function JetCleanApp() {
         shift: editEmp.shift,
         role: editEmp.role,
         hasLogin: editEmp.hasLogin,
+        startDate: editEmp.startDate || '',
+        endDate: editEmp.endDate || '',
+        branchId: editEmp.branchId,
       }
       if (editEmp.hasLogin && editEmp.password?.trim()) {
         body.password = editEmp.password.trim()
@@ -2654,6 +2659,11 @@ export default function JetCleanApp() {
                         <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
                         {emp.hasLogin && emp.role === 'viewer' && <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
                         {!emp.hasLogin && <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
+                        {emp.endDate ? (
+                          <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">متوقف</span>
+                        ) : (
+                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">{emp.startDate ? 'مستمر' : 'مستمر'}</span>
+                        )}
                       </div>
                       <div className="flex gap-1.5">
                         {user?.role !== 'viewer' && !dayClosed && (
@@ -2990,6 +3000,22 @@ export default function JetCleanApp() {
                   <option value="الفترة كاملة">الفترة كاملة</option>
                 </select>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة</label>
+                  <input type="date" value={newEmp.startDate}
+                    onChange={e => setNewEmp(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ التوقف</label>
+                  <input type="date" value={newEmp.endDate}
+                    onChange={e => setNewEmp(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
               </>}
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
@@ -3061,6 +3087,32 @@ export default function JetCleanApp() {
                   <option value="الفترة المسائية">الفترة المسائية</option>
                   <option value="الفترة كاملة">الفترة كاملة</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">الفرع</label>
+                <select value={editEmp.branchId || ''}
+                  onChange={e => setEditEmp(prev => ({ ...prev, branchId: e.target.value }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="">-- اختر فرع --</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة {editEmp.startDate ? '' : <span className="text-emerald-400 text-[10px]">(مستمر)</span>}</label>
+                  <input type="date" value={editEmp.startDate || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, startDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">تاريخ التوقف</label>
+                  <input type="date" value={editEmp.endDate || ''}
+                    onChange={e => setEditEmp(prev => ({ ...prev, endDate: e.target.value }))}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>

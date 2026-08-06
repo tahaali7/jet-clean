@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, branchId, shift, password, role, hasLogin } = await req.json()
+    const { name, branchId, shift, password, role, hasLogin, startDate, endDate } = await req.json()
     if (!name?.trim()) return NextResponse.json({ error: 'الرجاء كتابة اسم الموظف' }, { status: 400 })
     if (role !== 'viewer' && !branchId) return NextResponse.json({ error: 'الرجاء اختيار الفرع' }, { status: 400 })
     if (hasLogin && !password?.trim()) return NextResponse.json({ error: 'الرجاء إدخال رمز المرور' }, { status: 400 })
@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
         password: hasLogin ? password.trim() : '',
         role: role || 'employee',
         hasLogin: !!hasLogin,
+        startDate: startDate || '',
+        endDate: endDate || '',
       }
     })
     return NextResponse.json(employee)
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { id, name, shift, password, role, hasLogin, branchId } = await req.json()
+    const { id, name, shift, password, role, hasLogin, branchId, startDate, endDate } = await req.json()
     if (!id) return NextResponse.json({ error: 'معرف الموظف مطلوب' }, { status: 400 })
     const data: Record<string, any> = {}
     if (name !== undefined && name !== null) data.name = String(name).trim()
@@ -55,6 +57,8 @@ export async function PUT(req: NextRequest) {
     if (hasLogin !== undefined && hasLogin !== null) data.hasLogin = hasLogin === true
     if (password !== undefined && password !== null && String(password).trim() !== '') data.password = String(password).trim()
     if (branchId !== undefined && branchId !== null) data.branchId = branchId
+    if (startDate !== undefined && startDate !== null) data.startDate = String(startDate)
+    if (endDate !== undefined && endDate !== null) data.endDate = String(endDate)
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'لا توجد بيانات للتحديث' }, { status: 400 })
     }
