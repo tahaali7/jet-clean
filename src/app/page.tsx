@@ -644,6 +644,70 @@ function buildEmployeeReportHTML(
     branchDatas.push({ name: branch.name, withdrawals: branchWithdrawals, shortages: branchShortages, empsHtml: rowsHtml })
   })
 
+  // ---- Multi-branch employees section ----
+  const multiEmps = allEmployees.filter(e => {
+    try { return JSON.parse(e.multiBranchIds || '[]').length > 0 } catch { return false }
+  })
+  if (multiEmps.length > 0) {
+    let multiWithdrawals = 0
+    let multiShortages = 0
+    let multiRowsHtml = ''
+    let multiHasRecords = false
+
+    multiEmps.forEach(emp => {
+      const empRecords = allRecords
+        .filter(r => r.empId === emp.id && matchRecord(r))
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+      const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
+      const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
+      const total = withdrawals + shortages
+      multiWithdrawals += withdrawals
+      multiShortages += shortages
+      grandWithdrawals += withdrawals
+      grandShortages += shortages
+      if (empRecords.length > 0) multiHasRecords = true
+
+      const branchNames = (() => {
+        try {
+          const ids: string[] = JSON.parse(emp.multiBranchIds || '[]')
+          return ids.map(id => allBranches.find(b => b.id === id)?.name).filter(Boolean).join(' | ')
+        } catch { return '' }
+      })()
+
+      let detailHtml = ''
+      empRecords.forEach(r => {
+        const typeLabel = r.type === 'withdrawal' ? 'سحب' : 'عجز'
+        const typeColor = r.type === 'withdrawal' ? '#b45309' : '#be123c'
+        detailHtml += '<tr>' +
+          '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:#666;">' + formatDateShort(r.date) + '</td>' +
+          '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:' + typeColor + ';font-weight:600;">' + typeLabel + '</td>' +
+          '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;">' + r.amount + ' د.ل</td>' +
+          '<td style="padding:4px 8px;border:1px solid #eee;font-size:11px;color:#888;">' + (r.note || '—') + '</td>' +
+          '</tr>'
+      })
+
+      multiRowsHtml += '<tr style="background:#fffbeb;">' +
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#92400e;">' + emp.name + ' <span style="font-size:10px;color:#94a3b8;font-weight:400;">(' + (branchNames || emp.shift) + ')</span></td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#1e293b;">' + total + ' د.ل</td>' +
+        '</tr>'
+      if (detailHtml) {
+        multiRowsHtml += '<tr><td colspan="4" style="padding:0;border:1px solid #ddd;">' +
+          '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="background:#f1f5f9;">' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">التاريخ</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">النوع</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">المبلغ</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">ملاحظة</th>' +
+          '</tr></thead><tbody>' + detailHtml + '</tbody></table></td></tr>'
+      }
+    })
+
+    if (multiHasRecords) {
+      branchDatas.push({ name: '🌐 موظفين مشتركين (أكثر من فرع)', withdrawals: multiWithdrawals, shortages: multiShortages, empsHtml: multiRowsHtml })
+    }
+  }
+
   if (branchDatas.length === 0) {
     pages.push('<div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:Cairo,sans-serif;">' +
       '<div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
