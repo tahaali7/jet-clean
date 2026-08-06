@@ -791,6 +791,7 @@ export default function JetCleanApp() {
   const [newBranchCleanOptions, setNewBranchCleanOptions] = useState('10,20')
   const [showEmpModal, setShowEmpModal] = useState(false)
   const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '', multiBranchIds: [] as string[] })
+  const [showMultiBranchPicker, setShowMultiBranchPicker] = useState(false)
   const [showEditEmpModal, setShowEditEmpModal] = useState(false)
   const [editEmp, setEditEmp] = useState<any>(null)
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
@@ -2583,7 +2584,7 @@ export default function JetCleanApp() {
                       <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>➕</span> إضافة فرع
                       </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowEmpModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                      <button onClick={() => { setShowAdminDropdown(false); setShowMultiBranchPicker(false); setShowEmpModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>👤</span> إضافة موظف
                       </button>
                       <button onClick={() => { setShowAdminDropdown(false); setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
@@ -3129,16 +3130,19 @@ export default function JetCleanApp() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (newEmp.multiBranchIds.length > 0) {
+                      if (showMultiBranchPicker) {
+                        setShowMultiBranchPicker(false)
                         setNewEmp(prev => ({ ...prev, multiBranchIds: [] as string[] }))
+                      } else {
+                        setShowMultiBranchPicker(true)
                       }
                     }}
-                    className={`relative w-12 h-6 rounded-full transition-colors ${newEmp.multiBranchIds.length > 0 ? 'bg-amber-500' : 'bg-slate-600'}`}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${showMultiBranchPicker ? 'bg-amber-500' : 'bg-slate-600'}`}
                   >
-                    <span className={`absolute top-0.5 ${newEmp.multiBranchIds.length > 0 ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                    <span className={`absolute top-0.5 ${showMultiBranchPicker ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
                   </button>
                 </div>
-                {newEmp.multiBranchIds.length > 0 && (
+                {showMultiBranchPicker && (
                   <div className="mt-2 bg-slate-900 border border-amber-500/30 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
                     {branches.filter(b => b.id !== newEmp.branchId).map(b => (
                       <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
