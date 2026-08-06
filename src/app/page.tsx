@@ -1051,7 +1051,11 @@ export default function JetCleanApp() {
   }
 
   const switchToCarEntry = () => {
-    setIsAdminMode(true)
+    if (user?.role === 'viewer') {
+      setIsAdminMode(false)
+    } else {
+      setIsAdminMode(true)
+    }
     setAdminSelectedBranch(null)
     setPriceInputs({})
     setCustomPricesData({})
@@ -2540,8 +2544,8 @@ export default function JetCleanApp() {
                       </div>
                     </div>
 
-                    {/* الخزينة - Admin only */}
-                    {isAdminMode && (
+                    {/* الخزينة */}
+                    {(isAdminMode || isViewer) && (
                       <div>
                         <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
                         <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
@@ -2569,8 +2573,9 @@ export default function JetCleanApp() {
                                     type="number"
                                     value={row.income || ''}
                                     placeholder="0"
+                                    readOnly={isViewer}
                                     onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'income', parseInt(e.target.value) || 0)}
-                                    className="bg-slate-900 border border-blue-400/30 text-emerald-400 rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none"
+                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (isViewer ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-blue-400/30 text-emerald-400')}
                                   />
                                 </div>
                               )}
@@ -2590,8 +2595,9 @@ export default function JetCleanApp() {
                                     type="number"
                                     value={row.expense || ''}
                                     placeholder="0"
+                                    readOnly={isViewer}
                                     onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'expense', parseInt(e.target.value) || 0)}
-                                    className="bg-slate-900 border border-red-400/30 text-red-300 rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none"
+                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (isViewer ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-red-400/30 text-red-300')}
                                   />
                                 </div>
                               )}
@@ -2641,10 +2647,10 @@ export default function JetCleanApp() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {user?.role !== 'viewer' && <>
                 <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
                   🚗 إعداد الغرف
                 </button>
+                {user?.role !== 'viewer' && <>
                 <div className="relative">
                   <button onClick={(e) => { e.stopPropagation(); setShowAdminDropdown(!showAdminDropdown) }} className="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-slate-600">
                     ⚙️ أدوات
