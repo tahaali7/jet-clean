@@ -2503,12 +2503,14 @@ export default function JetCleanApp() {
                 </div>
               </div>
             )}
+          </div>
+          )}
 
-            {/* حقول سريعة: بيع البطاقة + كوبونات */}
-            {selectedRoom && branchName && user?.role !== 'viewer' && (() => {
-              const qBranchId = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
-              return qBranchId ? (
-              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mt-4">
+          {/* حقول سريعة: بيع البطاقة + كوبونات */}
+          {!isViewer && branchName && (() => {
+            const qBranchId = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+            return qBranchId ? (
+              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-4">
                 <h3 className="text-sm font-bold text-amber-400 mb-3 flex items-center gap-2">💳 بيانات إضافية</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -2545,14 +2547,14 @@ export default function JetCleanApp() {
                   💾 حفظ البيانات الإضافية
                 </button>
               </div>
-              ) : null
-            })()}
+            ) : null
+          })()}
 
-            {/* إدخال مصروفات إضافية */}
-            {selectedRoom && branchName && user?.role !== 'viewer' && (() => {
-              const qBranchId2 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
-              return qBranchId2 ? (
-              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mt-4">
+          {/* إدخال مصروفات إضافية */}
+          {!isViewer && branchName && (() => {
+            const qBranchId2 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+            return qBranchId2 ? (
+              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-4">
                 <h3 className="text-sm font-bold text-rose-400 mb-3 flex items-center gap-2">📋 إدخال مصروفات</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
                   <input
@@ -2598,10 +2600,8 @@ export default function JetCleanApp() {
                   </div>
                 )}
               </div>
-              ) : null
-            })()}
-          </div>
-          )}
+            ) : null
+          })()}
 
           {displayEntries.length === 0 && (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
