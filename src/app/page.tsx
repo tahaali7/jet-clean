@@ -1427,7 +1427,7 @@ export default function JetCleanApp() {
 
   const handleCreateEmployee = async () => {
     if (!newEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
-    if (newEmp.role !== 'viewer' && !newEmp.branchId) return alert('الرجاء اختيار الفرع')
+    if (newEmp.role !== 'viewer' && !newEmp.branchId && newEmp.multiBranchIds.length === 0) return alert('الرجاء اختيار الفرع')
     if (newEmp.hasLogin && !newEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
     try {
       const res = await fetch('/api/employees', {
