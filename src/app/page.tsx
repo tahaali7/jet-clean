@@ -578,6 +578,8 @@ function buildEmployeeReportHTML(
   allBranches: Branch[],
   matchRecord: (r: FinancialRecord) => boolean
 ): string[] {
+  // Exclude deleted employees
+  const activeEmployees = allEmployees.filter((e: any) => !e.deleted)
   const now = new Date()
   const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' })
   const pages: string[] = []
@@ -587,7 +589,7 @@ function buildEmployeeReportHTML(
   const branchDatas: { name: string; withdrawals: number; shortages: number; empsHtml: string }[] = []
 
   allBranches.forEach(branch => {
-    const branchEmps = allEmployees.filter(e => e.branchId === branch.id)
+    const branchEmps = activeEmployees.filter(e => e.branchId === branch.id)
     if (branchEmps.length === 0) return
 
     let branchWithdrawals = 0
@@ -645,7 +647,7 @@ function buildEmployeeReportHTML(
   })
 
   // ---- Multi-branch employees section ----
-  const multiEmps = allEmployees.filter(e => {
+  const multiEmps = activeEmployees.filter(e => {
     try { return JSON.parse(e.multiBranchIds || '[]').length > 0 } catch { return false }
   })
   if (multiEmps.length > 0) {
@@ -1859,16 +1861,14 @@ export default function JetCleanApp() {
       // Filter records to only those within the date range
       const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
 
-      if (filteredRecords.length === 0) {
-        alert('لا توجد سحوبات أو عجوزات في الفترة المحددة')
-        setExportingEmp(false)
-        return
-      }
+      // Fetch fresh employees (including multi-branch)
+      const empsRes = await fetch('/api/employees')
+      const freshEmployees: Employee[] = empsRes.ok ? await empsRes.json() : []
 
       // Build the report HTML pages
       const reportPages = buildEmployeeReportHTML(
         periodLabel,
-        employees,
+        freshEmployees,
         filteredRecords,
         branches,
         (r: FinancialRecord) => dates.includes(r.date)
@@ -1936,15 +1936,13 @@ export default function JetCleanApp() {
       const allRecordsData: FinancialRecord[] = allRecordsRes.ok ? await allRecordsRes.json() : []
       const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
 
-      if (filteredRecords.length === 0) {
-        alert('لا توجد سحوبات أو عجوزات في الفترة المحددة')
-        setExporting(false)
-        return
-      }
+      // Fetch fresh employees (including multi-branch)
+      const empsRes = await fetch('/api/employees')
+      const freshEmployees: Employee[] = empsRes.ok ? await empsRes.json() : []
 
       const reportPages = buildEmployeeReportHTML(
         periodLabel,
-        employees,
+        freshEmployees,
         filteredRecords,
         branches,
         (r: FinancialRecord) => dates.includes(r.date)
