@@ -27,6 +27,7 @@ interface Employee {
   hasLogin: boolean
   startDate: string
   endDate: string
+  multiBranchIds: string
   branch?: Branch
 }
 
@@ -789,7 +790,7 @@ export default function JetCleanApp() {
   const [newBranchCleanValue, setNewBranchCleanValue] = useState(20)
   const [newBranchCleanOptions, setNewBranchCleanOptions] = useState('10,20')
   const [showEmpModal, setShowEmpModal] = useState(false)
-  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '' })
+  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '', multiBranchIds: [] as string[] })
   const [showEditEmpModal, setShowEditEmpModal] = useState(false)
   const [editEmp, setEditEmp] = useState<any>(null)
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
@@ -1434,7 +1435,7 @@ export default function JetCleanApp() {
       })
       if (res.ok) {
         setShowEmpModal(false)
-        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '' })
+        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '', multiBranchIds: [] as string[] })
         await loadEmployees()
         await loadBranches()
       } else { alert('حدث خطأ') }
@@ -1456,6 +1457,7 @@ export default function JetCleanApp() {
         startDate: editEmp.startDate || '',
         endDate: editEmp.endDate || '',
         branchId: editEmp.branchId,
+        multiBranchIds: editEmp.multiBranchIds || [],
       }
       if (editEmp.hasLogin && editEmp.password?.trim()) {
         body.password = editEmp.password.trim()
@@ -2630,7 +2632,8 @@ export default function JetCleanApp() {
           {/* بطاقات الفروع - شبكة عمودين */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {branches.map(branch => {
-              const branchEmps = employees.filter(e => e.branchId === branch.id)
+              const isMultiBranch = (e: any) => { try { const ids = JSON.parse(e.multiBranchIds || '[]'); return ids.includes(branch.id) } catch { return false } }
+              const branchEmps = employees.filter(e => e.branchId === branch.id || isMultiBranch(e))
               let branchWithdrawals = 0
               let branchShortages = 0
               let branchCarTotal = 0
@@ -2663,6 +2666,9 @@ export default function JetCleanApp() {
                           <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">متوقف</span>
                         ) : (
                           <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">{emp.startDate ? 'مستمر' : 'مستمر'}</span>
+                        )}
+                        {(() => { try { const ids = JSON.parse(emp.multiBranchIds || '[]'); if (ids.length > 0) return true; return false } catch { return false } })() && (
+                          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">🌐 متعدد الفروع</span>
                         )}
                       </div>
                       <div className="flex gap-1.5">
@@ -2990,6 +2996,30 @@ export default function JetCleanApp() {
                 </select>
               </div>
               <div>
+                <label className="text-xs text-slate-400 mb-1 block">فروع إضافية <span className="text-[10px] text-amber-400">(اختياري - للموظفين اللي يخدموا في أكثر من فرع)</span></label>
+                <div className="bg-slate-900 border border-slate-600 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
+                  {branches.filter(b => b.id !== newEmp.branchId).map(b => (
+                    <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
+                      <input type="checkbox"
+                        checked={newEmp.multiBranchIds.includes(b.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setNewEmp(prev => ({ ...prev, multiBranchIds: [...prev.multiBranchIds, b.id] }))
+                          } else {
+                            setNewEmp(prev => ({ ...prev, multiBranchIds: prev.multiBranchIds.filter(id => id !== b.id) }))
+                          }
+                        }}
+                        className="rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500"
+                      />
+                      <span>{b.name}</span>
+                    </label>
+                  ))}
+                  {branches.filter(b => b.id !== newEmp.branchId).length === 0 && (
+                    <span className="text-slate-500 text-xs">اختر الفرع الأساسي أولاً</span>
+                  )}
+                </div>
+              </div>
+              <div>
                 <label className="text-xs text-slate-400 mb-1 block">الوردية</label>
                 <select value={newEmp.shift}
                   onChange={e => setNewEmp(prev => ({ ...prev, shift: e.target.value }))}
@@ -3098,6 +3128,31 @@ export default function JetCleanApp() {
                   {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">فروع إضافية <span className="text-[10px] text-amber-400">(اختياري - للموظفين اللي يخدموا في أكثر من فرع)</span></label>
+                <div className="bg-slate-900 border border-slate-600 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
+                  {(() => {
+                    const existingIds: string[] = (() => { try { return JSON.parse(editEmp.multiBranchIds || '[]') } catch { return [] } })()
+                    return branches.filter(b => b.id !== editEmp.branchId).map(b => (
+                      <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
+                        <input type="checkbox"
+                          checked={existingIds.includes(b.id)}
+                          onChange={e => {
+                            const currentIds: string[] = (() => { try { return JSON.parse(editEmp.multiBranchIds || '[]') } catch { return [] } })()
+                            if (e.target.checked) {
+                              setEditEmp(prev => ({ ...prev, multiBranchIds: JSON.stringify([...currentIds, b.id]) }))
+                            } else {
+                              setEditEmp(prev => ({ ...prev, multiBranchIds: JSON.stringify(currentIds.filter(id => id !== b.id)) }))
+                            }
+                          }}
+                          className="rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500"
+                        />
+                        <span>{b.name}</span>
+                      </label>
+                    ))
+                  })()}
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة {editEmp.startDate ? '' : <span className="text-emerald-400 text-[10px]">(مستمر)</span>}</label>
@@ -3181,7 +3236,7 @@ export default function JetCleanApp() {
             </div>
 
             {branches.map(branch => {
-              const branchEmps = employees.filter(e => e.branchId === branch.id && e.hasLogin)
+              const branchEmps = employees.filter(e => (e.branchId === branch.id || (() => { try { return JSON.parse(e.multiBranchIds || '[]').includes(branch.id) } catch { return false } })()) && e.hasLogin)
               if (branchEmps.length === 0) return null
               return (
                 <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
@@ -3224,7 +3279,7 @@ export default function JetCleanApp() {
               {(() => {
                 let gw = 0, gs = 0
                 branches.forEach(branch => {
-                  const bEmps = employees.filter(e => e.branchId === branch.id)
+                  const bEmps = employees.filter(e => e.branchId === branch.id || (() => { try { return JSON.parse(e.multiBranchIds || '[]').includes(branch.id) } catch { return false } })())
                   bEmps.forEach(emp => {
                     const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate)
                     gw += eRecs.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
@@ -3248,7 +3303,7 @@ export default function JetCleanApp() {
 
             <div className="space-y-2">
               {branches.map(branch => {
-                const bEmps = employees.filter(e => e.branchId === branch.id)
+                const bEmps = employees.filter(e => e.branchId === branch.id || (() => { try { return JSON.parse(e.multiBranchIds || '[]').includes(branch.id) } catch { return false } })())
                 const isClosed = isDayClosedForBranch(adminDate, branch.id)
                 let bw = 0, bs = 0
                 const rows = bEmps.map(emp => {

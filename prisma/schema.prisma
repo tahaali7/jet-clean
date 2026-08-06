@@ -39,6 +39,7 @@ model Employee {
   hasLogin  Boolean @default(false)
   startDate String  @default("")
   endDate   String  @default("")
+  multiBranchIds String @default("[]")
   records   Record[]
 }
 
