@@ -854,7 +854,10 @@ export default function JetCleanApp() {
   const loadEmployees = async () => {
     try {
       const res = await fetch('/api/employees')
-      if (res.ok) setEmployees(await res.json())
+      if (res.ok) {
+        const allEmps = await res.json()
+        setEmployees(allEmps.filter((e: any) => !e.deleted))
+      }
     } catch (e) { console.error(e) }
   }
 
@@ -1483,6 +1486,18 @@ export default function JetCleanApp() {
     if (!confirm('هل أنت متأكد من حذف الموظف؟')) return
     try {
       await fetch(`/api/employees?id=${id}`, { method: 'DELETE' })
+      await loadEmployees()
+      await loadBranches()
+    } catch (e) { alert('حدث خطأ') }
+    autoBackup()
+  }
+
+  const handleDeleteMultiBranchEmployee = async (id: string, name: string) => {
+    if (!confirm(`⚠️ سيتم حذف الموظف "${name}" لكن تبقى جميع حركاته (سحوبات/عجوزات) مسجلة في النظام.
+
+هل أنت متأكد؟`)) return
+    try {
+      await fetch(`/api/employees?id=${id}&keepRecords=true`, { method: 'DELETE' })
       await loadEmployees()
       await loadBranches()
     } catch (e) { alert('حدث خطأ') }
@@ -2808,6 +2823,7 @@ export default function JetCleanApp() {
                               >+ حركة</button>
                             )}
                             <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
+                            <button onClick={() => handleDeleteMultiBranchEmployee(emp.id, emp.name)} className="text-slate-500 hover:text-rose-400 text-xs p-1" title="حذف الموظف مع بقاء الحركات">🗑️</button>
                           </div>
                         </div>
                         <div className="grid grid-cols-3 gap-2 mb-2">

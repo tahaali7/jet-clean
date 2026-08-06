@@ -79,10 +79,17 @@ export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
+    const keepRecords = searchParams.get('keepRecords') === 'true'
     if (!id) return NextResponse.json({ error: 'معرف الموظف مطلوب' }, { status: 400 })
-    await db.record.deleteMany({ where: { empId: id } })
-    await db.carEntry.deleteMany({ where: { empId: id } })
-    await db.employee.delete({ where: { id } })
+    if (keepRecords) {
+      // Soft delete - keep records intact, just mark employee as deleted
+      await db.employee.update({ where: { id }, data: { deleted: true } })
+    } else {
+      // Hard delete - remove everything
+      await db.record.deleteMany({ where: { empId: id } })
+      await db.carEntry.deleteMany({ where: { empId: id } })
+      await db.employee.delete({ where: { id } })
+    }
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete employee error:', error)
