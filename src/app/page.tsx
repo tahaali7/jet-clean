@@ -2968,6 +2968,30 @@ export default function JetCleanApp() {
                   placeholder="ملاحظة (اختياري)"
                 />
               </div>
+              {(() => {
+                const emp = employees.find(e => e.id === recordModalData.empId)
+                if (!emp) return null
+                try {
+                  const ids: string[] = JSON.parse(emp.multiBranchIds || '[]')
+                  if (ids.length === 0) return null
+                  const allBranchIds = [emp.branchId, ...ids].filter(Boolean)
+                  return (
+                    <div>
+                      <label className="text-xs text-slate-400 mb-1 block">📍 الفرع</label>
+                      <select
+                        value={recordModalData.branchId}
+                        onChange={e => setRecordModalData(prev => ({ ...prev, branchId: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                      >
+                        {allBranchIds.map(bId => {
+                          const bName = branches.find(b => b.id === bId)?.name || 'فرع غير معروف'
+                          return <option key={bId} value={bId}>{bName}</option>
+                        })}
+                      </select>
+                    </div>
+                  )
+                } catch { return null }
+              })()}
             </div>
             <div className="flex gap-3">
               <button onClick={handleSaveRecord} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
