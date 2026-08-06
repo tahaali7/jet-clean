@@ -848,6 +848,12 @@ export default function JetCleanApp() {
   const [quickExpAmount, setQuickExpAmount] = useState('')
   const [quickExpenses, setQuickExpenses] = useState<{ name: string; amount: number }[]>([])
 
+  // Withdrawal/Shortage quick entry state
+  const [qEmpId, setQEmpId] = useState('')
+  const [qRecordType, setQRecordType] = useState<'withdrawal' | 'shortage'>('withdrawal')
+  const [qRecordAmount, setQRecordAmount] = useState('')
+  const [qRecordNote, setQRecordNote] = useState('')
+
   // Admin screen state
   const [adminDate, setAdminDate] = useState(todayISO())
 
@@ -1547,6 +1553,39 @@ export default function JetCleanApp() {
       return updated
     })
     setQuickExpenses([])
+  }
+
+  const handleSaveQuickRecord = async (branchId: string, empDate: string) => {
+    const amount = parseInt(qRecordAmount) || 0
+    if (!qEmpId || amount <= 0) return alert('اختر الموظف وأدخل المبلغ')
+    try {
+      setSaving(true)
+      const res = await fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId: qEmpId,
+          type: qRecordType,
+          amount,
+          note: qRecordNote,
+          date: empDate,
+          branchId
+        })
+      })
+      if (res.ok) {
+        setQEmpId('')
+        setQRecordAmount('')
+        setQRecordNote('')
+        setSelectedRoom('')
+        await loadRecords({ date: empDate }, true)
+        alert(qRecordType === 'withdrawal' ? '✅ تم تسجيل السحب' : '✅ تم تسجيل العجز')
+      }
+    } catch (e) {
+      console.error(e)
+      alert('حدث خطأ أثناء الحفظ')
+    } finally {
+      setSaving(false)
+    }
   }
 
   // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
@@ -2497,6 +2536,7 @@ export default function JetCleanApp() {
                 ))}
                 <option value="__extra__">💳 البيانات الإضافية</option>
                 <option value="__expenses__">📋 إدخال مصروفات</option>
+                {(isAdminMode || user?.role === 'viewer') && <option value="__withdrawal__">💰 سحب أو عجز لموظف</option>}
               </select>
             </div>
 
@@ -2614,6 +2654,88 @@ export default function JetCleanApp() {
                     </button>
                   </div>
                 )}
+              </div>
+              )
+            })()}
+
+            {/* سحب أو عجز لموظف */}
+            {selectedRoom === '__withdrawal__' && (() => {
+              const qBranchId3 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+              const branchEmps = employees.filter(e => e.branchId === qBranchId3 && !e.deleted)
+              return (
+              <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/30">
+                <h3 className="text-lg font-bold text-amber-400 mb-4">💰 سحب أو عجز لموظف</h3>
+                <div className="space-y-3">
+                  {/* اختيار الموظف */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">👤 الموظف</label>
+                    <select
+                      value={qEmpId}
+                      onChange={e => setQEmpId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+                    >
+                      <option value="">-- اختر الموظف --</option>
+                      {branchEmps.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name} ({emp.shift})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* اختيار النوع */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">📝 النوع</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setQRecordType('withdrawal')}
+                        className={qRecordType === 'withdrawal'
+                          ? 'bg-amber-600 text-white font-bold py-2.5 rounded-lg transition text-sm border-2 border-amber-400'
+                          : 'bg-slate-900 text-slate-400 font-bold py-2.5 rounded-lg transition text-sm border-2 border-slate-600 hover:border-amber-500/50'}
+                      >
+                        💸 سحب
+                      </button>
+                      <button
+                        onClick={() => setQRecordType('shortage')}
+                        className={qRecordType === 'shortage'
+                          ? 'bg-rose-600 text-white font-bold py-2.5 rounded-lg transition text-sm border-2 border-rose-400'
+                          : 'bg-slate-900 text-slate-400 font-bold py-2.5 rounded-lg transition text-sm border-2 border-slate-600 hover:border-rose-500/50'}
+                      >
+                        📉 عجز
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* المبلغ */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">💵 المبلغ</label>
+                    <input
+                      type="number"
+                      value={qRecordAmount}
+                      onChange={e => setQRecordAmount(e.target.value)}
+                      placeholder="أدخل المبلغ"
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  {/* ملاحظة */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">📝 ملاحظة (اختياري)</label>
+                    <input
+                      type="text"
+                      value={qRecordNote}
+                      onChange={e => setQRecordNote(e.target.value)}
+                      placeholder="ملاحظة..."
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => handleSaveQuickRecord(qBranchId3, empDate)}
+                    disabled={saving || !qEmpId || !qRecordAmount}
+                    className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition text-sm"
+                  >
+                    {saving ? '⏳ جاري الحفظ...' : qRecordType === 'withdrawal' ? '💸 تسجيل سحب' : '📉 تسجيل عجز'}
+                  </button>
+                </div>
               </div>
               )
             })()}
