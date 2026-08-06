@@ -842,6 +842,8 @@ export default function JetCleanApp() {
   const [customPriceInput, setCustomPriceInput] = useState('')
   const [customCountInput, setCustomCountInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [quickBankCardSale, setQuickBankCardSale] = useState('')
+  const [quickCoupons, setQuickCoupons] = useState('')
 
   // Admin screen state
   const [adminDate, setAdminDate] = useState(todayISO())
@@ -1461,6 +1463,33 @@ export default function JetCleanApp() {
       void saveWorkerExpData(branchId, date, updated[key])
       return updated
     })
+  }
+
+  const handleQuickTreasurySave = (branchId: string, branchName: string, date: string) => {
+    const wKey = branchName + '_' + date
+    const bankVal = parseInt(quickBankCardSale) || 0
+    const coupVal = parseInt(quickCoupons) || 0
+    if (bankVal === 0 && coupVal === 0) return
+
+    setWorkerExpData(prev => {
+      const updated = { ...prev }
+      if (!updated[wKey]) updated[wKey] = {}
+      if (!updated[wKey].treasury) updated[wKey].treasury = {}
+
+      const treasury = { ...updated[wKey].treasury! }
+      if (bankVal > 0) {
+        treasury['بيع_البطاقة'] = { ...(treasury['بيع_البطاقة'] || { income: 0, expense: 0 }), expense: bankVal }
+      }
+      if (coupVal > 0 && branchName === 'بن غرسه') {
+        treasury['كوبونات'] = { ...(treasury['كوبونات'] || { income: 0, expense: 0 }), expense: coupVal }
+      }
+      updated[wKey] = { ...updated[wKey], treasury }
+
+      void saveWorkerExpData(branchId, date, updated[wKey])
+      return updated
+    })
+    setQuickBankCardSale('')
+    setQuickCoupons('')
   }
 
   // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
@@ -2435,6 +2464,50 @@ export default function JetCleanApp() {
                 </div>
               </div>
             )}
+
+            {/* حقول سريعة: بيع البطاقة + كوبونات */}
+            {selectedRoom && branchName && user?.role !== 'viewer' && (() => {
+              const qBranchId = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+              return qBranchId ? (
+              <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mt-4">
+                <h3 className="text-sm font-bold text-amber-400 mb-3 flex items-center gap-2">💳 بيانات إضافية</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">💳 بيع البطاقة المصرفية</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={quickBankCardSale}
+                        onChange={e => setQuickBankCardSale(e.target.value)}
+                        placeholder="0"
+                        className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                  {branchName === 'بن غرسه' && (
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">🎫 كوبونات</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={quickCoupons}
+                          onChange={e => setQuickCoupons(e.target.value)}
+                          placeholder="0"
+                          className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleQuickTreasurySave(qBranchId, branchName, empDate)}
+                  className="mt-3 w-full bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold py-2.5 rounded-xl transition text-sm border border-amber-500/30"
+                >
+                  💾 حفظ البيانات الإضافية
+                </button>
+              </div>
+              ) : null
+            })()}
           </div>
           )}
 
