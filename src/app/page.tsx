@@ -2939,7 +2939,11 @@ export default function JetCleanApp() {
                   className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
                 >
                   <option value="withdrawal">💸 سحب</option>
-                  <option value="shortage">📉 عجز</option>
+                  {(() => {
+                    const emp = employees.find(e => e.id === recordModalData.empId)
+                    if (!emp) return true
+                    try { return JSON.parse(emp.multiBranchIds || '[]').length === 0 } catch { return true }
+                  })() && <option value="shortage">📉 عجز</option>}
                 </select>
               </div>
               <div>
