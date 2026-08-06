@@ -2632,7 +2632,8 @@ export default function JetCleanApp() {
           {/* بطاقات الفروع - شبكة عمودين */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {branches.map(branch => {
-              const branchEmps = employees.filter(e => e.branchId === branch.id)
+              const isMulti = (e: any) => { try { return JSON.parse(e.multiBranchIds || '[]').length > 0 } catch { return false } }
+              const branchEmps = employees.filter(e => e.branchId === branch.id && !isMulti(e))
               let branchWithdrawals = 0
               let branchShortages = 0
               let branchCarTotal = 0
@@ -3335,7 +3336,7 @@ export default function JetCleanApp() {
             </div>
 
             {branches.map(branch => {
-              const branchEmps = employees.filter(e => e.branchId === branch.id && e.hasLogin)
+              const branchEmps = employees.filter(e => e.branchId === branch.id && e.hasLogin && (() => { try { return JSON.parse(e.multiBranchIds || '[]').length === 0 } catch { return true } })())
               if (branchEmps.length === 0) return null
               return (
                 <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
