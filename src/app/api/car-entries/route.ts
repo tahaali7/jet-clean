@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, ensureMigrations, forceMigrations } from '@/lib/db'
+import { db, ensureMigrations } from '@/lib/db'
 
 function parseJsonFields(entry: any) {
   let priceCounts = {}
@@ -14,48 +14,8 @@ function parseJsonFields(entry: any) {
   }
 }
 
-// جلب البيانات باستخدام raw SQL — لا يعتمد على مطابقة السكيمة بالضبط
-async function fetchEntriesRaw(date?: string | null, branchId?: string | null, empId?: string | null) {
-  let sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "extraCars", "extraAmount", "priceCounts", "customPrices", "entryTime", "createdAt" FROM "CarEntry" WHERE 1=1`
-  const params: any[] = []
-  
-  if (date) {
-    params.push(date)
-    sql += ` AND date = $${params.length}`
-  }
-  if (branchId) {
-    params.push(branchId)
-    sql += ` AND "branchId" = $${params.length}`
-  }
-  if (empId) {
-    params.push(empId)
-    sql += ` AND "empId" = $${params.length}`
-  }
-  sql += ` ORDER BY "createdAt" DESC`
-
-  return db.$queryRawUnsafe(sql, ...params)
-}
-
-// جلب البيانات بدون عمود entryTime — كبديل لو العمود غير موجود
-async function fetchEntriesSafe(date?: string | null, branchId?: string | null, empId?: string | null) {
-  let sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "extraCars", "extraAmount", "priceCounts", "customPrices", "createdAt" FROM "CarEntry" WHERE 1=1`
-  const params: any[] = []
-  
-  if (date) {
-    params.push(date)
-    sql += ` AND date = $${params.length}`
-  }
-  if (branchId) {
-    params.push(branchId)
-    sql += ` AND "branchId" = $${params.length}`
-  }
-  if (empId) {
-    params.push(empId)
-    sql += ` AND "empId" = $${params.length}`
-  }
-  sql += ` ORDER BY "createdAt" DESC`
-
-  return db.$queryRawUnsafe(sql, ...params)
+function escapeSql(str: string) {
+  return str.replace(/'/g, "''")
 }
 
 export async function GET(req: NextRequest) {
@@ -75,30 +35,34 @@ export async function GET(req: NextRequest) {
       const daysInMonth = new Date(year, mon, 0).getDate()
       const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
 
-      const entries: any[] = await fetchEntriesSafe(startDate, branchId)
-      const filtered = entries.filter((e: any) => e.date >= startDate && e.date <= endDate)
-      const dateSet = new Set(filtered.map((e: any) => e.date))
+      const rows: any[] = await db.$queryRawUnsafe(
+        `SELECT date FROM "CarEntry" WHERE "branchId" = '${escapeSql(branchId)}' AND date >= '${startDate}' AND date <= '${endDate}'`
+      )
+      const dateSet = new Set(rows.map((r: any) => r.date))
       return NextResponse.json(Array.from(dateSet))
     }
 
-    // محاولة 1: raw SQL مع entryTime
+    // بناء الاستعلام بـ raw SQL — لا يعتمد على مطابقة السكيمة بالضبط
+    let where = 'WHERE 1=1'
+    if (date) where += ` AND date = '${escapeSql(date)}'`
+    if (branchId) where += ` AND "branchId" = '${escapeSql(branchId)}'`
+    if (empId) where += ` AND "empId" = '${escapeSql(empId)}'`
+
     let entries: any[] = []
+
+    // محاولة 1: مع entryTime
     try {
-      entries = await fetchEntriesRaw(date, branchId, empId) as any[]
-    } catch (error: any) {
-      console.log('[API] fetchEntriesRaw failed, trying safe mode:', error?.message)
+      const sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "extraCars", "extraAmount", "priceCounts", "customPrices", "entryTime", "createdAt" FROM "CarEntry" ${where} ORDER BY "createdAt" DESC`
+      entries = await db.$queryRawUnsafe(sql) as any[]
+    } catch {
       // محاولة 2: بدون entryTime
       try {
-        entries = await fetchEntriesSafe(date, branchId, empId) as any[]
-      } catch (error2: any) {
-        console.log('[API] fetchEntriesSafe failed, running migrations:', error2?.message)
-        // محاولة 3: تشغيل الترحيل وإعادة المحاولة
-        await forceMigrations()
-        try {
-          entries = await fetchEntriesRaw(date, branchId, empId) as any[]
-        } catch (error3: any) {
-          entries = await fetchEntriesSafe(date, branchId, empId) as any[]
-        }
+        const sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "extraCars", "extraAmount", "priceCounts", "customPrices", "createdAt" FROM "CarEntry" ${where} ORDER BY "createdAt" DESC`
+        entries = await db.$queryRawUnsafe(sql) as any[]
+      } catch {
+        // محاولة 3: فقط الأعمدة الأساسية
+        const sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "priceCounts", "createdAt" FROM "CarEntry" ${where} ORDER BY "createdAt" DESC`
+        entries = await db.$queryRawUnsafe(sql) as any[]
       }
     }
 
@@ -114,12 +78,6 @@ export async function POST(req: NextRequest) {
   try {
     await ensureMigrations()
     const data = await req.json()
-
-    // تشغيل الترحيل أول ما نضيف بيانات جديدة
-    try {
-      await forceMigrations()
-    } catch {}
-
     const entry = await db.carEntry.create({
       data: {
         date: data.date,
