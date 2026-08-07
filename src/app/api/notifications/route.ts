@@ -27,6 +27,28 @@ async function ensureTable() {
   }
 }
 
+// دالة فحص: هل الفرع مستهدف في التنبيه؟
+// branchId في الداتا: null = كل الفروع، "id1" = فرع واحد، '["id1","id2"]' = عدة فروع
+function isBranchTargeted(notifBranchId: string | null, empBranchId: string): boolean {
+  if (!notifBranchId) return true // كل الفروع
+  try {
+    const parsed = JSON.parse(notifBranchId)
+    if (Array.isArray(parsed)) return parsed.includes(empBranchId)
+  } catch {}
+  return notifBranchId === empBranchId // فرع واحد
+}
+
+// تحويل branchId لعرض مناسب
+function parseNotif(entry: any) {
+  let readBy: string[] = []
+  try { readBy = JSON.parse(entry.readBy || '[]') } catch {}
+  return {
+    ...entry,
+    readBy,
+    createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : new Date().toISOString()
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     await ensureTable()
@@ -35,41 +57,33 @@ export async function GET(req: NextRequest) {
     const branchId = searchParams.get('branchId')
     const all = searchParams.get('all')
 
-    let where = 'WHERE 1=1'
-
     if (all === 'true') {
-      // المسؤول يطّلع على كل الإشعارات
       const entries: any[] = await db.$queryRawUnsafe(
         `SELECT * FROM "Notification" ORDER BY "createdAt" DESC LIMIT 50`
       )
       return NextResponse.json(entries.map(parseNotif))
     }
 
-    // الموظف: يعرض إشعارات فرعه + الإشعارات العامة
-    const conditions: string[] = []
-    if (branchId) {
-      conditions.push(`"branchId" IS NULL`)
-      conditions.push(`"branchId" = '${esc(branchId)}'`)
-    } else {
-      conditions.push(`"branchId" IS NULL`)
-    }
-
+    // الموظف: يجلب كل الإشعارات ثم يفلتر
     const entries: any[] = await db.$queryRawUnsafe(
-      `SELECT * FROM "Notification" WHERE (${conditions.join(' OR ')}) ORDER BY "createdAt" DESC LIMIT 50`
+      `SELECT * FROM "Notification" ORDER BY "createdAt" DESC LIMIT 50`
     )
 
-    // فلترة: يبقى فقط الإشعارات اللي الموظف ما قرأها (لو empId موجود)
+    // فلترة حسب الفرع
+    const filtered = entries.filter(n => isBranchTargeted(n.branchId, branchId || ''))
+
+    // فلترة: يبقى فقط الإشعارات اللي الموظف ما قرأها
     if (empId) {
-      const filtered = entries.filter((n: any) => {
+      const unread = filtered.filter((n: any) => {
         try {
           const readBy: string[] = JSON.parse(n.readBy || '[]')
           return !readBy.includes(empId)
         } catch { return true }
       })
-      return NextResponse.json(filtered.map(parseNotif))
+      return NextResponse.json(unread.map(parseNotif))
     }
 
-    return NextResponse.json(entries.map(parseNotif))
+    return NextResponse.json(filtered.map(parseNotif))
   } catch (error) {
     console.error('Get notifications error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
@@ -80,7 +94,7 @@ export async function POST(req: NextRequest) {
   try {
     await ensureTable()
     const data = await req.json()
-    const { message, branchId, type, createdBy } = data
+    const { message, branchIds, type, createdBy } = data
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'الرجاء كتابة نص التنبيه' }, { status: 400 })
@@ -88,9 +102,15 @@ export async function POST(req: NextRequest) {
 
     const newId = 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
 
+    // branchIds: مصفوفة أو null (كل الفروع)
+    let branchIdValue: string | null = null
+    if (branchIds && Array.isArray(branchIds) && branchIds.length > 0) {
+      branchIdValue = JSON.stringify(branchIds)
+    }
+
     await db.$executeRawUnsafe(
       `INSERT INTO "Notification" (id, message, "branchId", type, "createdBy", "readBy", "createdAt")
-       VALUES ('${esc(newId)}', '${esc(message.trim())}', ${branchId ? `'${esc(branchId)}'` : 'NULL'}, '${esc(type || 'normal')}', '${esc(createdBy || '')}', '[]', NOW())`
+       VALUES ('${esc(newId)}', '${esc(message.trim())}', ${branchIdValue ? `'${esc(branchIdValue)}'` : 'NULL'}, '${esc(type || 'normal')}', '${esc(createdBy || '')}', '[]', NOW())`
     )
 
     const entries: any[] = await db.$queryRawUnsafe(
@@ -114,7 +134,6 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'بيانات ناقصة' }, { status: 400 })
     }
 
-    // إضافة empId لقائمة readBy
     const entries: any[] = await db.$queryRawUnsafe(
       `SELECT "readBy" FROM "Notification" WHERE id = '${esc(id)}'`
     )
@@ -153,15 +172,5 @@ export async function DELETE(req: NextRequest) {
   } catch (error) {
     console.error('Delete notification error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
-  }
-}
-
-function parseNotif(entry: any) {
-  let readBy: string[] = []
-  try { readBy = JSON.parse(entry.readBy || '[]') } catch {}
-  return {
-    ...entry,
-    readBy,
-    createdAt: entry.createdAt ? new Date(entry.createdAt).toISOString() : new Date().toISOString()
   }
 }

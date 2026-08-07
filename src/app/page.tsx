@@ -858,7 +858,8 @@ export default function JetCleanApp() {
   // ===== نظام التنبيهات =====
   const [showNotifModal, setShowNotifModal] = useState(false)
   const [notifMessage, setNotifMessage] = useState('')
-  const [notifBranchId, setNotifBranchId] = useState<string>('')
+  const [notifBranchIds, setNotifBranchIds] = useState<string[]>([])
+  const [notifTargetAll, setNotifTargetAll] = useState(true)
   const [notifType, setNotifType] = useState<'normal' | 'urgent'>('normal')
   const [sendingNotif, setSendingNotif] = useState(false)
   const [adminNotifs, setAdminNotifs] = useState<any[]>([])
@@ -1151,6 +1152,7 @@ export default function JetCleanApp() {
   // ===== دوال التنبيهات =====
   const handleSendNotif = async () => {
     if (!notifMessage.trim()) return alert('الرجاء كتابة نص التنبيه')
+    if (!notifTargetAll && notifBranchIds.length === 0) return alert('الرجاء اختيار فرع واحد على الأقل')
     setSendingNotif(true)
     try {
       await fetch('/api/notifications', {
@@ -1158,13 +1160,14 @@ export default function JetCleanApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: notifMessage.trim(),
-          branchId: notifBranchId || null,
+          branchIds: notifTargetAll ? null : notifBranchIds,
           type: notifType,
           createdBy: isAdminMode ? 'المسؤول' : (user?.name || '')
         })
       })
       setNotifMessage('')
-      setNotifBranchId('')
+      setNotifBranchIds([])
+      setNotifTargetAll(true)
       setNotifType('normal')
       setShowNotifModal(false)
       loadAdminNotifs()
@@ -3530,7 +3533,7 @@ export default function JetCleanApp() {
                     <div className="px-3 pt-1 pb-1">
                       <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">أدوات</span>
                     </div>
-                    <button onClick={() => { setShowAdminDropdown(false); setShowNotifModal(true); setNotifMessage(''); setNotifBranchId(''); setNotifType('normal') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                    <button onClick={() => { setShowAdminDropdown(false); setShowNotifModal(true); setNotifMessage(''); setNotifBranchIds([]); setNotifTargetAll(true); setNotifType('normal') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
                       <span>📢</span> إرسال تنبيه
                     </button>
                     <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
@@ -4832,15 +4835,40 @@ export default function JetCleanApp() {
             </div>
 
             <div>
-              <label className="text-xs text-slate-400 mb-1 block">إرسال إلى</label>
-              <select
-                value={notifBranchId}
-                onChange={e => setNotifBranchId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+              <label className="text-xs text-slate-400 mb-2 block">إرسال إلى</label>
+              <button
+                type="button"
+                onClick={() => setNotifTargetAll(true)}
+                className={`w-full mb-2 py-2 rounded-xl text-xs font-bold transition border ${notifTargetAll ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}
               >
-                <option value="">🌍 كل الفروع</option>
-                {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
-              </select>
+                🌍 كل الفروع
+              </button>
+              {!notifTargetAll && (
+                <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+                  {branches.map(b => (
+                    <label key={b.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition border ${notifBranchIds.includes(b.id) ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-700/30 border-slate-600/20 hover:bg-slate-700/50'}`}>
+                      <input
+                        type="checkbox"
+                        checked={notifBranchIds.includes(b.id)}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setNotifBranchIds(prev => [...prev, b.id])
+                          } else {
+                            setNotifBranchIds(prev => prev.filter(id => id !== b.id))
+                          }
+                        }}
+                        className="accent-emerald-500"
+                      />
+                      <span className={`text-xs ${notifBranchIds.includes(b.id) ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>📍 {b.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {!notifTargetAll && (
+                <button type="button" onClick={() => setNotifTargetAll(true)} className="text-[10px] text-slate-500 hover:text-slate-400 mt-1.5 transition">
+                  ← العودة لكل الفروع
+                </button>
+              )}
             </div>
 
             <div>
@@ -4893,7 +4921,7 @@ export default function JetCleanApp() {
                       {n.type === 'urgent' ? '🔴 عاجل' : '⚪ عادي'}
                     </span>
                     <div className="flex gap-2">
-                      <span className="text-[10px] text-slate-500">{n.branchId ? branches.find((b: any) => b.id === n.branchId)?.name || 'فرع' : '🌍 كل الفروع'}</span>
+                      <span className="text-[10px] text-slate-500">{(() => { if (!n.branchId) return '🌍 كل الفروع'; try { const ids = JSON.parse(n.branchId); if (Array.isArray(ids)) return ids.map((id: string) => branches.find((b: any) => b.id === id)?.name || '').filter(Boolean).join('، ') || 'فروع محددة'; } catch {} return branches.find((b: any) => b.id === n.branchId)?.name || 'فرع' })()}</span>
                       <button onClick={() => handleDeleteNotif(n.id)} className="text-slate-600 hover:text-rose-400 text-xs">🗑️</button>
                     </div>
                   </div>
