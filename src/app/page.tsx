@@ -45,6 +45,7 @@ interface CarEntry {
   extraAmount: number
   priceCounts: Record<string, number>
   customPrices: Record<string, { price: number; count: number }>
+  entryTime: string
   createdAt: string
 }
 
@@ -1296,6 +1297,10 @@ export default function JetCleanApp() {
 
     if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل')
 
+    // تسجيل الوقت الحالي تلقائياً
+    const now = new Date()
+    const entryTime = now.toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit', hour12: true })
+
     let empId: string, empName: string, branchId: string
     if (isAdminMode) {
       branchId = adminSelectedBranch!
@@ -1317,7 +1322,7 @@ export default function JetCleanApp() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: existing.id, date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
+            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
           })
         })
       } else {
@@ -1326,7 +1331,7 @@ export default function JetCleanApp() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
+            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
           })
         })
       }
@@ -2460,6 +2465,7 @@ export default function JetCleanApp() {
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">{entry.totalCars} سيارة</span>
+            {entry.entryTime && <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">🕐 {entry.entryTime}</span>}
             {canEdit && !dayClosed && (
               <>
                 <button onClick={() => handleEditCarEntry(entry)} className="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️</button>
