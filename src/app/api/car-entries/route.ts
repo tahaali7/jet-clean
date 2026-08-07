@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, ensureMigrations } from '@/lib/db'
 
-function parseJsonFields(entry: { priceCounts: string; customPrices: string }) {
+function parseJsonFields(entry: any) {
   return {
     ...entry,
     priceCounts: JSON.parse(entry.priceCounts || '{}'),
@@ -11,6 +11,7 @@ function parseJsonFields(entry: { priceCounts: string; customPrices: string }) {
 
 export async function GET(req: NextRequest) {
   try {
+    await ensureMigrations()
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date')
     const branchId = searchParams.get('branchId')
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureMigrations()
     const data = await req.json()
     const entry = await db.carEntry.create({
       data: {
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
+    await ensureMigrations()
     const { id, ...data } = await req.json()
     if (!id) return NextResponse.json({ error: 'معرف مطلوب' }, { status: 400 })
 
