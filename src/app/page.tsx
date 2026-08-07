@@ -87,6 +87,7 @@ interface ClosedDay {
 const ROOMS = ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'غرفة 6', 'مكينة الغسيل']
 const ALL_PRICES = [5, 10, 15, 20, 30, 35, 45]
 const EXTRA_PRICES = [30, 35, 45]
+let BRANCH_EXTRA_DISABLED: string[] = [] // الفروع اللي الإكسترا متوقفة فيها
 const ROOM_PRICES: Record<string, number[]> = { 'مكينة الغسيل': [10, 15] }
 let BRANCH_ROOMS: Record<string, string[]> = {
   'أبونواس': ['غرفة 1', 'غرفة 2', 'غرفة 3', 'غرفة 4', 'غرفة 5', 'مكينة الغسيل'],
@@ -119,6 +120,7 @@ const PRICE_BG: Record<number, string> = {
 
 function getRoomsForBranch(branchName: string) { return BRANCH_ROOMS[branchName] || ROOMS }
 function getPricesForRoom(room: string) { return ROOM_PRICES[room] || ALL_PRICES }
+function isExtraEnabledForBranch(branchName: string) { return !BRANCH_EXTRA_DISABLED.includes(branchName) }
 function getNetAmount(totalAmount: number, branchName: string, roomName: string) {
   if (roomName === 'مكينة الغسيل' && MACHINE_NO_DEDUCTION_BRANCHES.includes(branchName)) return Math.floor(totalAmount / 2)
   const deduction = BRANCH_NET_DEDUCTION[branchName] !== undefined ? BRANCH_NET_DEDUCTION[branchName] : 0
@@ -952,6 +954,7 @@ export default function JetCleanApp() {
   const [newBranchName, setNewBranchName] = useState('')
   const [newBranchRooms, setNewBranchRooms] = useState(6)
   const [newBranchHasMachine, setNewBranchHasMachine] = useState(true)
+  const [newBranchExtraDisabled, setNewBranchExtraDisabled] = useState(false)
   const [newBranchNetDeduction, setNewBranchNetDeduction] = useState(0)
   const [newBranchMachineNoDeduction, setNewBranchMachineNoDeduction] = useState(false)
   const [newBranchCleanType, setNewBranchCleanType] = useState<'fixed' | 'select'>('select')
@@ -1625,12 +1628,17 @@ export default function JetCleanApp() {
     let extraCars = 0
     let extraAmount = 0
 
+    // تحقق من الإكسترا للفرع
+    const activeBranch = branches.find(b => b.id === (isAdminMode ? adminSelectedBranch : user?.branchId))
+    const activeBranchName = activeBranch?.name || ''
+    const branchHasExtra = isExtraEnabledForBranch(activeBranchName)
+
     prices.forEach(price => {
       const count = priceInputs[price] || 0
       if (count > 0) {
         priceCounts[String(price)] = count
         totalCars += count
-        if (EXTRA_PRICES.includes(price)) {
+        if (branchHasExtra && EXTRA_PRICES.includes(price)) {
           totalAmount += (price - 5) * count
           extraCars += count
           extraAmount += 5 * count
@@ -2016,6 +2024,12 @@ export default function JetCleanApp() {
           MACHINE_NO_DEDUCTION_BRANCHES.push(b.name)
         }
         if (cfg.cleanliness) BRANCH_CLEANLINESS[b.name] = cfg.cleanliness
+        // إكسترا: إذا extraDisabled = true → أضف الفرع للقائمة
+        if (cfg.extraDisabled) {
+          if (!BRANCH_EXTRA_DISABLED.includes(b.name)) BRANCH_EXTRA_DISABLED.push(b.name)
+        } else {
+          BRANCH_EXTRA_DISABLED = BRANCH_EXTRA_DISABLED.filter(n => n !== b.name)
+        }
       }
     })
   }
@@ -2027,6 +2041,7 @@ export default function JetCleanApp() {
       hasMachine: newBranchHasMachine,
       netDeduction: newBranchNetDeduction,
       machineNoDeduction: newBranchMachineNoDeduction,
+      extraDisabled: newBranchExtraDisabled,
       cleanliness: newBranchCleanType === 'fixed'
         ? { type: 'fixed', value: newBranchCleanValue }
         : { type: 'select', options: newBranchCleanOptions.split(',').map(Number).filter(n => !isNaN(n)) }
@@ -2041,6 +2056,7 @@ export default function JetCleanApp() {
         setNewBranchName('')
         setNewBranchRooms(6)
         setNewBranchHasMachine(true)
+        setNewBranchExtraDisabled(false)
         setNewBranchNetDeduction(0)
         setNewBranchMachineNoDeduction(false)
         setNewBranchCleanType('select')
@@ -2830,7 +2846,10 @@ export default function JetCleanApp() {
       if (count > 0) {
         let subtotal = price * count
         let priceLabel = `${price} د.ل`
-        if (EXTRA_PRICES.includes(price)) {
+        // عرض خصم الإكسترا فقط إذا البيانات فيها إكسترا فعلي أو الفرع مفعّل فيه الإكسترا
+        const entryHasExtra = entry.extraCars > 0 && EXTRA_PRICES.includes(price)
+        const branchHasExtra = isExtraEnabledForBranch(branchName)
+        if (entryHasExtra || branchHasExtra) {
           subtotal = (price - 5) * count
           priceLabel = <>{price} د.ل <span className="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = {price - 5} د.ل)</span></>
         }
@@ -2917,7 +2936,7 @@ export default function JetCleanApp() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5">
         {prices.map(price => {
-          const isExtraPrice = EXTRA_PRICES.includes(price)
+          const isExtraPrice = EXTRA_PRICES.includes(price) && isExtraEnabledForBranch(branchName)
           return (
             <div key={price} className={`room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center`}>
               <p className="text-xs text-slate-400 mb-2">تسعيرة</p>
@@ -4453,6 +4472,20 @@ export default function JetCleanApp() {
                 </button>
                 <span className={`text-sm ${newBranchHasMachine ? 'text-cyan-400' : 'text-slate-500'}`}>
                   {newBranchHasMachine ? '✅ نعم' : '❌ لا'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">⭐ الإكسترا (خصم 5 د.ل من 30/35/45)</label>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <button type="button"
+                  onClick={() => setNewBranchExtraDisabled(!newBranchExtraDisabled)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${!newBranchExtraDisabled ? 'bg-amber-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 ${!newBranchExtraDisabled ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                </button>
+                <span className={`text-sm ${!newBranchExtraDisabled ? 'text-amber-400' : 'text-slate-500'}`}>
+                  {!newBranchExtraDisabled ? '✅ مفعّل' : '❌ متوقف'}
                 </span>
               </div>
             </div>
