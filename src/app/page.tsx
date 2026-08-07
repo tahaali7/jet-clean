@@ -1296,6 +1296,60 @@ export default function JetCleanApp() {
     }
   }
 
+  // استعادة من ملف JSON مرفوع
+  const handleUploadRestore = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = async (e: any) => {
+      const file = e.target?.files?.[0]
+      if (!file) return
+      if (!confirm('⚠️ سيتم حذف جميع البيانات الحالية واستبدالها بالنسخة المرفوعة!\n\nهل أنت متأكد؟')) return
+      try {
+        setRestoreLoading(true)
+        const text = await file.text()
+        // Validate JSON
+        const parsed = JSON.parse(text)
+        const data = parsed.data || parsed
+        const stats = {
+          branches: (data.branches || []).length,
+          employees: (data.employees || []).length,
+          carEntries: (data.carEntries || []).length,
+          records: (data.records || []).length
+        }
+        if (stats.branches === 0 && stats.carEntries === 0) {
+          alert('❌ الملف لا يحتوي على بيانات صالحة')
+          setRestoreLoading(false)
+          return
+        }
+        const res = await fetch('/api/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uploadData: text })
+        })
+        if (res.ok) {
+          const result = await res.json()
+          alert('✅ تمت الاستعادة بنجاح!\n\n' +
+            'الفروع: ' + (result.stats?.branches || stats.branches) + '\n' +
+            'الموظفين: ' + (result.stats?.employees || stats.employees) + '\n' +
+            'تسجيلات السيارات: ' + (result.stats?.carEntries || stats.carEntries) + '\n' +
+            'السحوبات والعجوزات: ' + (result.stats?.records || stats.records))
+          // Reload data
+          await loadBranches()
+          await loadEmployees()
+        } else {
+          const err = await res.json()
+          alert('❌ خطأ في الاستعادة: ' + (err.error || ''))
+        }
+      } catch (e: any) {
+        alert('❌ خطأ: ' + e.message)
+      } finally {
+        setRestoreLoading(false)
+      }
+    }
+    input.click()
+  }
+
   // ===== دوال التنبيهات =====
   const handleSendNotif = async () => {
     if (!notifMessage.trim()) return alert('الرجاء كتابة نص التنبيه')
@@ -3754,7 +3808,10 @@ export default function JetCleanApp() {
                       <span>🔑</span> كلمات السر
                     </button>
                     <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-amber-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
-                      <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
+                      <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة من النسخ المحفوظة
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); handleUploadRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-cyan-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
+                      <span>{restoreLoading ? '⏳' : '📤'}</span> استعادة من ملف
                     </button>
                     <button onClick={() => { setShowAdminDropdown(false); handleDownloadBackup() }} disabled={backupLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-emerald-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
                       <span>{backupLoading ? '⏳' : '💾'}</span> تحميل نسخة احتياطية
