@@ -59,3 +59,29 @@ Stage Summary:
 - Date separators are clearly visible blue bars with white text
 - Type badges (سحب/عجز) are now colored pills with white text
 - Build successful, no errors
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: إصلاح توقيت الإضافة (entryTime) - عدم الظهور + حماية البيانات
+
+Work Log:
+- تشخيص المشكلة: POST/PUT API يستخدم Prisma ORM الذي لا يعرف عن entryTime (غير موجود في schema.prisma)
+- السبب الجذري: الـ POST كان يرسل entryTime لكن db.carEntry.create() يتجاهله
+- السبب الجذري 2: GET يعتمد على addEntryTimeColumn() التي تفشل بسبب PgBouncer في Vercel/Supabase
+- إعادة كتابة car-entries/route.ts بالكامل:
+  - GET: فحص ذكي هل العمود موجود (checkEntryTimeColumn)، SELECT بأسماء أعمدة محددة (وليس SELECT *)
+  - POST: إذا العمود موجود → raw SQL INSERT مع entryTime، إذا لا → Prisma fallback
+  - PUT: لا يُرسل entryTime من الواجهة (يحافظ على الوقت الأصلي)، raw SQL للتحديث
+  - DELETE: بدون تغيير (لا يحتاج entryTime)
+- تبسيط db.ts: إزالة addEntryTimeColumn و autoBackup (نقلنا المنطق لمكان أفضل)
+- إنشاء /api/add-entry-time endpoint: يفحص ويضيف العمود مع باكب تلقائي (لمرة واحدة)
+- إصلاح page.tsx: PUT لا يرسل entryTime (لا نعيد تعيين وقت الإضافة عند التعديل)
+- بناء ناجح بدون أخطاء
+
+Stage Summary:
+- ✅ توقيت الإضافة الآن يُحفظ عند إنشاء سجل جديد عبر raw SQL
+- ✅ عند التعديل، يُحافظ على الوقت الأصلي (لا يتغير)
+- ✅ آمن: إذا العمود غير موجود في DB، يعمل بدون مشكلة (Prisma fallback)
+- ✅ باكب تلقائي قبل إضافة العمود عبر /api/add-entry-time
+- ⚠️ يحتاج تشغيل /api/add-entry-time مرة واحدة لإضافة العمود في DB (لو لم يتم بعد)

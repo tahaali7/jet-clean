@@ -1322,7 +1322,7 @@ export default function JetCleanApp() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: existing.id, date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
+            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
           })
         })
       } else {
