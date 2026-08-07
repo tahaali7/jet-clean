@@ -23,16 +23,10 @@ async function ensureTable() {
         "createdAt" TIMESTAMP DEFAULT NOW()
       )
     `)
-    // إضافة فهرس للبحث السريع حسب التاريخ والفرع
-    await db.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "idx_activity_log_createdAt" ON "ActivityLog" ("createdAt" DESC)
-    `)
-    await db.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "idx_activity_log_branchId" ON "ActivityLog" ("branchId")
-    `)
-    await db.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "idx_activity_log_userId" ON "ActivityLog" ("userId")
-    `)
+    // محاولة إنشاء الفهارس (لو فشلت ما تمنع العمل)
+    try { await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_activity_createdAt" ON "ActivityLog" ("createdAt")`) } catch {}
+    try { await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_activity_branchId" ON "ActivityLog" ("branchId")`) } catch {}
+    try { await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_activity_userId" ON "ActivityLog" ("userId")`) } catch {}
     tableReady = true
   } catch (e) {
     console.error('Failed to create ActivityLog table:', e)
@@ -51,31 +45,46 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category')
     const from = searchParams.get('from')
     const to = searchParams.get('to')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '100')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100')))
 
-    let where = 'WHERE 1=1'
-    if (branchId) where += ` AND "branchId" = '${esc(branchId)}'`
-    if (userId) where += ` AND "userId" = '${esc(userId)}'`
-    if (category) where += ` AND category = '${esc(category)}'`
-    if (from) where += ` AND "createdAt" >= '${esc(from)}'`
-    if (to) where += ` AND "createdAt" <= '${esc(to)}'`
+    const conditions: string[] = ['1=1']
+    const params: string[] = []
+    let paramIdx = 1
 
+    if (branchId) { conditions.push(`"branchId" = $${paramIdx}`); params.push(branchId); paramIdx++ }
+    if (userId) { conditions.push(`"userId" = $${paramIdx}`); params.push(userId); paramIdx++ }
+    if (category) { conditions.push(`category = $${paramIdx}`); params.push(category); paramIdx++ }
+    if (from) { conditions.push(`"createdAt" >= $${paramIdx}`); params.push(from); paramIdx++ }
+    if (to) { conditions.push(`"createdAt" <= $${paramIdx}`); params.push(to); paramIdx++ }
+
+    const where = 'WHERE ' + conditions.join(' AND ')
     const offset = (page - 1) * limit
 
     const entries: any[] = await db.$queryRawUnsafe(
-      `SELECT * FROM "ActivityLog" ${where} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${offset}`
+      `SELECT id, "userId", "userName", "userRole", "branchId", "branchName", action, category, details, ip, "createdAt" FROM "ActivityLog" ${where} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${offset}`,
+      ...params
     )
 
     // جلب العدد الكلي
     const countResult: any[] = await db.$queryRawUnsafe(
-      `SELECT COUNT(*) as total FROM "ActivityLog" ${where}`
+      `SELECT COUNT(*)::int as total FROM "ActivityLog" ${where}`,
+      ...params
     )
-    const total = countResult[0]?.total || 0
+    const total = Number(countResult[0]?.total) || 0
 
     return NextResponse.json({
       entries: entries.map((e: any) => ({
-        ...e,
+        id: e.id,
+        userId: e.userId,
+        userName: e.userName,
+        userRole: e.userRole,
+        branchId: e.branchId,
+        branchName: e.branchName,
+        action: e.action,
+        category: e.category,
+        details: e.details,
+        ip: e.ip,
         createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString()
       })),
       total,
@@ -85,7 +94,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('Get activity log error:', error)
-    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
+    return NextResponse.json({ error: 'حدث خطأ', details: String(error) }, { status: 500 })
   }
 }
 

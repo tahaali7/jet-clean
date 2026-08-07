@@ -899,8 +899,14 @@ export default function JetCleanApp() {
           category,
           details
         })
-      }).catch(() => {}) // صامت - لا نريد إيقاف العمل بسبب خطأ في السجل
-    } catch {}
+      }).then(res => {
+        if (!res.ok) console.error('[ActivityLog] فشل الحفظ:', res.status, action)
+      }).catch(err => {
+        console.error('[ActivityLog] خطأ في الشبكة:', err)
+      })
+    } catch (e) {
+      console.error('[ActivityLog] خطأ:', e)
+    }
   }
 
   // جلب سجل النشاطات
