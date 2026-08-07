@@ -1505,6 +1505,10 @@ export default function JetCleanApp() {
   // ==================== CAR ENTRY ACTIONS ====================
   const handleSaveCarEntry = async () => {
     if (!selectedRoom || selectedRoom.startsWith('__')) return alert('الرجاء اختيار الغرفة')
+    // منع الموظف من الحفظ إذا الفرع مقفل
+    if (!isAdminMode && user?.role !== 'admin' && user?.branchId && isDayClosedForBranch(empDate, user.branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل البيانات')
+    }
     const date = empDate
     if (!date) return alert('الرجاء تحديد التاريخ')
     if (!isAdminMode && !user) return
@@ -2054,6 +2058,35 @@ export default function JetCleanApp() {
           })
         }
       }
+    }
+    await loadClosedDays(adminDate)
+  }
+
+  // قفل/فتح فرع واحد
+  const handleToggleBranchClose = async (branchId: string, branchName: string) => {
+    const isClosed = isDayClosedForBranch(adminDate, branchId)
+    const todayCarEntries = carEntries.filter(e => e.branchId === branchId && e.date === adminDate)
+    const hasData = todayCarEntries.length > 0
+
+    if (!isClosed) {
+      // قفل الفرع
+      if (!hasData) {
+        const confirmClose = confirm(`⚠️ الفرع "${branchName}" لم يدخل بيانات اليوم!\n\nهل تريد الإغلاق مع ذلك؟`)
+        if (!confirmClose) return
+      }
+      await fetch('/api/closed-days', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: adminDate, branchId })
+      })
+      logActivity('قفل فرع', 'الإغلاق اليومي', `قفل فرع ${branchName}${!hasData ? ' - ⚠️ بدون بيانات' : ''} - التاريخ: ${adminDate}`)
+    } else {
+      // فتح الفرع
+      if (!confirm(`هل تريد إعادة فتح فرع "${branchName}"؟\nسيتمكن الموظف من تعديل البيانات`)) return
+      await fetch('/api/closed-days', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: adminDate, branchId })
+      })
+      logActivity('فتح فرع', 'الإغلاق اليومي', `إعادة فتح فرع ${branchName} - التاريخ: ${adminDate}`)
     }
     await loadClosedDays(adminDate)
   }
@@ -2865,6 +2898,10 @@ export default function JetCleanApp() {
       : `مرحباً ${user?.name} | ${branchName} | ${user?.shift}${user?.role === 'viewer' ? ' | 👁️ مشاهد' : ''}`
     const isViewer = user?.role === 'viewer'
 
+    // هل الفرع مقفل اليوم؟ (المسؤول دايماً يقدر يعدل)
+    const activeBranchId = isAdminMode ? adminSelectedBranch : user?.branchId
+    const isBranchLocked = !isAdminMode && user?.role !== 'admin' && activeBranchId ? isDayClosedForBranch(empDate, activeBranchId) : false
+
     return (
       <div className="min-h-screen bg-slate-900">
         <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
@@ -3019,6 +3056,16 @@ export default function JetCleanApp() {
 
           {!isViewer && (
           <div className="mb-6">
+            {/* بانر الفرع مقفل */}
+            {isBranchLocked && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 mb-4 flex items-center gap-3">
+                <span className="text-2xl">🔒</span>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-emerald-400">الفرع مقفل لهذا اليوم</p>
+                  <p className="text-xs text-slate-400 mt-0.5">لا يمكنك إدخال أو تعديل بيانات — تواصل مع المسؤول</p>
+                </div>
+              </div>
+            )}
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">🚗 تسجيل السيارات</h2>
 
             <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-4">
@@ -3048,14 +3095,15 @@ export default function JetCleanApp() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleSaveCarEntry}
-                    disabled={saving}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm flex items-center justify-center gap-2"
+                    disabled={saving || isBranchLocked}
+                    className={`flex-1 font-bold py-3 rounded-xl transition text-sm flex items-center justify-center gap-2 ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white shadow-lg'}`}
                   >
-                    {saving ? '⏳ جاري الحفظ...' : '💾 حفظ التسجيل'}
+                    {isBranchLocked ? '🔒 الفرع مقفل' : saving ? '⏳ جاري الحفظ...' : '💾 حفظ التسجيل'}
                   </button>
                   <button
                     onClick={() => { setPriceInputs({}); setCustomPricesData({}) }}
-                    className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition text-sm"
+                    disabled={isBranchLocked}
+                    className={`font-bold py-3 px-6 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
                   >
                     🗑️ مسح
                   </button>
@@ -3924,14 +3972,27 @@ export default function JetCleanApp() {
               })
 
               return (
-                <div key={branch.id} className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg">
+                <div key={branch.id} className={`bg-slate-800 border rounded-2xl overflow-hidden shadow-lg transition-all ${isDayClosedForBranch(adminDate, branch.id) ? 'border-emerald-500/30' : 'border-slate-700'}`}>
                   {/* رأس البطاقة */}
                   <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-700/40">
                     <div className="flex items-center gap-2">
                       <span className="text-pink-400">📍</span>
                       <h2 className="text-base font-bold text-cyan-400">{branch.name}</h2>
+                      {isDayClosedForBranch(adminDate, branch.id) && (
+                        <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">🔒 مقفل</span>
+                      )}
                     </div>
-                    {user?.role !== 'viewer' && <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>}
+                    {user?.role !== 'viewer' && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleBranchClose(branch.id, branch.name)}
+                          className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition ${isDayClosedForBranch(adminDate, branch.id) ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'}`}
+                        >
+                          {isDayClosedForBranch(adminDate, branch.id) ? '🔓 فتح الفرع' : '🔒 قفل الفرع'}
+                        </button>
+                        <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>
+                      </div>
+                    )}
                   </div>
                   {/* محتوى الموظفين */}
                   <div className="p-3.5 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
