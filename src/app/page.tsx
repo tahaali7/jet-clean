@@ -2705,6 +2705,8 @@ export default function JetCleanApp() {
 
   // ==================== EMPLOYEE SCREEN ====================
   const renderEmployeeScreen = () => {
+    // إذا الصيانة مشغّلة، لا تعرض شاشة الموظف
+    if (maintenanceMode && !isAdminMode && user?.role !== 'admin') return null
     const currentBranch = (isAdminMode || user?.role === 'viewer')
       ? (adminSelectedBranch ? branches.find(b => b.id === adminSelectedBranch) : (user?.role === 'viewer' ? getEmployeeBranch() : null))
       : getEmployeeBranch()
@@ -4901,7 +4903,7 @@ export default function JetCleanApp() {
       {renderModals()}
 
       {/* ===== صفحة الصيانة ===== */}
-      {maintenanceMode && screen !== 'login' && !isAdminMode && user?.role !== 'admin' && (
+      {maintenanceMode && screen !== 'login' && !isAdminMode && user?.role !== 'admin' ? (
         <div className="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4">
           <div className="text-center space-y-6 max-w-md">
             <div className="text-7xl animate-bounce">🔧</div>
@@ -4913,7 +4915,7 @@ export default function JetCleanApp() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {screen === 'login' && renderLoginScreen()}
       {screen === 'employee' && renderEmployeeScreen()}
