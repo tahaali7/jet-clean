@@ -217,7 +217,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   let extraRowHtml = ''
   if (roomExtraCars > 0) {
-    extraRowHtml = '<tr style="">' +
+    extraRowHtml = '<tr style="background:#fffde7;">' +
       '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">⭐ إكسترا</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraCars + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraAmount + ' د.ل</td>' +
@@ -226,8 +226,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">' + room + '</td></tr>' +
-    '<tr style="">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
@@ -235,11 +235,11 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     '</tr>' +
     rowsHtml +
     extraRowHtml +
-    '<tr style="">' +
+    '<tr style="background:#e0e0e0;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
-    '<tr style="">' +
+    '<tr style="background:#e8f5e9;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
@@ -272,19 +272,19 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">' + room + '</td></tr>' +
-    '<tr style="">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
+    '<tr style="background:#e0e0e0;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
     '</tr>' +
     rowsHtml +
-    '<tr style="">' +
+    '<tr style="background:#e0e0e0;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">0</td>' +
     '</tr>' +
-    '<tr style="">' +
+    '<tr style="background:#e8f5e9;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">0</td>' +
     '</tr>' +
@@ -626,20 +626,20 @@ function buildEmployeeReportHTML(
           '</tr>'
       })
 
-      rowsHtml += '<tr style="">' +
-        '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#000000;">' + emp.name + ' <span style="font-size:10px;color:#000000;font-weight:400;">(' + emp.shift + ')</span></td>' +
-        '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
-        '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + shortages + ' د.ل</td>' +
-        '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#000000;">' + total + ' د.ل</td>' +
+      rowsHtml += '<tr style="background:#f8fafc;">' +
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#0e7490;">' + emp.name + ' <span style="font-size:10px;color:#94a3b8;font-weight:400;">(' + emp.shift + ')</span></td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#1e293b;">' + total + ' د.ل</td>' +
         '</tr>'
       if (detailHtml) {
         rowsHtml += '<tr><td colspan="4" style="padding:0;border:1px solid #ddd;">' +
           '<table style="width:100%;border-collapse:collapse;margin:0;">' +
-          '<thead><tr style="">' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">التاريخ</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">النوع</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">المبلغ</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">ملاحظة</th>' +
+          '<thead><tr style="background:#f1f5f9;">' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">التاريخ</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">النوع</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">المبلغ</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">ملاحظة</th>' +
           '</tr></thead>' +
           '<tbody>' + detailHtml + '</tbody>' +
           '</table></td></tr>'
@@ -694,20 +694,20 @@ function buildEmployeeReportHTML(
           '</tr>'
       })
 
-      multiRowsHtml += '<tr style="">' +
-        '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#000000;">' + emp.name + ' <span style="font-size:10px;color:#000000;font-weight:400;">(' + (branchNames || emp.shift) + ')</span></td>' +
-        '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
-        '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + shortages + ' د.ل</td>' +
-        '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#000000;">' + total + ' د.ل</td>' +
+      multiRowsHtml += '<tr style="background:#fffbeb;">' +
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#92400e;">' + emp.name + ' <span style="font-size:10px;color:#94a3b8;font-weight:400;">(' + (branchNames || emp.shift) + ')</span></td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
+        '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#1e293b;">' + total + ' د.ل</td>' +
         '</tr>'
       if (detailHtml) {
         multiRowsHtml += '<tr><td colspan="5" style="padding:0;border:1px solid #ddd;">' +
-          '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="">' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">التاريخ</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">النوع</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">الفرع</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">المبلغ</th>' +
-          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">ملاحظة</th>' +
+          '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="background:#f1f5f9;">' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">التاريخ</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">النوع</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">الفرع</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">المبلغ</th>' +
+          '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">ملاحظة</th>' +
           '</tr></thead><tbody>' + detailHtml + '</tbody></table></td></tr>'
       }
     })
@@ -736,17 +736,17 @@ function buildEmployeeReportHTML(
     '<p style="font-size:11px;color:#000000;margin:4px 0 0;">' + periodLabel + ' — ' + generatedOn + '</p>' +
     '</div>'
   const summaryHtml = '<div style="display:flex;gap:12px;margin-bottom:16px;">' +
-    '<div style="flex:1;border:1px solid #fde68a;border-radius:8px;padding:8px;text-align:center;">' +
-    '<p style="font-size:10px;color:#000000;margin:0;">إجمالي السحبيات</p>' +
-    '<p style="font-size:16px;font-weight:800;color:#000000;margin:2px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
+    '<div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px;text-align:center;">' +
+    '<p style="font-size:10px;color:#92400e;margin:0;">إجمالي السحبيات</p>' +
+    '<p style="font-size:16px;font-weight:800;color:#b45309;margin:2px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
     '</div>' +
-    '<div style="flex:1;border:1px solid #fecdd3;border-radius:8px;padding:8px;text-align:center;">' +
-    '<p style="font-size:10px;color:#000000;margin:0;">إجمالي العجوزات</p>' +
-    '<p style="font-size:16px;font-weight:800;color:#000000;margin:2px 0 0;">' + grandShortages + ' د.ل</p>' +
+    '<div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:8px;text-align:center;">' +
+    '<p style="font-size:10px;color:#9f1239;margin:0;">إجمالي العجوزات</p>' +
+    '<p style="font-size:16px;font-weight:800;color:#be123c;margin:2px 0 0;">' + grandShortages + ' د.ل</p>' +
     '</div>' +
-    '<div style="flex:1;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center;">' +
-    '<p style="font-size:10px;color:#000000;margin:0;">الإجمالي العام</p>' +
-    '<p style="font-size:16px;font-weight:800;color:#000000;margin:2px 0 0;">' + grandTotal + ' د.ل</p>' +
+    '<div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center;">' +
+    '<p style="font-size:10px;color:#166534;margin:0;">الإجمالي العام</p>' +
+    '<p style="font-size:16px;font-weight:800;color:#15803d;margin:2px 0 0;">' + grandTotal + ' د.ل</p>' +
     '</div></div>'
 
   const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#000000;">صفحة __PAGE__</div>'
@@ -757,11 +757,11 @@ function buildEmployeeReportHTML(
   const branchBlocks: { html: string; estimatedHeight: number }[] = []
   branchDatas.forEach(bd => {
     const blockHtml = '<div style="margin-bottom:16px;">' +
-      '<h3 style="color:#000000;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
+      '<h3 style="background:#0e7490;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
       'فرع ' + bd.name + ' — سحوبات: ' + bd.withdrawals + ' د.ل | عجوزات: ' + bd.shortages + ' د.ل | الإجمالي: ' + (bd.withdrawals + bd.shortages) + ' د.ل' +
       '</h3>' +
       '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
-      '<thead><tr style="">' +
+      '<thead><tr style="background:#e2e8f0;">' +
       '<th style="padding:6px;border:1px solid #ddd;">الموظف</th>' +
       '<th style="padding:6px;border:1px solid #ddd;">السحبيات</th>' +
       '<th style="padding:6px;border:1px solid #ddd;">العجوزات</th>' +
