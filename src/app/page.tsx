@@ -2141,16 +2141,18 @@ export default function JetCleanApp() {
     
     // Wait for fonts to load
     try { await (iframeDoc as any).fonts?.ready } catch(e) {}
-    await new Promise(r => setTimeout(r, 1500))
+    await new Promise(r => setTimeout(r, 800))
     
     const iframeBody = iframeDoc.body
     const canvas = await html2canvas(iframeBody, { 
-      scale: 2, 
+      scale: 1.5, 
       backgroundColor: '#ffffff', 
       useCORS: true,
       logging: false,
       width: width,
-      windowWidth: width
+      windowWidth: width,
+      imageTimeout: 0,
+      removeContainer: true
     })
     
     document.body.removeChild(iframe)
@@ -2220,7 +2222,7 @@ export default function JetCleanApp() {
 
           if (!firstPage) pdf.addPage()
           firstPage = false
-          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
           exportedCount++
           continue
         }
@@ -2251,7 +2253,7 @@ export default function JetCleanApp() {
 
             if (!firstPage) pdf.addPage()
             firstPage = false
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
           }
           exportedCount++
         }
@@ -2356,7 +2358,7 @@ export default function JetCleanApp() {
         const canvas = await renderHtmlToCanvas(reportPages[i], 800)
         const imgHeight = (canvas.height * pageWidth) / canvas.width
         if (i > 0) pdf.addPage()
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
       }
 
       pdf.save('تقرير_سحوبات_وعجوزات_الموظفين.pdf')
@@ -2431,7 +2433,7 @@ export default function JetCleanApp() {
         const canvas = await renderHtmlToCanvas(reportPages[i], 800)
         const imgHeight = (canvas.height * pageWidth) / canvas.width
         if (i > 0) pdf.addPage()
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
       }
 
       pdf.save('تقرير_مصاريف_الموظفين_' + periodLabel + '.pdf')
@@ -2613,7 +2615,7 @@ export default function JetCleanApp() {
         const canvas = await renderHtmlToCanvas(pages[i], 800)
         const imgHeight = (canvas.height * pageWidth) / canvas.width
         if (i > 0) pdf.addPage()
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
       }
 
       pdf.save('تقرير_مصروفات_' + branchName + '_' + periodLabel + '.pdf')
@@ -2681,7 +2683,7 @@ export default function JetCleanApp() {
         const imgHeight = (canvas.height * pageWidth) / canvas.width
 
         if (pi > 0) pdf.addPage()
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
       }
 
       const fileName = 'نموذج_مغاسل_' + branchName + '_' + date + '.pdf'
