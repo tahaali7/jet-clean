@@ -2917,26 +2917,26 @@ export default function JetCleanApp() {
               <img src="/logo.png" alt="logo" className="w-8 h-8 rounded-lg" />
               <h1 className="text-sm font-bold text-cyan-400">جيت كلين</h1>
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               {isAdminMode && (
               <>
-              <button onClick={() => setShowBranchCloseModal(true)} className="bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-violet-500/20">
-                🔒 قفل فرع
+              <button onClick={() => setShowBranchCloseModal(true)} title="قفل فرع" className="bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-violet-500/20 text-base">
+                🔒
               </button>
-              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
-                📋 الإغلاق
+              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} title="تقرير الإغلاق" className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-emerald-500/20 text-base">
+                📋
               </button>
               </>
               )}
-              <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-amber-500/20">
-                👤 الموظفين
+              <button onClick={switchToAdminManagement} title="الموظفين" className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-amber-500/20 text-base">
+                👤
               </button>
               {user?.role !== 'admin' && (
-              <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-cyan-500/20">
+              <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} title="تغيير كلمة المرور" className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-cyan-500/20 text-base">
                 🔑
               </button>
               )}
-              <button onClick={handleLogout} className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-rose-500/20">
+              <button onClick={handleLogout} title="تسجيل الخروج" className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-rose-500/20 text-base">
                 🚪
               </button>
             </div>
