@@ -2231,15 +2231,15 @@ export default function JetCleanApp() {
         if (date !== prevDate) {
           rowNum++
           const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
-          rowsHtml += '<tr style="background:rgba(30,41,59,0.8);">' +
-            '<td colspan="2" style="padding:6px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#22d3ee;">' + formatDateShort(date) + '</td>' +
-            '<td style="padding:6px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#f87171;">' + dayTotal + ' د.ل</td>' +
+          rowsHtml += '<tr style="background:#1e40af;color:#ffffff;">' +
+            '<td colspan="2" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
+            '<td style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + dayTotal + ' د.ل</td>' +
             '</tr>'
           dayExps.forEach(exp => {
-            rowsHtml += '<tr>' +
-              '<td style="padding:4px 10px;border:1px solid #555;font-size:9px;text-align:center;color:#94a3b8;">' + (rowNum) + '</td>' +
-              '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;text-align:right;color:#e2e8f0;">' + exp.name + '</td>' +
-              '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#f87171;">' + exp.amount + ' د.ل</td>' +
+            rowsHtml += '<tr style="background:#f8fafc;">' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#475569;">' + (rowNum) + '</td>' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#1e293b;">' + exp.name + '</td>' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + exp.amount + ' د.ل</td>' +
               '</tr>'
           })
           prevDate = date
@@ -2247,17 +2247,17 @@ export default function JetCleanApp() {
       }
 
       pages.push(
-        '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
-        '<div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:10px;">' +
-        '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين</h1>' +
-        '<p style="font-size:14px;margin:5px 0 0;color:#555;">تقرير مصروفات الفرع: ' + branchName + ' | ' + periodLabel + '</p>' +
+        '<div style="width:780px;background:#ffffff;color:#1e293b;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
+        '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
+        '<p style="font-size:15px;margin:8px 0 0;color:#64748b;">تقرير مصروفات الفرع: <strong style="color:#1e293b;">' + branchName + '</strong> | ' + periodLabel + '</p>' +
         '</div>' +
-        '<h2 style="font-size:16px;font-weight:bold;color:#f87171;margin:15px 0 10px;">📋 المصروفات</h2>' +
+        '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;background:#fef2f2;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">📋 المصروفات</h2>' +
         (rowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="background:#e0e0e0;"><th style="padding:8px;border:1px solid #555;font-size:11px;">م</th><th style="padding:8px;border:1px solid #555;font-size:11px;">البيان</th><th style="padding:8px;border:1px solid #555;font-size:11px;">المبلغ</th></tr>' +
+        '<tr style="background:#1e40af;color:#ffffff;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">م</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">البيان</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
         rowsHtml +
-        '<tr style="background:#fde2e2;"><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:8px 10px;border:1px solid #555;font-size:14px;font-weight:bold;text-align:center;color:#dc2626;">' + totalExpAmount + ' د.ل</td></tr>' +
-        '</table>' : '<p style="text-align:center;color:#999;padding:20px;">لا توجد مصروفات في هذه الفترة</p>') +
+        '<tr style="background:#b91c1c;color:#ffffff;"><td colspan="2" style="padding:10px 12px;border:1px solid #991b1b;font-size:13px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:10px 12px;border:1px solid #991b1b;font-size:15px;font-weight:bold;text-align:center;">' + totalExpAmount + ' د.ل</td></tr>' +
+        '</table>' : '<p style="text-align:center;color:#94a3b8;padding:30px;font-size:14px;">لا توجد مصروفات في هذه الفترة</p>') +
         '</div>'
       )
 
@@ -2274,31 +2274,33 @@ export default function JetCleanApp() {
       for (const date of dates) {
         const dayRecs = groupedRec[date] || []
         if (dayRecs.length === 0) continue
-        recRowsHtml += '<tr style="background:rgba(30,41,59,0.8);">' +
-          '<td colspan="3" style="padding:6px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#22d3ee;">' + formatDateShort(date) + '</td>' +
+        recRowsHtml += '<tr style="background:#1e40af;color:#ffffff;">' +
+          '<td colspan="3" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
           '</tr>'
         dayRecs.forEach(rec => {
-          recRowsHtml += '<tr>' +
-            '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;text-align:right;color:#e2e8f0;">' + rec.empName + '</td>' +
-            '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:' + (rec.type === 'withdrawal' ? '#fbbf24' : '#f87171') + ';">' + (rec.type === 'withdrawal' ? 'سحب' : 'عجز') + '</td>' +
-            '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#f87171;">' + rec.amount + ' د.ل</td>' +
+          const isWithdrawal = rec.type === 'withdrawal'
+          recRowsHtml += '<tr style="background:#f8fafc;">' +
+            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#1e293b;">' + rec.empName + '</td>' +
+            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#ffffff;background:' + (isWithdrawal ? '#d97706' : '#dc2626') + ';">' + (isWithdrawal ? '💰 سحب' : '⚠️ عجز') + '</td>' +
+            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + rec.amount + ' د.ل</td>' +
             '</tr>'
         })
       }
 
       pages.push(
-        '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
-        '<div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:10px;">' +
-        '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين</h1>' +
-        '<p style="font-size:14px;margin:5px 0 0;color:#555;">تقرير سحوبات وعجوزات الفرع: ' + branchName + ' | ' + periodLabel + '</p>' +
+        '<div style="width:780px;background:#ffffff;color:#1e293b;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
+        '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
+        '<p style="font-size:15px;margin:8px 0 0;color:#64748b;">تقرير سحوبات وعجوزات الفرع: <strong style="color:#1e293b;">' + branchName + '</strong> | ' + periodLabel + '</p>' +
         '</div>' +
+        '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;background:#fffbeb;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">💰 السحوبات والعجوزات</h2>' +
         (recRowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="background:#e0e0e0;"><th style="padding:8px;border:1px solid #555;font-size:11px;">الموظف</th><th style="padding:8px;border:1px solid #555;font-size:11px;">النوع</th><th style="padding:8px;border:1px solid #555;font-size:11px;">المبلغ</th></tr>' +
+        '<tr style="background:#1e40af;color:#ffffff;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">الموظف</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">النوع</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
         recRowsHtml +
-        '<tr style="background:#fef3c7;"><td style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:14px;font-weight:bold;text-align:center;color:#d97706;">' + totalWithdrawals + ' د.ل</td></tr>' +
-        '<tr style="background:#fde2e2;"><td style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:14px;font-weight:bold;text-align:center;color:#dc2626;">' + totalShortages + ' د.ل</td></tr>' +
-        '<tr style="background:#e0e0e0;"><td style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:16px;font-weight:bold;text-align:center;color:#000;">' + totalRecAmount + ' د.ل</td></tr>' +
-        '</table>' : '<p style="text-align:center;color:#999;padding:20px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>') +
+        '<tr style="background:#d97706;color:#ffffff;"><td style="padding:10px 12px;border:1px solid #b45309;font-size:13px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b45309;font-size:15px;font-weight:bold;text-align:center;">' + totalWithdrawals + ' د.ل</td></tr>' +
+        '<tr style="background:#dc2626;color:#ffffff;"><td style="padding:10px 12px;border:1px solid #b91c1c;font-size:13px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b91c1c;font-size:15px;font-weight:bold;text-align:center;">' + totalShortages + ' د.ل</td></tr>' +
+        '<tr style="background:#0f172a;color:#ffffff;"><td style="padding:10px 12px;border:1px solid #020617;font-size:13px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:10px 12px;border:1px solid #020617;font-size:17px;font-weight:bold;text-align:center;">' + totalRecAmount + ' د.ل</td></tr>' +
+        '</table>' : '<p style="text-align:center;color:#94a3b8;padding:30px;font-size:14px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>') +
         '</div>'
       )
 
