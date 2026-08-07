@@ -1,69 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, ensureMigrations } from '@/lib/db'
+import { db, ensureMigrations, forceMigrations } from '@/lib/db'
 
 function parseJsonFields(entry: any) {
-  return {
-    ...entry,
-    priceCounts: JSON.parse(entry.priceCounts || '{}'),
-    customPrices: JSON.parse(entry.customPrices || '{}')
-  }
-}
-
-// تشغيل الترحيل ثم المحاولة - لو فشل الاستعلام الأول (العمود مفقود) نعيد الترحيل والمحاولة
-async function withMigration<T>(fn: () => Promise<T>): Promise<T> {
-  await ensureMigrations()
-  try {
-    return await fn()
-  } catch (error: any) {
-    // لو الخطأ بسبب عمود مفقود، أعد الترحيل بقوة وحاول مرة تانية
-    const msg = error?.message || ''
-    if (msg.includes('does not exist') || msg.includes('column') || msg.includes('relation')) {
-      console.log('[Retry] Re-running migrations after column error...')
-      const { forceMigrations } = await import('@/lib/db')
-      await forceMigrations()
-      return await fn()
-    }
-    throw error
-  }
+  let priceCounts = {}
+  let customPrices = {}
+  try { priceCounts = JSON.parse(entry.priceCounts || '{}') } catch {}
+  try { customPrices = JSON.parse(entry.customPrices || '{}') } catch {}
+  return { ...entry, priceCounts, customPrices }
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const result = await withMigration(async () => {
-      const { searchParams } = new URL(req.url)
-      const date = searchParams.get('date')
-      const branchId = searchParams.get('branchId')
-      const empId = searchParams.get('empId')
-      const datesOnly = searchParams.get('datesOnly')
-      const month = searchParams.get('month')
+    await ensureMigrations()
+    const { searchParams } = new URL(req.url)
+    const date = searchParams.get('date')
+    const branchId = searchParams.get('branchId')
+    const empId = searchParams.get('empId')
+    const datesOnly = searchParams.get('datesOnly')
+    const month = searchParams.get('month')
 
-      if (datesOnly === 'true' && branchId && month) {
-        const startDate = month + '-01'
-        const [year, mon] = month.split('-').map(Number)
-        const daysInMonth = new Date(year, mon, 0).getDate()
-        const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
-
-        const entries = await db.carEntry.findMany({
-          where: { branchId, date: { gte: startDate, lte: endDate } },
-          select: { date: true },
-        })
-        const dateSet = new Set(entries.map((e: any) => e.date))
-        return Array.from(dateSet)
-      }
-
-      const where: Record<string, unknown> = {}
-      if (date) where.date = date
-      if (branchId) where.branchId = branchId
-      if (empId) where.empId = empId
+    if (datesOnly === 'true' && branchId && month) {
+      const startDate = month + '-01'
+      const [year, mon] = month.split('-').map(Number)
+      const daysInMonth = new Date(year, mon, 0).getDate()
+      const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
 
       const entries = await db.carEntry.findMany({
+        where: { branchId, date: { gte: startDate, lte: endDate } },
+        select: { date: true },
+      })
+      const dateSet = new Set(entries.map((e: any) => e.date))
+      return NextResponse.json(Array.from(dateSet))
+    }
+
+    const where: Record<string, unknown> = {}
+    if (date) where.date = date
+    if (branchId) where.branchId = branchId
+    if (empId) where.empId = empId
+
+    let entries = []
+    try {
+      entries = await db.carEntry.findMany({
         where,
         orderBy: { createdAt: 'desc' }
       })
+    } catch (error: any) {
+      const msg = error?.message || ''
+      // لو الخطأ بسبب عمود مفقود، نعيد الترحيل ونحاول مرة تانية
+      if (msg.includes('does not exist') || msg.includes('column') || msg.includes('relation')) {
+        console.log('[Retry] Column missing, re-running migrations...')
+        await forceMigrations()
+        entries = await db.carEntry.findMany({
+          where,
+          orderBy: { createdAt: 'desc' }
+        })
+      } else {
+        throw error
+      }
+    }
 
-      return entries.map(parseJsonFields)
-    })
-    return NextResponse.json(result)
+    const parsed = entries.map(parseJsonFields)
+    return NextResponse.json(parsed)
   } catch (error) {
     console.error('Get car entries error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
