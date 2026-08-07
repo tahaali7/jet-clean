@@ -2912,17 +2912,12 @@ export default function JetCleanApp() {
     return (
       <div className="min-h-screen bg-slate-900">
         <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
-          <div className="px-4 py-2.5 flex items-center justify-between">
+          <div className="px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <img src="/logo.png" alt="logo" className="w-8 h-8 rounded-lg" />
               <h1 className="text-sm font-bold text-cyan-400">جيت كلين</h1>
             </div>
             <div className="flex items-center gap-1.5">
-              {(isAdminMode || user?.role === 'viewer') && (
-                <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-amber-500/20">
-                  👤 الموظفين
-                </button>
-              )}
               {isAdminMode && (
               <>
               <button onClick={() => setShowBranchCloseModal(true)} className="bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-violet-500/20">
@@ -2933,6 +2928,9 @@ export default function JetCleanApp() {
               </button>
               </>
               )}
+              <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-amber-500/20">
+                👤 الموظفين
+              </button>
               {user?.role !== 'admin' && (
               <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-cyan-500/20">
                 🔑
