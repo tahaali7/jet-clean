@@ -871,6 +871,61 @@ export default function JetCleanApp() {
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [checkingMaintenance, setCheckingMaintenance] = useState(true)
 
+  // ===== سجل النشاطات =====
+  const [showActivityLog, setShowActivityLog] = useState(false)
+  const [activityLogs, setActivityLogs] = useState<any[]>([])
+  const [activityLogTotal, setActivityLogTotal] = useState(0)
+  const [activityLogPage, setActivityLogPage] = useState(1)
+  const [activityLogLoading, setActivityLogLoading] = useState(false)
+  const [activityFilterBranch, setActivityFilterBranch] = useState('')
+  const [activityFilterCategory, setActivityFilterCategory] = useState('')
+
+  // دالة تسجيل النشاطات (ترسل في الخلفية بدون انتظار)
+  const logActivity = (action: string, category: string, details: string = '', branchIdOverride?: string) => {
+    if (!user) return
+    try {
+      const branchId = branchIdOverride || (isAdminMode ? adminSelectedBranch : user.branchId) || ''
+      const branchName = branches.find(b => b.id === branchId)?.name || ''
+      fetch('/api/activity-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          userName: user.name,
+          userRole: user.role,
+          branchId,
+          branchName,
+          action,
+          category,
+          details
+        })
+      }).catch(() => {}) // صامت - لا نريد إيقاف العمل بسبب خطأ في السجل
+    } catch {}
+  }
+
+  // جلب سجل النشاطات
+  const loadActivityLogs = async (page = 1) => {
+    setActivityLogLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('limit', '100')
+      if (activityFilterBranch) params.set('branchId', activityFilterBranch)
+      if (activityFilterCategory) params.set('category', activityFilterCategory)
+
+      const res = await fetch(`/api/activity-log?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setActivityLogs(data.entries || [])
+        setActivityLogTotal(data.total || 0)
+        setActivityLogPage(page)
+      }
+    } catch (e) {
+      console.error('Load activity log error:', e)
+    }
+    setActivityLogLoading(false)
+  }
+
   // Withdrawal/Shortage quick entry state
   const [qEmpId, setQEmpId] = useState('')
   const [qRecordType, setQRecordType] = useState<'withdrawal' | 'shortage'>('withdrawal')
@@ -1062,6 +1117,21 @@ export default function JetCleanApp() {
       })
       const data = await res.json()
       if (!data.success) {
+        // تسجيل محاولة دخول فاشلة
+        try {
+          fetch('/api/activity-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: loginEmpId,
+              userName: loginEmpId,
+              userRole: 'unknown',
+              action: 'محاولة دخول فاشلة',
+              category: 'تسجيل الدخول',
+              details: `السبب: ${data.error}`
+            })
+          }).catch(() => {})
+        } catch {}
         setLoginError(data.error)
         setLoginLoading(false)
         return
@@ -1071,6 +1141,26 @@ export default function JetCleanApp() {
       setLoginPassword('')
       setLoginEmpId('')
       setLoginLoading(false)
+
+      // تسجيل عملية الدخول في سجل النشاطات
+      try {
+        const branchId = data.user.branchId || ''
+        const branchName = branches.find(b => b.id === branchId)?.name || ''
+        fetch('/api/activity-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: data.user.id,
+            userName: data.user.name,
+            userRole: data.user.role,
+            branchId,
+            branchName,
+            action: 'تسجيل دخول',
+            category: 'تسجيل الدخول',
+            details: `دخول بنجاح - الدور: ${data.user.role === 'admin' ? 'مسؤول' : data.user.role === 'viewer' ? 'مشاهد' : 'موظف'}${branchName ? ' - الفرع: ' + branchName : ''}`
+          })
+        }).catch(() => {})
+      } catch {}
 
       if (data.user.role === 'admin' || data.user.role === 'viewer') {
         setIsAdminMode(false)
@@ -1171,6 +1261,7 @@ export default function JetCleanApp() {
       setNotifType('normal')
       setShowNotifModal(false)
       loadAdminNotifs()
+      logActivity('إرسال تنبيه', 'التنبيهات', `${notifType === 'urgent' ? '🔴 عاجل' : '⚪ عادي'} - ${notifTargetAll ? 'كل الفروع' : 'فروع محددة'} - "${notifMessage.substring(0, 50)}"`)
       alert('✅ تم إرسال التنبيه بنجاح!')
     } catch {
       alert('❌ حدث خطأ أثناء إرسال التنبيه')
@@ -1213,6 +1304,7 @@ export default function JetCleanApp() {
     if (!confirm('هل تريد حذف هذا التنبيه؟')) return
     try {
       await fetch(`/api/notifications?id=${notifId}`, { method: 'DELETE' })
+      logActivity('حذف تنبيه', 'التنبيهات', `معرف التنبيه: ${notifId}`)
       loadAdminNotifs()
     } catch {}
   }
@@ -1239,6 +1331,7 @@ export default function JetCleanApp() {
         body: JSON.stringify({ enabled: newState })
       })
       setMaintenanceMode(newState)
+      logActivity(newState ? 'تشغيل وضع الصيانة' : 'إيقاف وضع الصيانة', 'الصيانة', newState ? 'تم حظر وصول الموظفين' : 'تم إعادة فتح الموقع للموظفين')
     } catch {
       alert('❌ حدث خطأ')
     }
@@ -1472,6 +1565,7 @@ export default function JetCleanApp() {
             totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
           })
         })
+        logActivity('تعديل تسجيل سيارات', 'تسجيل السيارات', `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`, branchId)
       } else {
         await fetch('/api/car-entries', {
           method: 'POST',
@@ -1481,6 +1575,7 @@ export default function JetCleanApp() {
             totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
           })
         })
+        logActivity('إدخال تسجيل سيارات', 'تسجيل السيارات', `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`, branchId)
       }
 
       if (isAdminMode) {
@@ -1514,9 +1609,13 @@ export default function JetCleanApp() {
   }
 
   const handleDeleteCarEntry = async (id: string) => {
+    const entry = carEntries.find(e => e.id === id)
     if (!confirm('هل تريد حذف هذا التسجيل؟')) return
     try {
       await fetch(`/api/car-entries?id=${id}`, { method: 'DELETE' })
+      if (entry) {
+        logActivity('حذف تسجيل سيارات', 'تسجيل السيارات', `${entry.room} - ${entry.totalCars} سيارة - ${entry.totalAmount} د.ل - التاريخ: ${entry.date}`, entry.branchId)
+      }
       if (isAdminMode && adminSelectedBranch) {
         await loadCarEntries(empDate, adminSelectedBranch)
       } else if (user?.branchId) {
@@ -1932,6 +2031,7 @@ export default function JetCleanApp() {
   const handleToggleDayClosing = async () => {
     const allClosed = isDayClosed(adminDate)
     if (allClosed) {
+      logActivity('إعادة فتح الإغلاق اليومي', 'الإغلاق اليومي', `إعادة فتح كل الفروع - التاريخ: ${adminDate}`)
       for (const b of branches) {
         await fetch('/api/closed-days', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1939,6 +2039,7 @@ export default function JetCleanApp() {
         })
       }
     } else {
+      logActivity('إغلاق يومي', 'الإغلاق اليومي', `إغلاق كل الفروع - التاريخ: ${adminDate}`)
       for (const b of branches) {
         if (!isDayClosedForBranch(adminDate, b.id)) {
           await fetch('/api/closed-days', {
@@ -3539,6 +3640,9 @@ export default function JetCleanApp() {
                     <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
                       <span>📜</span> سجل التنبيهات
                     </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowActivityLog(true); loadActivityLogs(1); setActivityFilterBranch(''); setActivityFilterCategory('') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>📊</span> سجل النشاطات
+                    </button>
                     <button onClick={() => { setShowAdminDropdown(false); toggleMaintenance() }} className={`w-full text-right px-4 py-2 hover:bg-slate-700 text-xs flex items-center gap-2 transition ${maintenanceMode ? 'text-rose-400' : 'text-emerald-400'}`}>
                       <span>{maintenanceMode ? '🔧' : '⚙️'}</span> {maintenanceMode ? 'إيقاف الصيانة' : 'تشغيل الصيانة'}
                     </button>
@@ -4896,6 +5000,141 @@ export default function JetCleanApp() {
                 {sendingNotif ? '⏳ جاري الإرسال...' : '📢 إرسال'}
               </button>
               <button onClick={() => setShowNotifModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== سجل النشاطات Modal ===== */}
+      {showActivityLog && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-2xl shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-white">📊 سجل النشاطات</h3>
+              <button onClick={() => setShowActivityLog(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+            </div>
+
+            {/* فلاتر */}
+            <div className="flex gap-2">
+              <select
+                value={activityFilterBranch}
+                onChange={e => { setActivityFilterBranch(e.target.value); loadActivityLogs(1) }}
+                className="flex-1 bg-slate-700 border border-slate-600 text-white text-xs rounded-lg px-3 py-2"
+              >
+                <option value="">كل الفروع</option>
+                {branches.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+              <select
+                value={activityFilterCategory}
+                onChange={e => { setActivityFilterCategory(e.target.value); loadActivityLogs(1) }}
+                className="flex-1 bg-slate-700 border border-slate-600 text-white text-xs rounded-lg px-3 py-2"
+              >
+                <option value="">كل الأقسام</option>
+                <option value="تسجيل الدخول">تسجيل الدخول</option>
+                <option value="تسجيل السيارات">تسجيل السيارات</option>
+                <option value="الإغلاق اليومي">الإغلاق اليومي</option>
+                <option value="التنبيهات">التنبيهات</option>
+                <option value="الصيانة">الصيانة</option>
+              </select>
+            </div>
+
+            {/* إجمالي */}
+            <div className="flex justify-between items-center text-xs text-slate-500">
+              <span>إجمالي السجلات: {activityLogTotal}</span>
+              {activityLogTotal > 100 && (
+                <span>صفحة {activityLogPage} من {Math.ceil(activityLogTotal / 100)}</span>
+              )}
+            </div>
+
+            {/* القائمة */}
+            <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar">
+              {activityLogLoading ? (
+                <div className="text-center py-8 text-slate-500">⏳ جاري التحميل...</div>
+              ) : activityLogs.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">لا توجد سجلات</div>
+              ) : (
+                activityLogs.map((log: any) => (
+                  <div key={log.id} className="bg-slate-700/30 border border-slate-600/30 rounded-xl px-4 py-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${(() => {
+                          switch (log.category) {
+                            case 'تسجيل الدخول': return 'text-blue-400 bg-blue-500/10'
+                            case 'تسجيل السيارات': return 'text-emerald-400 bg-emerald-500/10'
+                            case 'الإغلاق اليومي': return 'text-violet-400 bg-violet-500/10'
+                            case 'التنبيهات': return 'text-amber-400 bg-amber-500/10'
+                            case 'الصيانة': return 'text-rose-400 bg-rose-500/10'
+                            default: return 'text-slate-400 bg-slate-500/10'
+                          }
+                        })()}`}>
+                          {log.category}
+                        </span>
+                        <span className="text-xs text-white font-semibold">{log.action}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 whitespace-nowrap mr-2">{new Date(log.createdAt).toLocaleString('ar-LY')}</span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-300">{log.userName}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {log.userRole === 'admin' ? '👑 مسؤول' : log.userRole === 'viewer' ? '👁️ مشاهد' : log.userRole === 'unknown' ? '❓ غير معروف' : '👷 موظف'}
+                        </span>
+                      </div>
+                      {log.branchName && (
+                        <span className="text-[10px] text-cyan-400/60">🏢 {log.branchName}</span>
+                      )}
+                    </div>
+                    {log.details && (
+                      <p className="text-[11px] text-slate-400 mt-1.5 border-t border-slate-700/50 pt-1.5">{log.details}</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* ترقيم الصفحات + زر الحذف */}
+            <div className="flex justify-between items-center pt-2 border-t border-slate-700">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowActivityLog(false)}
+                  className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition"
+                >
+                  إغلاق
+                </button>
+                {activityLogTotal > 100 && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => loadActivityLogs(activityLogPage - 1)}
+                      disabled={activityLogPage <= 1}
+                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-xl text-xs transition"
+                    >
+                      السابق
+                    </button>
+                    <button
+                      onClick={() => loadActivityLogs(activityLogPage + 1)}
+                      disabled={activityLogPage >= Math.ceil(activityLogTotal / 100)}
+                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-xl text-xs transition"
+                    >
+                      التالي
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm('هل تريد حذف سجلات النشاطات الأقدم من 30 يوم؟\nهذا الإجراء لا يمكن التراجع عنه.')) return
+                  try {
+                    await fetch('/api/activity-log?olderThan=30', { method: 'DELETE' })
+                    loadActivityLogs(1)
+                    alert('✅ تم حذف السجلات القديمة')
+                  } catch { alert('❌ حدث خطأ') }
+                }}
+                className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold py-2 px-4 rounded-xl text-xs transition border border-rose-500/20"
+              >
+                🗑️ حذف القديم (30 يوم)
+              </button>
             </div>
           </div>
         </div>
