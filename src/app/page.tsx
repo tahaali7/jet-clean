@@ -3976,13 +3976,12 @@ export default function JetCleanApp() {
                     })()
                     return (
                       <div key={emp.id} className="bg-slate-900 border border-amber-500/20 rounded-xl p-3.5">
-                        <div className="flex justify-between items-center mb-2.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-white text-sm">{emp.name}</h3>
-                            <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
-                            <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">🌐 {branchNames.join(' | ')}</span>
+                        {/* الهيدر: اسم + أزرار */}
+                        <div className="flex justify-between items-center mb-1.5">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h3 className="font-bold text-white text-sm truncate">{emp.name}</h3>
                           </div>
-                          <div className="flex gap-1.5">
+                          <div className="flex gap-1 flex-shrink-0">
                             {!dayClosed && (
                               <button
                                 onClick={() => {
@@ -4000,6 +3999,19 @@ export default function JetCleanApp() {
                               <button onClick={() => handleDeleteEmployee(emp.id, emp.name)} className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs px-2 py-1 rounded-lg border border-rose-500/20 transition font-bold">🗑️ حذف</button>
                             )}
                           </div>
+                        </div>
+
+                        {/* الباجات: شفت + فروع + حالات */}
+                        <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+                          <span className="text-[9px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+                          <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">🌐 {branchNames.join(' | ')}</span>
+                          {emp.hasLogin && emp.role === 'viewer' && <span className="text-[9px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
+                          {!emp.hasLogin && <span className="text-[9px] text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
+                          {emp.endDate ? (
+                            <span className="text-[9px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-full border border-rose-500/20">⏸️ متوقف</span>
+                          ) : (
+                            <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">✅ مستمر</span>
+                          )}
                         </div>
                         <div className="grid grid-cols-3 gap-2 mb-2">
                           <div className="bg-slate-800/80 rounded-lg p-2 text-center">
