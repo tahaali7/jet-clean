@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
         extraCars: data.extraCars || 0,
         extraAmount: data.extraAmount || 0,
         priceCounts: JSON.stringify(data.priceCounts || {}),
-        customPrices: JSON.stringify(data.customPrices || {})
+        customPrices: JSON.stringify(data.customPrices || {}),
+        entryTime: data.entryTime || ''
       }
     })
     return NextResponse.json(parseJsonFields(entry))
@@ -93,6 +94,7 @@ export async function PUT(req: NextRequest) {
     if (data.extraAmount !== undefined) updateData.extraAmount = data.extraAmount
     if (data.priceCounts !== undefined) updateData.priceCounts = JSON.stringify(data.priceCounts)
     if (data.customPrices !== undefined) updateData.customPrices = JSON.stringify(data.customPrices)
+    if (data.entryTime !== undefined) updateData.entryTime = data.entryTime
 
     const entry = await db.carEntry.update({ where: { id }, data: updateData })
     return NextResponse.json(parseJsonFields(entry))

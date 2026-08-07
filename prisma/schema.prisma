@@ -64,6 +64,7 @@ model CarEntry {
   extraAmount  Int      @default(0)
   priceCounts  String   @default("{}")
   customPrices String   @default("{}")
+  entryTime    String   @default("")
   createdAt    DateTime @default(now())
 }
 
