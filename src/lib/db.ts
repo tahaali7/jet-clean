@@ -65,15 +65,25 @@ function getDirectUrl(): string {
 // ترحيل تلقائي
 // ============================================
 const MIGRATIONS = [
+  // CarEntry
   `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "entryTime" TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "extraCars" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "extraAmount" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "customPrices" TEXT NOT NULL DEFAULT '{}'`,
+  // Employee
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "hasLogin" BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'employee'`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "startDate" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "endDate" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "multiBranchIds" TEXT NOT NULL DEFAULT '[]'`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "deleted" BOOLEAN NOT NULL DEFAULT false`,
+  // Branch
   `ALTER TABLE "Branch" ADD COLUMN IF NOT EXISTS "config" TEXT`,
+  // WorkerExpense
   `ALTER TABLE "WorkerExpense" ADD COLUMN IF NOT EXISTS "jsonData" TEXT`,
+  // Treasury
+  `ALTER TABLE "Treasury" ADD COLUMN IF NOT EXISTS "cash" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "Treasury" ADD COLUMN IF NOT EXISTS "later" INTEGER NOT NULL DEFAULT 0`,
 ]
 
 async function runMigrationsWithPg() {

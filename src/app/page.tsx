@@ -2573,16 +2573,15 @@ export default function JetCleanApp() {
     if (isAdminMode || user?.role === 'viewer') {
       const selectedBranch = user?.role === 'viewer' ? (adminSelectedBranch || user?.branchId) : adminSelectedBranch
       if (selectedBranch && empDate) {
-        const adminEmpId = 'admin_' + selectedBranch
         displayEntries = carEntries.filter(e =>
-          (e.branchId === selectedBranch || e.empId === adminEmpId) && e.date === empDate
+          e.date === empDate && (e.branchId === selectedBranch || e.empId === 'admin_' + selectedBranch)
         )
       }
     } else {
       if (user?.branchId && empDate) {
-        const adminEmpId = 'admin_' + user.branchId
+        // عرض كل بيانات الفرع لليوم المحدد (موظف + مسؤول)
         displayEntries = carEntries.filter(e =>
-          (e.empId === user.id || e.empId === adminEmpId) && e.date === empDate
+          e.date === empDate && (e.branchId === user!.branchId || e.empId === 'admin_' + user!.branchId)
         )
       }
     }
