@@ -1710,8 +1710,7 @@ export default function JetCleanApp() {
 
   const handleDeleteRecord = async (id: string, empDate?: string) => {
     // منع الموظف من الحذف إذا الفرع مقفل
-    const rec = records.find(r => r.id === id)
-    if (!isAdminMode && user?.role !== 'admin' && rec?.branchId && isDayClosedForBranch(rec.date || empDate || '', rec.branchId)) {
+    if (!isAdminMode && user?.role !== 'admin' && user?.branchId && isDayClosedForBranch(empDate || '', user?.branchId)) {
       return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك حذف الحركات')
     }
     if (!confirm('هل تريد حذف هذه الحركة؟')) return
@@ -1886,8 +1885,7 @@ export default function JetCleanApp() {
 
   const handleEditRecord = async (id: string, amount: number, empDate: string) => {
     // منع الموظف من التعديل إذا الفرع مقفل
-    const rec = records.find(r => r.id === id)
-    if (!isAdminMode && user?.role !== 'admin' && rec?.branchId && isDayClosedForBranch(rec.date || empDate || '', rec.branchId)) {
+    if (!isAdminMode && user?.role !== 'admin' && user?.branchId && isDayClosedForBranch(empDate, user?.branchId)) {
       return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل الحركات')
     }
     try {
@@ -2957,9 +2955,11 @@ export default function JetCleanApp() {
               </button>
               </>
               )}
+              {(isAdminMode || user?.role === 'admin' || user?.role === 'viewer') && (
               <button onClick={switchToAdminManagement} title="الموظفين" className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-amber-500/20 text-base">
                 👤
               </button>
+              )}
               {user?.role !== 'admin' && (
               <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} title="تغيير كلمة المرور" className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white w-8 h-8 rounded-lg transition flex items-center justify-center border border-cyan-500/20 text-base">
                 🔑
@@ -3568,7 +3568,7 @@ export default function JetCleanApp() {
             const allEntries = [...expenseEntries, ...todayRecords]
             if (allEntries.length === 0) return null
             const totalExp = allEntries.reduce((s, e) => s + e.amount, 0)
-            const canEdit = user?.role !== 'viewer'
+            const canEdit = user?.role !== 'viewer' && !isBranchLocked
             return (
               <div className="bg-slate-800 border border-rose-500/30 rounded-2xl p-4 mt-4">
                 <div className="flex justify-between items-center mb-3">
