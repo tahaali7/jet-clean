@@ -866,6 +866,10 @@ export default function JetCleanApp() {
   const [currentAlertIdx, setCurrentAlertIdx] = useState(0)
   const [showNotifHistory, setShowNotifHistory] = useState(false)
 
+  // ===== وضع الصيانة =====
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [checkingMaintenance, setCheckingMaintenance] = useState(true)
+
   // Withdrawal/Shortage quick entry state
   const [qEmpId, setQEmpId] = useState('')
   const [qRecordType, setQRecordType] = useState<'withdrawal' | 'shortage'>('withdrawal')
@@ -1210,6 +1214,33 @@ export default function JetCleanApp() {
     } catch {}
   }
 
+  // ===== دوال الصيانة =====
+  const checkMaintenance = async () => {
+    try {
+      const res = await fetch('/api/maintenance')
+      const data = await res.json()
+      setMaintenanceMode(data.enabled === true)
+    } catch {
+      setMaintenanceMode(false)
+    }
+    setCheckingMaintenance(false)
+  }
+
+  const toggleMaintenance = async () => {
+    const newState = !maintenanceMode
+    if (!confirm(newState ? '⚠️ سيتم إيقاف الموقع للموظفين!\nسيظهر لهم رسالة "الموقع تحت الصيانة"\n\nهل تريد المتابعة؟' : '✅ سيتم إعادة فتح الموقع للموظفين\n\nهل تريد المتابعة؟')) return
+    try {
+      await fetch('/api/maintenance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: newState })
+      })
+      setMaintenanceMode(newState)
+    } catch {
+      alert('❌ حدث خطأ')
+    }
+  }
+
   const handleRestore = async () => {
     setRestoreLoading(true)
     try {
@@ -1299,6 +1330,7 @@ export default function JetCleanApp() {
         }
         try { await loadClosedDays(empDate) } catch(e) { console.error(e) }
         try { await loadEmpAlerts() } catch(e) { console.error(e) }
+        try { await checkMaintenance() } catch(e) { console.error(e) }
       })()
     }
   }, [screen, empDate, isAdminMode, adminSelectedBranch, user])
@@ -1307,6 +1339,7 @@ export default function JetCleanApp() {
   useEffect(() => {
     if (screen === 'admin') {
       ;(async () => {
+        try { await checkMaintenance() } catch(e) { console.error(e) }
         try { await loadBranches() } catch(e) { console.error(e) }
         try { await loadEmployees() } catch(e) { console.error(e) }
         if (adminDate) {
@@ -3481,6 +3514,10 @@ export default function JetCleanApp() {
                       <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>📜</span> سجل التنبيهات
                       </button>
+                      <button onClick={() => { setShowAdminDropdown(false); toggleMaintenance() }} className={`w-full text-right px-4 py-2.5 hover:bg-slate-700 text-sm flex items-center gap-2 transition ${maintenanceMode ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        <span>{maintenanceMode ? '🔧' : '⚙️'}</span> {maintenanceMode ? 'إيقاف الصيانة' : 'تشغيل الصيانة'}
+                        {maintenanceMode && <span className="mr-auto text-[10px] bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">قيد التشغيل</span>}
+                      </button>
                       <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-amber-300 text-sm flex items-center gap-2 transition disabled:opacity-50">
                         <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
                       </button>
@@ -4862,6 +4899,22 @@ export default function JetCleanApp() {
     <div className="min-h-screen bg-slate-900 text-slate-100" style={{ fontFamily: 'Cairo, sans-serif' }} onClick={() => { if (showAdminDropdown) setShowAdminDropdown(false) }}>
       <div ref={pdfAreaRef} id="pdfReportArea" style={{ position: 'fixed', top: '0', left: '-99999px', width: '800px', zIndex: -1 }} />
       {renderModals()}
+
+      {/* ===== صفحة الصيانة ===== */}
+      {maintenanceMode && screen !== 'login' && !isAdminMode && user?.role !== 'admin' && (
+        <div className="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4">
+          <div className="text-center space-y-6 max-w-md">
+            <div className="text-7xl animate-bounce">🔧</div>
+            <h1 className="text-3xl font-extrabold text-white">الموقع تحت الصيانة</h1>
+            <p className="text-slate-400 text-lg leading-relaxed">نأسف، الموقع تحت الصيانة حالياً<br />يرجى العودة بعد قليل</p>
+            <div className="flex items-center justify-center gap-2 text-slate-600 text-sm">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+              جاري العمل على تحسين الموقع
+            </div>
+          </div>
+        </div>
+      )}
+
       {screen === 'login' && renderLoginScreen()}
       {screen === 'employee' && renderEmployeeScreen()}
       {screen === 'admin' && renderAdminScreen()}
