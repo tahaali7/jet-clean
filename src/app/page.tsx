@@ -2757,33 +2757,32 @@ export default function JetCleanApp() {
 
     return (
       <div className="min-h-screen bg-slate-900">
-        <header className="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700 mb-6 gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="logo" className="w-10 h-10 rounded-xl" />
-              <h1 className="text-2xl font-extrabold text-cyan-400">جيت كلين</h1>
+        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+          <div className="px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="logo" className="w-8 h-8 rounded-lg" />
+              <h1 className="text-sm font-bold text-cyan-400">جيت كلين</h1>
             </div>
-            <p className="text-slate-400 text-sm mt-1">{empInfoText}</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {(isAdminMode || user?.role === 'viewer') && (
-              <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-amber-500/30">
-                👤 الموظفين
+            <div className="flex items-center gap-1.5">
+              {(isAdminMode || user?.role === 'viewer') && (
+                <button onClick={switchToAdminManagement} className="bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-amber-500/20">
+                  👤 الموظفين
+                </button>
+              )}
+              {isAdminMode && (
+              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
+                📋 الإغلاق
               </button>
-            )}
-            {isAdminMode && (
-            <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-emerald-500/30">
-              📋 تقرير الإغلاق اليومي
-            </button>
-            )}
-            {user?.role !== 'admin' && (
-            <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-cyan-500/30">
-              🔑 كلمة المرور
-            </button>
-            )}
-            <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2 border border-rose-500/30">
-              🚪 تسجيل خروج
-            </button>
+              )}
+              {user?.role !== 'admin' && (
+              <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-cyan-500/20">
+                🔑
+              </button>
+              )}
+              <button onClick={handleLogout} className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-rose-500/20">
+                🚪
+              </button>
+            </div>
           </div>
         </header>
 
