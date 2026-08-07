@@ -1680,6 +1680,10 @@ export default function JetCleanApp() {
     const amount = parseFloat(recordModalData.amount)
     if (!amount || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح')
     if (!recordModalData.date) return alert('الرجاء تحديد تاريخ الحركة')
+    // منع الموظف من الحفظ إذا الفرع مقفل
+    if (!isAdminMode && user?.role !== 'admin' && recordModalData.branchId && isDayClosedForBranch(recordModalData.date, recordModalData.branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك إضافة حركات')
+    }
 
     try {
       if (recordModalData.id) {
@@ -1705,6 +1709,11 @@ export default function JetCleanApp() {
   }
 
   const handleDeleteRecord = async (id: string, empDate?: string) => {
+    // منع الموظف من الحذف إذا الفرع مقفل
+    const rec = records.find(r => r.id === id)
+    if (!isAdminMode && user?.role !== 'admin' && rec?.branchId && isDayClosedForBranch(rec.date || empDate || '', rec.branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك حذف الحركات')
+    }
     if (!confirm('هل تريد حذف هذه الحركة؟')) return
     try {
       await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
@@ -1768,6 +1777,10 @@ export default function JetCleanApp() {
   }
 
   const handleQuickTreasurySave = (branchId: string, branchName: string, date: string) => {
+    // منع الموظف إذا الفرع مقفل
+    if (!isAdminMode && user?.role !== 'admin' && isDayClosedForBranch(date, branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل البيانات')
+    }
     const wKey = branchName + '_' + date
     const bankVal = parseInt(quickBankCardSale) || 0
     const coupVal = parseInt(quickCoupons) || 0
@@ -1808,6 +1821,10 @@ export default function JetCleanApp() {
   }
 
   const handleSaveQuickExpenses = (branchId: string, branchName: string, date: string) => {
+    // منع الموظف إذا الفرع مقفل
+    if (!isAdminMode && user?.role !== 'admin' && isDayClosedForBranch(date, branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل البيانات')
+    }
     if (quickExpenses.length === 0) return
     const wKey = branchName + '_' + date
 
@@ -1833,6 +1850,10 @@ export default function JetCleanApp() {
   const handleSaveQuickRecord = async (branchId: string, empDate: string) => {
     const amount = parseInt(qRecordAmount) || 0
     if (!qEmpId || amount <= 0) return alert('اختر الموظف وأدخل المبلغ')
+    // منع الموظف إذا الفرع مقفل
+    if (!isAdminMode && user?.role !== 'admin' && isDayClosedForBranch(empDate, branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك إضافة حركات')
+    }
     try {
       setSaving(true)
       const res = await fetch('/api/records', {
@@ -1864,6 +1885,11 @@ export default function JetCleanApp() {
   }
 
   const handleEditRecord = async (id: string, amount: number, empDate: string) => {
+    // منع الموظف من التعديل إذا الفرع مقفل
+    const rec = records.find(r => r.id === id)
+    if (!isAdminMode && user?.role !== 'admin' && rec?.branchId && isDayClosedForBranch(rec.date || empDate || '', rec.branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل الحركات')
+    }
     try {
       const res = await fetch('/api/records', {
         method: 'PUT',
@@ -3156,9 +3182,10 @@ export default function JetCleanApp() {
                 </div>
                 <button
                   onClick={() => { handleQuickTreasurySave(qBranchId, branchName, empDate); setSelectedRoom('') }}
-                  className="mt-3 w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-3 rounded-xl transition text-sm"
+                  disabled={isBranchLocked}
+                  className={`mt-3 w-full font-semibold py-3 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 text-white'}`}
                 >
-                  💾 حفظ البيانات
+                  {isBranchLocked ? '🔒 الفرع مقفل' : '💾 حفظ البيانات'}
                 </button>
               </div>
               )
@@ -3188,7 +3215,8 @@ export default function JetCleanApp() {
                     />
                     <button
                       onClick={handleAddQuickExpense}
-                      className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg transition text-sm"
+                      disabled={isBranchLocked}
+                      className={`text-white font-bold px-4 py-2 rounded-lg transition text-sm ${isBranchLocked ? 'bg-slate-700 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500'}`}
                     >
                       ➕
                     </button>
@@ -3207,9 +3235,10 @@ export default function JetCleanApp() {
                     ))}
                     <button
                       onClick={() => { handleSaveQuickExpenses(qBranchId2, branchName, empDate); setSelectedRoom('') }}
-                      className="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold py-3 rounded-xl transition text-sm"
+                      disabled={isBranchLocked}
+                      className={`w-full font-semibold py-3 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
                     >
-                      💾 حفظ المصروفات ({quickExpenses.reduce((s, e) => s + e.amount, 0)} د.ل)
+                      {isBranchLocked ? '🔒 الفرع مقفل' : `💾 حفظ المصروفات (${quickExpenses.reduce((s, e) => s + e.amount, 0)} د.ل)`}
                     </button>
                   </div>
                 )}
@@ -3297,10 +3326,10 @@ export default function JetCleanApp() {
 
                   <button
                     onClick={() => handleSaveQuickRecord(qBranchId3, empDate)}
-                    disabled={saving || !qEmpId || !qRecordAmount}
-                    className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-semibold py-3 rounded-xl transition text-sm"
+                    disabled={saving || !qEmpId || !qRecordAmount || isBranchLocked}
+                    className={`w-full font-semibold py-3 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white'}`}
                   >
-                    {saving ? '⏳ جاري الحفظ...' : isEmployee ? '💸 تسجيل سحب' : (qRecordType === 'withdrawal' ? '💸 تسجيل سحب' : '📉 تسجيل عجز')}
+                    {isBranchLocked ? '🔒 الفرع مقفل' : saving ? '⏳ جاري الحفظ...' : isEmployee ? '💸 تسجيل سحب' : (qRecordType === 'withdrawal' ? '💸 تسجيل سحب' : '📉 تسجيل عجز')}
                   </button>
                 </div>
               </div>
