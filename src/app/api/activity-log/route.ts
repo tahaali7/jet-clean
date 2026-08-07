@@ -9,9 +9,8 @@ let tableCheckInProgress = false
 async function ensureTable() {
   if (tableReady === true) return
   if (tableCheckInProgress) {
-    // انتظر حتى ينتهي الفحص الآخر
     while (tableCheckInProgress) {
-      await new Promise(r => setTimeout(r, 100))
+      await new Promise(r => setTimeout(r, 200))
     }
     return
   }
@@ -35,7 +34,6 @@ async function ensureTable() {
     tableReady = true
   } catch (e) {
     console.error('Failed to create ActivityLog table:', e)
-    // ما نعمل throw - عشان ما نوقف باقي العمليات
   } finally {
     tableCheckInProgress = false
   }
@@ -45,12 +43,14 @@ async function ensureTable() {
 export async function GET(req: NextRequest) {
   try {
     await ensureTable()
+    if (tableReady !== true) {
+      return NextResponse.json({ entries: [], total: 0, page: 1, limit: 100, totalPages: 0 })
+    }
+
     const { searchParams } = new URL(req.url)
     const branchId = searchParams.get('branchId')
     const userId = searchParams.get('userId')
     const category = searchParams.get('category')
-    const from = searchParams.get('from')
-    const to = searchParams.get('to')
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100')))
 
@@ -61,8 +61,6 @@ export async function GET(req: NextRequest) {
     if (branchId) { conditions.push(`"branchId" = $${paramIdx}`); params.push(branchId); paramIdx++ }
     if (userId) { conditions.push(`"userId" = $${paramIdx}`); params.push(userId); paramIdx++ }
     if (category) { conditions.push(`category = $${paramIdx}`); params.push(category); paramIdx++ }
-    if (from) { conditions.push(`"createdAt" >= $${paramIdx}`); params.push(from); paramIdx++ }
-    if (to) { conditions.push(`"createdAt" <= $${paramIdx}`); params.push(to); paramIdx++ }
 
     const where = 'WHERE ' + conditions.join(' AND ')
     const offset = (page - 1) * limit
@@ -72,7 +70,6 @@ export async function GET(req: NextRequest) {
       ...params
     )
 
-    // جلب العدد الكلي
     const countResult: any[] = await db.$queryRawUnsafe(
       `SELECT COUNT(*)::int as total FROM "ActivityLog" ${where}`,
       ...params
@@ -100,7 +97,7 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     console.error('Get activity log error:', error)
-    return NextResponse.json({ error: 'حدث خطأ', details: String(error) }, { status: 500 })
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
   }
 }
 
@@ -108,6 +105,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await ensureTable()
+    if (tableReady !== true) {
+      return NextResponse.json({ success: true })
+    }
+
     const data = await req.json()
     const { userId, userName, userRole, branchId, branchName, action, category, details, ip } = data
 
@@ -135,8 +136,12 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     await ensureTable()
+    if (tableReady !== true) {
+      return NextResponse.json({ success: true })
+    }
+
     const { searchParams } = new URL(req.url)
-    const olderThan = searchParams.get('olderThan') // عدد الأيام
+    const olderThan = searchParams.get('olderThan')
     const all = searchParams.get('all')
 
     if (all === 'true') {

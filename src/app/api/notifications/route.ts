@@ -1,32 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-function esc(s: string) { return String(s || '').replace(/'/g, "''") }
-
-// فحص وإنشاء جدول الإشعارات تلقائياً
-let tableReady: boolean | null = null
-async function ensureTable() {
-  if (tableReady === true) return
-  try {
-    await db.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Notification" (
-        id TEXT PRIMARY KEY,
-        message TEXT NOT NULL,
-        "branchId" TEXT,
-        type TEXT DEFAULT 'normal',
-        "createdBy" TEXT DEFAULT '',
-        "readBy" TEXT DEFAULT '[]',
-        "createdAt" TIMESTAMP DEFAULT NOW()
-      )
-    `)
-    tableReady = true
-  } catch (e) {
-    console.error('Failed to create Notification table:', e)
-    tableReady = false
-    throw e
-  }
-}
-
 // دالة فحص: هل الفرع مستهدف في التنبيه؟
 // branchId في الداتا: null = كل الفروع، "id1" = فرع واحد، '["id1","id2"]' = عدة فروع
 function isBranchTargeted(notifBranchId: string | null, empBranchId: string): boolean {
@@ -51,23 +25,24 @@ function parseNotif(entry: any) {
 
 export async function GET(req: NextRequest) {
   try {
-    await ensureTable()
     const { searchParams } = new URL(req.url)
     const empId = searchParams.get('empId')
     const branchId = searchParams.get('branchId')
     const all = searchParams.get('all')
 
     if (all === 'true') {
-      const entries: any[] = await db.$queryRawUnsafe(
-        `SELECT * FROM "Notification" ORDER BY "createdAt" DESC LIMIT 50`
-      )
+      const entries = await db.notification.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 50
+      })
       return NextResponse.json(entries.map(parseNotif))
     }
 
     // الموظف: يجلب كل الإشعارات ثم يفلتر
-    const entries: any[] = await db.$queryRawUnsafe(
-      `SELECT * FROM "Notification" ORDER BY "createdAt" DESC LIMIT 50`
-    )
+    const entries = await db.notification.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    })
 
     // فلترة حسب الفرع
     const filtered = entries.filter(n => isBranchTargeted(n.branchId, branchId || ''))
@@ -92,7 +67,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await ensureTable()
     const data = await req.json()
     const { message, branchIds, type, createdBy } = data
 
@@ -100,24 +74,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'الرجاء كتابة نص التنبيه' }, { status: 400 })
     }
 
-    const newId = 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
-
     // branchIds: مصفوفة أو null (كل الفروع)
     let branchIdValue: string | null = null
     if (branchIds && Array.isArray(branchIds) && branchIds.length > 0) {
       branchIdValue = JSON.stringify(branchIds)
     }
 
-    await db.$executeRawUnsafe(
-      `INSERT INTO "Notification" (id, message, "branchId", type, "createdBy", "readBy", "createdAt")
-       VALUES ('${esc(newId)}', '${esc(message.trim())}', ${branchIdValue ? `'${esc(branchIdValue)}'` : 'NULL'}, '${esc(type || 'normal')}', '${esc(createdBy || '')}', '[]', NOW())`
-    )
+    const entry = await db.notification.create({
+      data: {
+        message: message.trim(),
+        branchId: branchIdValue,
+        type: type || 'normal',
+        createdBy: createdBy || ''
+      }
+    })
 
-    const entries: any[] = await db.$queryRawUnsafe(
-      `SELECT * FROM "Notification" WHERE id = '${esc(newId)}'`
-    )
-
-    return NextResponse.json(parseNotif(entries[0] || { id: newId }))
+    return NextResponse.json(parseNotif(entry))
   } catch (error) {
     console.error('Create notification error:', error)
     return NextResponse.json({ error: 'حدث خطأ أثناء إرسال التنبيه' }, { status: 500 })
@@ -126,7 +98,6 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    await ensureTable()
     const data = await req.json()
     const { id, empId } = data
 
@@ -134,24 +105,19 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'بيانات ناقصة' }, { status: 400 })
     }
 
-    const entries: any[] = await db.$queryRawUnsafe(
-      `SELECT "readBy" FROM "Notification" WHERE id = '${esc(id)}'`
-    )
-
-    if (entries.length === 0) {
+    const entry = await db.notification.findUnique({ where: { id } })
+    if (!entry) {
       return NextResponse.json({ error: 'التنبيه غير موجود' }, { status: 404 })
     }
 
     let readBy: string[] = []
-    try { readBy = JSON.parse(entries[0].readBy || '[]') } catch {}
+    try { readBy = JSON.parse(entry.readBy || '[]') } catch {}
+    if (!readBy.includes(empId)) readBy.push(empId)
 
-    if (!readBy.includes(empId)) {
-      readBy.push(empId)
-    }
-
-    await db.$executeRawUnsafe(
-      `UPDATE "Notification" SET "readBy" = '${esc(JSON.stringify(readBy))}' WHERE id = '${esc(id)}'`
-    )
+    await db.notification.update({
+      where: { id },
+      data: { readBy: JSON.stringify(readBy) }
+    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -162,12 +128,10 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await ensureTable()
     const { searchParams } = new URL(req.url)
     const id = searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'معرف مطلوب' }, { status: 400 })
-
-    await db.$executeRawUnsafe(`DELETE FROM "Notification" WHERE id = '${esc(id)}'`)
+    await db.notification.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Delete notification error:', error)
