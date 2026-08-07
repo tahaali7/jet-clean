@@ -216,7 +216,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   let extraRowHtml = ''
   if (roomExtraCars > 0) {
-    extraRowHtml = '<tr style="background:#fffde7;">' +
+    extraRowHtml = '<tr style="">' +
       '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">⭐ إكسترا</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraCars + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraAmount + ' د.ل</td>' +
@@ -225,8 +225,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#000000;">' + room + '</td></tr>' +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">' + room + '</td></tr>' +
+    '<tr style="">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
@@ -234,11 +234,11 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     '</tr>' +
     rowsHtml +
     extraRowHtml +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr style="">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
-    '<tr style="background:#e8f5e9;">' +
+    '<tr style="">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
@@ -271,19 +271,19 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#000000;">' + room + '</td></tr>' +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">' + room + '</td></tr>' +
+    '<tr style="">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
     '</tr>' +
     rowsHtml +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr style="">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">0</td>' +
     '</tr>' +
-    '<tr style="background:#e8f5e9;">' +
+    '<tr style="">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">0</td>' +
     '</tr>' +
@@ -404,8 +404,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     // Full pages (e.g. 6 rooms): no min-height/centering to prevent last table cut-off
     // Partial pages: keep min-height for clean layout
     const containerStyle = isFullPage
-      ? 'width:780px;background:#fff;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;'
-      : 'width:780px;min-height:1120px;background:#fff;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;'
+      ? 'width:780px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;'
+      : 'width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;'
     const contentStyle = isFullPage
       ? 'display:flex;flex-direction:column;align-items:center;'
       : 'flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;'
@@ -427,7 +427,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
   const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, sl) : ''
   pages.push(
-    '<div style="width:780px;background:#fff;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+    '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
     buildHeader(sl) +
     overflowHtml +
     treasuryContent +
@@ -488,14 +488,14 @@ function buildWorkerExpensesAndTreasury(
     '</tr>'
   })
 
-  workerRowsHtml += '<tr style="background:#fffde7;">' +
+  workerRowsHtml += '<tr style="">' +
     '<td style="' + wCellPad + wLabelFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
     '<td style="' + wCellPad + 'text-align:center;' + wValueFs + 'font-weight:bold;color:#e65100;">' + savedCleanliness + ' د.ل</td>' +
   '</tr>'
 
   const finalTotalAfterExpenses = grandTotalNet + savedCleanliness
   const wTotalFs = wTotalFsMap[sl]
-  workerRowsHtml += '<tr style="background:#e8f5e9;">' +
+  workerRowsHtml += '<tr style="">' +
     '<td style="' + wCellPad + 'border:2px solid #333;' + wLabelFs + 'font-weight:bold;text-align:center;">الإجمالي</td>' +
     '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;' + wTotalFs + 'font-weight:bold;color:#2e7d32;">' + finalTotalAfterExpenses + ' د.ل</td>' +
   '</tr>'
@@ -504,7 +504,7 @@ function buildWorkerExpensesAndTreasury(
   const wTitleFs = wTitleFsMap[sl]
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;background:#bdbdbd;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -521,7 +521,7 @@ function buildWorkerExpensesAndTreasury(
   const tValueStyle = tCellPad + 'text-align:center;' + tValueFsMap[sl] + 'font-weight:bold;'
 
   let treasuryRowsHtml = ''
-  treasuryRowsHtml += '<tr style="background:#e0e0e0;">' +
+  treasuryRowsHtml += '<tr style="">' +
     '<td style="' + tLabelStyle + 'font-weight:bold;text-align:center;">البيان</td>' +
     '<td style="' + tValueStyle + '">دخل</td>' +
     '<td style="' + tValueStyle + '">خرج</td>' +
@@ -562,7 +562,7 @@ function buildWorkerExpensesAndTreasury(
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;background:#bbdefb;border:1px solid #555;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
@@ -625,7 +625,7 @@ function buildEmployeeReportHTML(
           '</tr>'
       })
 
-      rowsHtml += '<tr style="background:#f8fafc;">' +
+      rowsHtml += '<tr style="">' +
         '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#000000;">' + emp.name + ' <span style="font-size:10px;color:#000000;font-weight:400;">(' + emp.shift + ')</span></td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + shortages + ' د.ل</td>' +
@@ -634,7 +634,7 @@ function buildEmployeeReportHTML(
       if (detailHtml) {
         rowsHtml += '<tr><td colspan="4" style="padding:0;border:1px solid #ddd;">' +
           '<table style="width:100%;border-collapse:collapse;margin:0;">' +
-          '<thead><tr style="background:#f1f5f9;">' +
+          '<thead><tr style="">' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">التاريخ</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">النوع</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">المبلغ</th>' +
@@ -693,7 +693,7 @@ function buildEmployeeReportHTML(
           '</tr>'
       })
 
-      multiRowsHtml += '<tr style="background:#fffbeb;">' +
+      multiRowsHtml += '<tr style="">' +
         '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#000000;">' + emp.name + ' <span style="font-size:10px;color:#000000;font-weight:400;">(' + (branchNames || emp.shift) + ')</span></td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#000000;font-weight:bold;">' + shortages + ' د.ل</td>' +
@@ -701,7 +701,7 @@ function buildEmployeeReportHTML(
         '</tr>'
       if (detailHtml) {
         multiRowsHtml += '<tr><td colspan="5" style="padding:0;border:1px solid #ddd;">' +
-          '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="background:#f1f5f9;">' +
+          '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="">' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">التاريخ</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">النوع</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#000000;">الفرع</th>' +
@@ -717,7 +717,7 @@ function buildEmployeeReportHTML(
   }
 
   if (branchDatas.length === 0) {
-    pages.push('<div style="width:800px;background:#fff;color:#000000;padding:32px;font-family:Cairo,sans-serif;">' +
+    pages.push('<div style="width:800px;color:#000000;padding:32px;font-family:Cairo,sans-serif;">' +
       '<div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #0e7490;padding-bottom:16px;">' +
       '<h1 style="font-size:22px;font-weight:800;color:#0e7490;margin:0;">مغسلة جيت كلين</h1>' +
       '<p style="font-size:15px;font-weight:700;margin:6px 0 0;color:#000000;">تقرير مصاريف الموظفين التفصيلي</p>' +
@@ -735,32 +735,32 @@ function buildEmployeeReportHTML(
     '<p style="font-size:11px;color:#000000;margin:4px 0 0;">' + periodLabel + ' — ' + generatedOn + '</p>' +
     '</div>'
   const summaryHtml = '<div style="display:flex;gap:12px;margin-bottom:16px;">' +
-    '<div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px;text-align:center;">' +
+    '<div style="flex:1;border:1px solid #fde68a;border-radius:8px;padding:8px;text-align:center;">' +
     '<p style="font-size:10px;color:#000000;margin:0;">إجمالي السحبيات</p>' +
     '<p style="font-size:16px;font-weight:800;color:#000000;margin:2px 0 0;">' + grandWithdrawals + ' د.ل</p>' +
     '</div>' +
-    '<div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:8px;text-align:center;">' +
+    '<div style="flex:1;border:1px solid #fecdd3;border-radius:8px;padding:8px;text-align:center;">' +
     '<p style="font-size:10px;color:#000000;margin:0;">إجمالي العجوزات</p>' +
     '<p style="font-size:16px;font-weight:800;color:#000000;margin:2px 0 0;">' + grandShortages + ' د.ل</p>' +
     '</div>' +
-    '<div style="flex:1;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center;">' +
+    '<div style="flex:1;border:1px solid #bbf7d0;border-radius:8px;padding:8px;text-align:center;">' +
     '<p style="font-size:10px;color:#000000;margin:0;">الإجمالي العام</p>' +
     '<p style="font-size:16px;font-weight:800;color:#000000;margin:2px 0 0;">' + grandTotal + ' د.ل</p>' +
     '</div></div>'
 
   const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#000000;">صفحة __PAGE__</div>'
-  const pageStyle = 'width:800px;background:#fff;color:#000000;padding:24px;font-family:Cairo,sans-serif;'
+  const pageStyle = 'width:800px;color:#000000;padding:24px;font-family:Cairo,sans-serif;'
   const pageWithMinHeight = pageStyle + 'min-height:1120px;'
 
   // Render each branch as a separate block, then pack into pages
   const branchBlocks: { html: string; estimatedHeight: number }[] = []
   branchDatas.forEach(bd => {
     const blockHtml = '<div style="margin-bottom:16px;">' +
-      '<h3 style="background:#0e7490;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
+      '<h3 style="color:#000000;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
       'فرع ' + bd.name + ' — سحوبات: ' + bd.withdrawals + ' د.ل | عجوزات: ' + bd.shortages + ' د.ل | الإجمالي: ' + (bd.withdrawals + bd.shortages) + ' د.ل' +
       '</h3>' +
       '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
-      '<thead><tr style="background:#e2e8f0;">' +
+      '<thead><tr style="">' +
       '<th style="padding:6px;border:1px solid #ddd;">الموظف</th>' +
       '<th style="padding:6px;border:1px solid #ddd;">السحبيات</th>' +
       '<th style="padding:6px;border:1px solid #ddd;">العجوزات</th>' +
@@ -1910,7 +1910,7 @@ export default function JetCleanApp() {
 
         if (dateEntries.length === 0) {
           // Generate "no data" page
-          const noDataHtml = '<div style="width:780px;background:#fff;color:#000000;padding:40px;font-family:Cairo,sans-serif;text-align:center;" dir="rtl">' +
+          const noDataHtml = '<div style="width:780px;color:#000000;padding:40px;font-family:Cairo,sans-serif;text-align:center;" dir="rtl">' +
             '<h1 style="font-size:18px;margin:0;color:#000000;">مغسلة جيت كلين</h1>' +
             '<p style="font-size:12px;color:#000000;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(date) + '</p>' +
             '<h2 style="font-size:20px;color:#000000;margin-top:60px;">لا توجد بيانات في ' + formatDateShort(date) + '</h2>' +
@@ -2230,13 +2230,13 @@ export default function JetCleanApp() {
         if (dayExps.length === 0) continue
         if (date !== prevDate) {
           const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
-          rowsHtml += '<tr style="background:#1e40af;color:#ffffff;">' +
+          rowsHtml += '<tr style="color:#000000;">' +
             '<td colspan="2" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
             '<td style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + dayTotal + ' د.ل</td>' +
             '</tr>'
           dayExps.forEach(exp => {
             rowNum++
-            rowsHtml += '<tr style="background:#f8fafc;">' +
+            rowsHtml += '<tr style="">' +
               '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#000000;">' + (rowNum) + '</td>' +
               '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + exp.name + '</td>' +
               '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + exp.amount + ' د.ل</td>' +
@@ -2247,16 +2247,16 @@ export default function JetCleanApp() {
       }
 
       pages.push(
-        '<div style="width:780px;background:#ffffff;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="width:780px;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
         '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
         '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
         '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير مصروفات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
         '</div>' +
-        '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;background:#fef2f2;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">📋 المصروفات</h2>' +
+        '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">📋 المصروفات</h2>' +
         (rowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="background:#1e40af;color:#ffffff;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">م</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">البيان</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
+        '<tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">م</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">البيان</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
         rowsHtml +
-        '<tr style="background:#b91c1c;color:#ffffff;"><td colspan="2" style="padding:10px 12px;border:1px solid #991b1b;font-size:13px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:10px 12px;border:1px solid #991b1b;font-size:15px;font-weight:bold;text-align:center;">' + totalExpAmount + ' د.ل</td></tr>' +
+        '<tr style="color:#000000;"><td colspan="2" style="padding:10px 12px;border:1px solid #991b1b;font-size:13px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:10px 12px;border:1px solid #991b1b;font-size:15px;font-weight:bold;text-align:center;">' + totalExpAmount + ' د.ل</td></tr>' +
         '</table>' : '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد مصروفات في هذه الفترة</p>') +
         '</div>'
       )
@@ -2274,32 +2274,32 @@ export default function JetCleanApp() {
       for (const date of dates) {
         const dayRecs = groupedRec[date] || []
         if (dayRecs.length === 0) continue
-        recRowsHtml += '<tr style="background:#1e40af;color:#ffffff;">' +
+        recRowsHtml += '<tr style="color:#000000;">' +
           '<td colspan="3" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
           '</tr>'
         dayRecs.forEach(rec => {
           const isWithdrawal = rec.type === 'withdrawal'
-          recRowsHtml += '<tr style="background:#f8fafc;">' +
+          recRowsHtml += '<tr style="">' +
             '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + rec.empName + '</td>' +
-            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#ffffff;background:' + (isWithdrawal ? '#d97706' : '#dc2626') + ';">' + (isWithdrawal ? '💰 سحب' : '⚠️ عجز') + '</td>' +
+            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#000000;background:' + (isWithdrawal ? '#d97706' : '#dc2626') + ';">' + (isWithdrawal ? '💰 سحب' : '⚠️ عجز') + '</td>' +
             '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + rec.amount + ' د.ل</td>' +
             '</tr>'
         })
       }
 
       pages.push(
-        '<div style="width:780px;background:#ffffff;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="width:780px;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
         '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
         '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
         '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير سحوبات وعجوزات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
         '</div>' +
-        '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;background:#fffbeb;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">💰 السحوبات والعجوزات</h2>' +
+        '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">💰 السحوبات والعجوزات</h2>' +
         (recRowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="background:#1e40af;color:#ffffff;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">الموظف</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">النوع</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
+        '<tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">الموظف</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">النوع</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
         recRowsHtml +
-        '<tr style="background:#d97706;color:#ffffff;"><td style="padding:10px 12px;border:1px solid #b45309;font-size:13px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b45309;font-size:15px;font-weight:bold;text-align:center;">' + totalWithdrawals + ' د.ل</td></tr>' +
-        '<tr style="background:#dc2626;color:#ffffff;"><td style="padding:10px 12px;border:1px solid #b91c1c;font-size:13px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b91c1c;font-size:15px;font-weight:bold;text-align:center;">' + totalShortages + ' د.ل</td></tr>' +
-        '<tr style="background:#0f172a;color:#ffffff;"><td style="padding:10px 12px;border:1px solid #020617;font-size:13px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:10px 12px;border:1px solid #020617;font-size:17px;font-weight:bold;text-align:center;">' + totalRecAmount + ' د.ل</td></tr>' +
+        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b45309;font-size:13px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b45309;font-size:15px;font-weight:bold;text-align:center;">' + totalWithdrawals + ' د.ل</td></tr>' +
+        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b91c1c;font-size:13px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b91c1c;font-size:15px;font-weight:bold;text-align:center;">' + totalShortages + ' د.ل</td></tr>' +
+        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #020617;font-size:13px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:10px 12px;border:1px solid #020617;font-size:17px;font-weight:bold;text-align:center;">' + totalRecAmount + ' د.ل</td></tr>' +
         '</table>' : '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>') +
         '</div>'
       )
