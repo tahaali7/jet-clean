@@ -1674,12 +1674,14 @@ export default function JetCleanApp() {
       branchId = user!.branchId!
     }
 
-    const existing = carEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
+    // البحث عن تسجيل موجود - استخدم adminCarEntries في وضع المسؤول
+    const searchEntries = isAdminMode ? adminCarEntries : carEntries
+    const existing = searchEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
 
     setSaving(true)
     try {
       if (existing) {
-        await fetch('/api/car-entries', {
+        const res = await fetch('/api/car-entries', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1687,9 +1689,10 @@ export default function JetCleanApp() {
             totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
           })
         })
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as any).error || 'فشل التعديل') }
         logActivity('تعديل تسجيل سيارات', 'تسجيل السيارات', `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`, branchId)
       } else {
-        await fetch('/api/car-entries', {
+        const res = await fetch('/api/car-entries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1697,6 +1700,7 @@ export default function JetCleanApp() {
             totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
           })
         })
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as any).error || 'فشل الحفظ') }
         logActivity('إدخال تسجيل سيارات', 'تسجيل السيارات', `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`, branchId)
       }
 
@@ -1723,8 +1727,8 @@ export default function JetCleanApp() {
       }
 
       alert(`تم الحفظ بنجاح!\n${selectedRoom} - ${totalCars} سيارات - ${totalAmount} د.ل`)
-    } catch (e) {
-      alert('حدث خطأ أثناء الحفظ')
+    } catch (e: any) {
+      alert('حدث خطأ أثناء الحفظ: ' + (e?.message || 'خطأ غير معروف'))
     }
     setSaving(false)
     autoBackup()
@@ -2953,12 +2957,13 @@ export default function JetCleanApp() {
     )
   }
 
-  const renderPriceGrid = () => {
+  const renderPriceGrid = (bName?: string) => {
     const prices = getPricesForRoom(selectedRoom)
+    const currentBranchName = bName || ''
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5">
         {prices.map(price => {
-          const isExtraPrice = EXTRA_PRICES.includes(price) && isExtraEnabledForBranch(branchName)
+          const isExtraPrice = EXTRA_PRICES.includes(price) && isExtraEnabledForBranch(currentBranchName)
           return (
             <div key={price} className={`room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center`}>
               <p className="text-xs text-slate-400 mb-2">تسعيرة</p>
@@ -3273,7 +3278,7 @@ export default function JetCleanApp() {
                 <h3 className="text-lg font-bold text-cyan-400 mb-4">
                   {ROOM_ICONS[selectedRoom] || '🏠'} {selectedRoom}
                 </h3>
-                {renderPriceGrid()}
+                {renderPriceGrid(branchName)}
                 <div className="flex gap-3">
                   <button
                     onClick={handleSaveCarEntry}
