@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, ensureMigrations } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
   try {
+    await ensureMigrations()
     const { searchParams } = new URL(req.url)
     const branchId = searchParams.get('branchId')
     const employees = await db.employee.findMany({

@@ -7,7 +7,6 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const dbUrl = process.env.DATABASE_URL || ''
-  // Add connection limits for PgBouncer
   const separator = dbUrl.includes('?') ? '&' : '?'
   const poolUrl = `${dbUrl}${separator}connection_limit=5&pool_timeout=10`
 
@@ -25,7 +24,7 @@ export const db = globalForPrisma.prisma ?? createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
 
-// ترحيل تلقائي: إضافة أعمدة جديدة إذا لم تكن موجودة
+// ترحيل تلقائي
 const MIGRATIONS = [
   `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "entryTime" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "hasLogin" BOOLEAN NOT NULL DEFAULT false`,
@@ -38,19 +37,60 @@ const MIGRATIONS = [
   `ALTER TABLE "WorkerExpense" ADD COLUMN IF NOT EXISTS "jsonData" TEXT`,
 ]
 
-async function runMigrations() {
+async function runMigrationsWithRawPg() {
+  const directUrl = process.env.DIRECT_URL || process.env.DATABASE_URL || ''
+  if (!directUrl || !directUrl.startsWith('postgres')) {
+    console.log('[Migration] No postgres URL, skipping raw pg migration')
+    return false
+  }
+
+  try {
+    const pg = await import('pg')
+    const client = new pg.Client({ connectionString: directUrl })
+    await client.connect()
+
+    for (const sql of MIGRATIONS) {
+      try {
+        await client.query(sql)
+        console.log('[Migration-pg] OK:', sql.substring(7, 50))
+      } catch (error: any) {
+        const msg = error?.message || String(error)
+        if (msg.includes('already exists')) {
+          console.log('[Migration-pg] Already exists:', sql.substring(7, 50))
+        } else {
+          console.error('[Migration-pg] Error:', sql.substring(7, 50), msg)
+        }
+      }
+    }
+
+    await client.end()
+    return true
+  } catch (error: any) {
+    console.error('[Migration-pg] Failed:', error?.message || error)
+    return false
+  }
+}
+
+async function runMigrationsWithPrisma() {
   for (const sql of MIGRATIONS) {
     try {
       await db.$executeRawUnsafe(sql)
-      console.log('[Migration] OK:', sql.substring(7, 50))
+      console.log('[Migration-prisma] OK:', sql.substring(7, 50))
     } catch (error: any) {
       const msg = error?.message || String(error)
       if (msg.includes('already exists')) {
-        console.log('[Migration] Already exists:', sql.substring(7, 50))
+        console.log('[Migration-prisma] Already exists:', sql.substring(7, 50))
       } else {
-        console.error('[Migration] Error:', sql.substring(7, 50), msg)
+        console.error('[Migration-prisma] Error:', sql.substring(7, 50), msg)
       }
     }
+  }
+}
+
+async function runMigrations() {
+  const pgSuccess = await runMigrationsWithRawPg()
+  if (!pgSuccess) {
+    await runMigrationsWithPrisma()
   }
 }
 
@@ -60,7 +100,6 @@ export async function ensureMigrations() {
   await runMigrations()
 }
 
-// إعادة تشغيل الترحيل بالقوة (عند فشل الاستعلام بسبب عمود مفقود)
 export async function forceMigrations() {
   globalForPrisma.migrationsRan = false
   await runMigrations()

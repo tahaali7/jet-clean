@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db, ensureMigrations } from '@/lib/db'
 
 export async function GET() {
   try {
+    await ensureMigrations()
     const branches = await db.branch.findMany({
       include: { employees: true },
       orderBy: { name: 'asc' }
