@@ -4946,14 +4946,24 @@ export default function JetCleanApp() {
 
             <div>
               <label className="text-xs text-slate-400 mb-2 block">إرسال إلى</label>
-              <button
-                type="button"
-                onClick={() => setNotifTargetAll(true)}
-                className={`w-full mb-2 py-2 rounded-xl text-xs font-bold transition border ${notifTargetAll ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}
-              >
-                🌍 كل الفروع
-              </button>
-              {!notifTargetAll && (
+              {notifTargetAll ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setNotifTargetAll(true)}
+                    className="w-full mb-2 py-2 rounded-xl text-xs font-bold transition border bg-blue-500/20 text-blue-400 border-blue-500/30"
+                  >
+                    🌍 كل الفروع
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifTargetAll(false)}
+                    className="w-full py-2 rounded-xl text-xs font-bold transition border bg-slate-700/50 text-slate-400 border-slate-600/30 hover:bg-slate-700"
+                  >
+                    📍 اختيار فروع محددة
+                  </button>
+                </>
+              ) : (
                 <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
                   {branches.map(b => (
                     <label key={b.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition border ${notifBranchIds.includes(b.id) ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-700/30 border-slate-600/20 hover:bg-slate-700/50'}`}>
