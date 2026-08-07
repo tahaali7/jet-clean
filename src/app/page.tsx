@@ -2082,6 +2082,28 @@ export default function JetCleanApp() {
     autoBackup()
   }
 
+  const handleToggleBranchExtra = async (branchId: string, branchName: string) => {
+    try {
+      const branch = branches.find(b => b.id === branchId)
+      if (!branch) return
+      const currentConfig = (branch as any).config || {}
+      const isCurrentlyDisabled = !!currentConfig.extraDisabled
+      const newConfig = { ...currentConfig, extraDisabled: !isCurrentlyDisabled }
+      const res = await fetch('/api/branches', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: branchId, config: newConfig })
+      })
+      if (res.ok) {
+        await loadBranches()
+        syncBranchConfigs()
+        logActivity('تعديل الإكسترا', 'إعدادات الفروع', `${!isCurrentlyDisabled ? 'إيقاف' : 'تفعيل'} الإكسترا لفرع ${branchName}`)
+      } else {
+        alert('حدث خطأ في تعديل الإكسترا')
+      }
+    } catch (e) { alert('حدث خطأ') }
+    autoBackup()
+  }
+
   const handleCreateEmployee = async () => {
     if (!newEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
     if (newEmp.role !== 'viewer' && !newEmp.branchId && newEmp.multiBranchIds.length === 0) return alert('الرجاء اختيار الفرع')
@@ -4152,14 +4174,21 @@ export default function JetCleanApp() {
                       )}
                     </div>
                     {user?.role !== 'viewer' && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <button
+                          onClick={() => handleToggleBranchExtra(branch.id, branch.name)}
+                          className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition ${isExtraEnabledForBranch(branch.name) ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'text-slate-500 bg-slate-700/50 border-slate-600/30 hover:bg-slate-700'}`}
+                          title={isExtraEnabledForBranch(branch.name) ? 'إيقاف الإكسترا (البيانات محفوظة)' : 'تفعيل الإكسترا'}
+                        >
+                          ⭐ اكسترا {isExtraEnabledForBranch(branch.name) ? '✅' : '❌'}
+                        </button>
                         <button
                           onClick={() => handleToggleBranchClose(branch.id, branch.name)}
                           className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition ${isDayClosedForBranch(adminDate, branch.id) ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'}`}
                         >
-                          {isDayClosedForBranch(adminDate, branch.id) ? '🔓 فتح الفرع' : '🔒 قفل الفرع'}
+                          {isDayClosedForBranch(adminDate, branch.id) ? '🔓 فتح' : '🔒 قفل'}
                         </button>
-                        <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف الكل</button>
+                        <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف</button>
                       </div>
                     )}
                   </div>

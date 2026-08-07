@@ -32,6 +32,27 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PUT(req: NextRequest) {
+  try {
+    const { id, config } = await req.json()
+    if (!id) {
+      return NextResponse.json({ error: 'معرف الفرع مطلوب' }, { status: 400 })
+    }
+    const existing = await db.branch.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: 'الفرع غير موجود' }, { status: 404 })
+    }
+    const updated = await db.branch.update({
+      where: { id },
+      data: { config: config !== undefined ? config : existing.config }
+    })
+    return NextResponse.json(updated)
+  } catch (error) {
+    console.error('Update branch error:', error)
+    return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
