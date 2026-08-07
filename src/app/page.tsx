@@ -3271,16 +3271,19 @@ export default function JetCleanApp() {
   const renderAdminScreen = () => {
     const dayClosed = isDayClosed(adminDate)
 
-    // حساب الإجماليات للشهر الحالي (كل الفروع)
+    // حساب الإجماليات للشهر الحالي من سجلات الفرع المحدد
     const currentMonth = adminDate.substring(0, 7)
     let grandWithdrawals = 0
     let grandShortages = 0
-    records.forEach(r => {
-      if (r.date.startsWith(currentMonth)) {
-        if (r.type === 'withdrawal') grandWithdrawals += r.amount
-        if (r.type === 'shortage') grandShortages += r.amount
-      }
-    })
+    const selectedBranchId = adminSelectedBranch || user?.branchId
+    if (selectedBranchId) {
+      records.forEach(r => {
+        if (r.date.startsWith(currentMonth) && r.branchId === selectedBranchId) {
+          if (r.type === 'withdrawal') grandWithdrawals += r.amount
+          if (r.type === 'shortage') grandShortages += r.amount
+        }
+      })
+    }
 
     return (
       <div className="min-h-screen bg-slate-900">
