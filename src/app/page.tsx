@@ -45,6 +45,7 @@ interface CarEntry {
   extraAmount: number
   priceCounts: Record<string, number>
   customPrices: Record<string, { price: number; count: number }>
+  entryTime: string
   createdAt: string
 }
 
@@ -3445,7 +3446,7 @@ export default function JetCleanApp() {
 
                     {/* آخر وقت إدخال للغرف */}
                     {(() => {
-                      const empDayEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate && e.entryTime)
+                      const empDayEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate && e.branchId === branch.id && e.entryTime)
                       if (empDayEntries.length === 0) return null
                       const times = empDayEntries.map(e => `${e.room}: ${e.entryTime}`)
                       return (
