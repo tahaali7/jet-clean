@@ -4,15 +4,17 @@ import { db } from '@/lib/db'
 // GET: فحص حالة الصيانة
 export async function GET() {
   try {
-    const entries = await db.$queryRawUnsafe(
-      `SELECT enabled, "updatedAt" FROM "Maintenance" WHERE id = 'main'`
-    ) as any[]
-    if (entries.length === 0) {
-      return NextResponse.json({ enabled: false })
+    let maintenance = await db.maintenance.findUnique({ where: { id: 'main' } })
+    if (!maintenance) {
+      // إنشاء صف افتراضي
+      maintenance = await db.maintenance.create({
+        data: { id: 'main', enabled: false }
+      })
     }
-    return NextResponse.json({ enabled: entries[0].enabled === true })
+    return NextResponse.json({ enabled: maintenance.enabled })
   } catch (error) {
     // لو الجدول ما اشتغل، رجّع false عشان ما يوقف الموقع
+    console.error('Get maintenance error:', error)
     return NextResponse.json({ enabled: false })
   }
 }
@@ -23,11 +25,13 @@ export async function PUT(req: NextRequest) {
     const data = await req.json()
     const enabled = data.enabled === true
 
-    await db.$executeRawUnsafe(
-      `UPDATE "Maintenance" SET enabled = ${enabled}, "updatedAt" = NOW() WHERE id = 'main'`
-    )
+    const maintenance = await db.maintenance.upsert({
+      where: { id: 'main' },
+      update: { enabled, updatedAt: new Date() },
+      create: { id: 'main', enabled }
+    })
 
-    return NextResponse.json({ enabled })
+    return NextResponse.json({ enabled: maintenance.enabled })
   } catch (error) {
     console.error('Toggle maintenance error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })

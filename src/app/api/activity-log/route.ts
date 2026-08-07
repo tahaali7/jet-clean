@@ -1,52 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-function esc(s: string) { return String(s || '').replace(/'/g, "''") }
-
-// فحص وإنشاء جدول سجل النشاطات تلقائياً
-let tableReady: boolean | null = null
-let tableCheckInProgress = false
-async function ensureTable() {
-  if (tableReady === true) return
-  if (tableCheckInProgress) {
-    while (tableCheckInProgress) {
-      await new Promise(r => setTimeout(r, 200))
-    }
-    return
-  }
-  tableCheckInProgress = true
-  try {
-    await db.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "ActivityLog" (
-        id TEXT PRIMARY KEY,
-        "userId" TEXT NOT NULL,
-        "userName" TEXT NOT NULL,
-        "userRole" TEXT NOT NULL,
-        "branchId" TEXT,
-        "branchName" TEXT,
-        action TEXT NOT NULL,
-        category TEXT NOT NULL,
-        details TEXT DEFAULT '',
-        ip TEXT DEFAULT '',
-        "createdAt" TIMESTAMP DEFAULT NOW()
-      )
-    `)
-    tableReady = true
-  } catch (e) {
-    console.error('Failed to create ActivityLog table:', e)
-  } finally {
-    tableCheckInProgress = false
-  }
-}
-
 // جلب سجل النشاطات
 export async function GET(req: NextRequest) {
   try {
-    await ensureTable()
-    if (tableReady !== true) {
-      return NextResponse.json({ entries: [], total: 0, page: 1, limit: 100, totalPages: 0 })
-    }
-
     const { searchParams } = new URL(req.url)
     const branchId = searchParams.get('branchId')
     const userId = searchParams.get('userId')
@@ -54,30 +11,23 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '100')))
 
-    const conditions: string[] = ['1=1']
-    const params: string[] = []
-    let paramIdx = 1
+    const where: Record<string, unknown> = {}
+    if (branchId) where.branchId = branchId
+    if (userId) where.userId = userId
+    if (category) where.category = category
 
-    if (branchId) { conditions.push(`"branchId" = $${paramIdx}`); params.push(branchId); paramIdx++ }
-    if (userId) { conditions.push(`"userId" = $${paramIdx}`); params.push(userId); paramIdx++ }
-    if (category) { conditions.push(`category = $${paramIdx}`); params.push(category); paramIdx++ }
-
-    const where = 'WHERE ' + conditions.join(' AND ')
-    const offset = (page - 1) * limit
-
-    const entries: any[] = await db.$queryRawUnsafe(
-      `SELECT id, "userId", "userName", "userRole", "branchId", "branchName", action, category, details, ip, "createdAt" FROM "ActivityLog" ${where} ORDER BY "createdAt" DESC LIMIT ${limit} OFFSET ${offset}`,
-      ...params
-    )
-
-    const countResult: any[] = await db.$queryRawUnsafe(
-      `SELECT COUNT(*)::int as total FROM "ActivityLog" ${where}`,
-      ...params
-    )
-    const total = Number(countResult[0]?.total) || 0
+    const [entries, total] = await Promise.all([
+      db.activityLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit
+      }),
+      db.activityLog.count({ where })
+    ])
 
     return NextResponse.json({
-      entries: entries.map((e: any) => ({
+      entries: entries.map(e => ({
         id: e.id,
         userId: e.userId,
         userName: e.userName,
@@ -88,7 +38,7 @@ export async function GET(req: NextRequest) {
         category: e.category,
         details: e.details,
         ip: e.ip,
-        createdAt: e.createdAt ? new Date(e.createdAt).toISOString() : new Date().toISOString()
+        createdAt: e.createdAt.toISOString()
       })),
       total,
       page,
@@ -104,11 +54,6 @@ export async function GET(req: NextRequest) {
 // إضافة سجل نشاط جديد
 export async function POST(req: NextRequest) {
   try {
-    await ensureTable()
-    if (tableReady !== true) {
-      return NextResponse.json({ success: true })
-    }
-
     const data = await req.json()
     const { userId, userName, userRole, branchId, branchName, action, category, details, ip } = data
 
@@ -116,16 +61,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'بيانات ناقصة' }, { status: 400 })
     }
 
-    const newId = 'act_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9)
+    const entry = await db.activityLog.create({
+      data: {
+        userId,
+        userName,
+        userRole,
+        branchId: branchId || null,
+        branchName: branchName || null,
+        action,
+        category,
+        details: details || '',
+        ip: ip || ''
+      }
+    })
 
-    await db.$executeRawUnsafe(
-      `INSERT INTO "ActivityLog" (id, "userId", "userName", "userRole", "branchId", "branchName", action, category, details, ip, "createdAt")
-       VALUES ('${esc(newId)}', '${esc(userId)}', '${esc(userName)}', '${esc(userRole)}',
-        ${branchId ? `'${esc(branchId)}'` : 'NULL'}, ${branchName ? `'${esc(branchName)}'` : 'NULL'},
-        '${esc(action)}', '${esc(category)}', '${esc(details || '')}', '${esc(ip || '')}', NOW())`
-    )
-
-    return NextResponse.json({ success: true, id: newId })
+    return NextResponse.json({ success: true, id: entry.id })
   } catch (error) {
     console.error('Create activity log error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
@@ -135,23 +85,22 @@ export async function POST(req: NextRequest) {
 // حذف سجلات النشاطات (حسب العمر أو الكل)
 export async function DELETE(req: NextRequest) {
   try {
-    await ensureTable()
-    if (tableReady !== true) {
-      return NextResponse.json({ success: true })
-    }
-
     const { searchParams } = new URL(req.url)
     const olderThan = searchParams.get('olderThan')
     const all = searchParams.get('all')
 
     if (all === 'true') {
-      await db.$executeRawUnsafe(`DELETE FROM "ActivityLog"`)
+      await db.activityLog.deleteMany()
       return NextResponse.json({ success: true, deleted: 'all' })
     }
 
     if (olderThan) {
       const days = parseInt(olderThan)
-      await db.$executeRawUnsafe(`DELETE FROM "ActivityLog" WHERE "createdAt" < NOW() - INTERVAL '${days} days'`)
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - days)
+      await db.activityLog.deleteMany({
+        where: { createdAt: { lt: cutoffDate } }
+      })
       return NextResponse.json({ success: true, deleted: `older_than_${days}_days` })
     }
 

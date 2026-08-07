@@ -125,3 +125,23 @@ model Notification {
   readBy    String   @default("[]")      // قائمة empId اللي قرأوا
   createdAt DateTime @default(now())
 }
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  userRole  String
+  branchId  String?
+  branchName String?
+  action    String
+  category  String
+  details   String   @default("")
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Maintenance {
+  id        String   @id @default("main")
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @default(now())
+}
