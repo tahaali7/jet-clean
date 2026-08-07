@@ -855,6 +855,17 @@ export default function JetCleanApp() {
   const [liveUpdateKey, setLiveUpdateKey] = useState(0)
   const [showActiveEmpsDropdown, setShowActiveEmpsDropdown] = useState(false)
 
+  // ===== نظام التنبيهات =====
+  const [showNotifModal, setShowNotifModal] = useState(false)
+  const [notifMessage, setNotifMessage] = useState('')
+  const [notifBranchId, setNotifBranchId] = useState<string>('')
+  const [notifType, setNotifType] = useState<'normal' | 'urgent'>('normal')
+  const [sendingNotif, setSendingNotif] = useState(false)
+  const [adminNotifs, setAdminNotifs] = useState<any[]>([])
+  const [empAlerts, setEmpAlerts] = useState<any[]>([])
+  const [currentAlertIdx, setCurrentAlertIdx] = useState(0)
+  const [showNotifHistory, setShowNotifHistory] = useState(false)
+
   // Withdrawal/Shortage quick entry state
   const [qEmpId, setQEmpId] = useState('')
   const [qRecordType, setQRecordType] = useState<'withdrawal' | 'shortage'>('withdrawal')
@@ -1133,6 +1144,72 @@ export default function JetCleanApp() {
     try { fetch('/api/backup', { method: 'POST' }) } catch (_) {}
   }
 
+  // ===== دوال التنبيهات =====
+  const handleSendNotif = async () => {
+    if (!notifMessage.trim()) return alert('الرجاء كتابة نص التنبيه')
+    setSendingNotif(true)
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: notifMessage.trim(),
+          branchId: notifBranchId || null,
+          type: notifType,
+          createdBy: isAdminMode ? 'المسؤول' : (user?.name || '')
+        })
+      })
+      setNotifMessage('')
+      setNotifBranchId('')
+      setNotifType('normal')
+      setShowNotifModal(false)
+      loadAdminNotifs()
+      alert('✅ تم إرسال التنبيه بنجاح!')
+    } catch {
+      alert('❌ حدث خطأ أثناء إرسال التنبيه')
+    }
+    setSendingNotif(false)
+  }
+
+  const loadAdminNotifs = async () => {
+    try {
+      const res = await fetch('/api/notifications?all=true')
+      const data = await res.json()
+      setAdminNotifs(Array.isArray(data) ? data : [])
+    } catch {}
+  }
+
+  const loadEmpAlerts = async () => {
+    if (!user?.id || isAdminMode) return
+    try {
+      const branchId = user.branchId || ''
+      const res = await fetch(`/api/notifications?empId=${user.id}&branchId=${branchId}`)
+      const data = await res.json()
+      setEmpAlerts(Array.isArray(data) ? data : [])
+    } catch {}
+  }
+
+  const handleDismissAlert = async (notifId: string) => {
+    if (!user?.id) return
+    try {
+      await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: notifId, empId: user.id })
+      })
+      setEmpAlerts(prev => prev.filter(n => n.id !== notifId))
+      setCurrentAlertIdx(prev => Math.max(0, prev))
+    } catch {}
+  }
+
+  const handleDeleteNotif = async (notifId: string) => {
+    if (!confirm('هل تريد حذف هذا التنبيه؟')) return
+    try {
+      await fetch(`/api/notifications?id=${notifId}`, { method: 'DELETE' })
+      loadAdminNotifs()
+    } catch {}
+  }
+
   const handleRestore = async () => {
     setRestoreLoading(true)
     try {
@@ -1221,6 +1298,7 @@ export default function JetCleanApp() {
           try { await loadWorkerExpenses(empDate, user.branchId) } catch(e) { console.error(e) }
         }
         try { await loadClosedDays(empDate) } catch(e) { console.error(e) }
+        try { await loadEmpAlerts() } catch(e) { console.error(e) }
       })()
     }
   }, [screen, empDate, isAdminMode, adminSelectedBranch, user])
@@ -1235,6 +1313,7 @@ export default function JetCleanApp() {
           try { await loadRecords({ date: adminDate }) } catch(e) { console.error(e) }
           try { await loadAllCarEntries(adminDate) } catch(e) { console.error(e) }
           try { await loadClosedDays(adminDate) } catch(e) { console.error(e) }
+          try { await loadAdminNotifs() } catch(e) { console.error(e) }
         }
       })()
     }
@@ -2674,6 +2753,42 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-4xl mx-auto px-4 pb-24 space-y-4">
+
+          {/* ===== بانر الإشعارات للموظف ===== */}
+          {empAlerts.length > 0 && currentAlertIdx < empAlerts.length && (() => {
+            const alert = empAlerts[currentAlertIdx]
+            const isUrgent = alert.type === 'urgent'
+            return (
+              <div className={`rounded-2xl border p-4 animate-[fadeIn_0.3s_ease-in] ${isUrgent ? 'bg-rose-500/15 border-rose-500/30' : 'bg-blue-500/15 border-blue-500/30'}`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl mt-0.5">{isUrgent ? '🔴' : '🔵'}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isUrgent ? 'text-rose-400 bg-rose-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
+                        {isUrgent ? 'عاجل' : 'تنبيه'}
+                      </span>
+                      {empAlerts.length > 1 && (
+                        <span className="text-[10px] text-slate-400">{currentAlertIdx + 1} من {empAlerts.length}</span>
+                      )}
+                    </div>
+                    <p className={`text-sm font-semibold ${isUrgent ? 'text-rose-200' : 'text-blue-200'}`}>{alert.message}</p>
+                    <p className="text-[10px] text-slate-500 mt-1">{new Date(alert.createdAt).toLocaleString('ar-LY')}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3 mr-9">
+                  <button onClick={() => handleDismissAlert(alert.id)} className={`flex-1 font-bold py-2 rounded-xl text-xs transition ${isUrgent ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'}`}>
+                    ✓ فهمت
+                  </button>
+                  {empAlerts.length > 1 && (
+                    <button onClick={() => setCurrentAlertIdx(prev => Math.min(prev + 1, empAlerts.length - 1))} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition">
+                      التالي →
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
           <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 flex flex-col sm:flex-row items-center gap-4">
             {(isAdminMode || user?.role === 'viewer') && (
               <>
@@ -3359,6 +3474,12 @@ export default function JetCleanApp() {
                       </button>
                       <button onClick={() => { setShowAdminDropdown(false); setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>🔑</span> كلمات السر
+                      </button>
+                      <button onClick={() => { setShowAdminDropdown(false); setShowNotifModal(true); setNotifMessage(''); setNotifBranchId(''); setNotifType('normal') }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>📢</span> إرسال تنبيه
+                      </button>
+                      <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>📜</span> سجل التنبيهات
                       </button>
                       <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-amber-300 text-sm flex items-center gap-2 transition disabled:opacity-50">
                         <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
@@ -4635,6 +4756,101 @@ export default function JetCleanApp() {
               </button>
               <button onClick={() => setShowExportModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== إرسال تنبيه Modal ===== */}
+      {showNotifModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white text-center flex items-center justify-center gap-2">📢 إرسال تنبيه</h3>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">نص التنبيه</label>
+              <textarea
+                value={notifMessage}
+                onChange={e => setNotifMessage(e.target.value)}
+                placeholder="اكتب نص التنبيه هنا..."
+                rows={3}
+                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">إرسال إلى</label>
+              <select
+                value={notifBranchId}
+                onChange={e => setNotifBranchId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+              >
+                <option value="">🌍 كل الفروع</option>
+                {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">نوع التنبيه</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setNotifType('normal')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition border ${notifType === 'normal' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-700 text-slate-400 border-slate-600'}`}
+                >
+                  ⚪ عادي
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNotifType('urgent')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition border ${notifType === 'urgent' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-slate-700 text-slate-400 border-slate-600'}`}
+                >
+                  🔴 عاجل
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleSendNotif} disabled={sendingNotif || !notifMessage.trim()} className="flex-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                {sendingNotif ? '⏳ جاري الإرسال...' : '📢 إرسال'}
+              </button>
+              <button onClick={() => setShowNotifModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== سجل التنبيهات Modal ===== */}
+      {showNotifHistory && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-white">📜 سجل التنبيهات</h3>
+              <button onClick={() => setShowNotifHistory(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+              {adminNotifs.length === 0 && (
+                <p className="text-slate-500 text-center py-8">لا توجد تنبيهات</p>
+              )}
+              {adminNotifs.map((n: any) => (
+                <div key={n.id} className={`border rounded-xl p-3 ${n.type === 'urgent' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-700/30 border-slate-600/30'}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${n.type === 'urgent' ? 'text-rose-400 bg-rose-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
+                      {n.type === 'urgent' ? '🔴 عاجل' : '⚪ عادي'}
+                    </span>
+                    <div className="flex gap-2">
+                      <span className="text-[10px] text-slate-500">{n.branchId ? branches.find((b: any) => b.id === n.branchId)?.name || 'فرع' : '🌍 كل الفروع'}</span>
+                      <button onClick={() => handleDeleteNotif(n.id)} className="text-slate-600 hover:text-rose-400 text-xs">🗑️</button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-white mt-1">{n.message}</p>
+                  <p className="text-[10px] text-slate-500 mt-1.5">بواسطة: {n.createdBy || 'مسؤول'} — {new Date(n.createdAt).toLocaleString('ar-LY')}</p>
+                  {(() => { try { const readers = JSON.parse(n.readBy || '[]'); return readers.length > 0 ? <p className="text-[10px] text-emerald-400/60 mt-1">قرأه {readers.length} موظف</p> : <p className="text-[10px] text-slate-600 mt-1">لم يقرأه أحد بعد</p> } catch { return null } })()}
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => setShowNotifHistory(false)} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إغلاق</button>
           </div>
         </div>
       )}

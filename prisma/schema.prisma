@@ -114,3 +114,13 @@ model BackupFile {
   data      String
   createdAt DateTime @default(now())
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  message   String
+  branchId  String?            // null = كل الفروع
+  type      String   @default("normal") // normal أو urgent
+  createdBy String   @default("")
+  readBy    String   @default("[]")      // قائمة empId اللي قرأوا
+  createdAt DateTime @default(now())
+}
