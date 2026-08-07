@@ -3393,6 +3393,36 @@ export default function JetCleanApp() {
             </div>
           )}
 
+          {/* شريط حالة الموظفين السريع */}
+          {(() => {
+            const todayStr = adminDate
+            const loginEmps = employees.filter(e => !e.deleted && e.hasLogin && e.branchId && branches.some(b => b.id === e.branchId))
+            const onlineCount = loginEmps.filter(e => carEntries.some(ce => ce.empId === e.id && ce.date === todayStr)).length
+            const offlineCount = loginEmps.length - onlineCount
+            if (loginEmps.length === 0) return null
+            return (
+              <div className="flex items-center justify-center gap-4 bg-slate-800/60 rounded-2xl border border-slate-700/40 px-6 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-sm font-bold text-emerald-400">{onlineCount}</span>
+                  <span className="text-xs text-slate-400">أونلاين</span>
+                </div>
+                <div className="w-px h-5 bg-slate-700"></div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                  <span className="text-sm font-bold text-slate-400">{offlineCount}</span>
+                  <span className="text-xs text-slate-400">أوفلاين</span>
+                </div>
+                <div className="w-px h-5 bg-slate-700"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">الإجمالي</span>
+                  <span className="text-sm font-bold text-slate-300">{loginEmps.length}</span>
+                  <span className="text-xs text-slate-500">موظف</span>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* الموظفون النشطون اليوم */}
           {(() => {
             const todayStr = adminDate
@@ -3419,8 +3449,9 @@ export default function JetCleanApp() {
                   className="w-full flex items-center justify-between p-4 hover:bg-slate-750 transition"
                 >
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-300">📊 الموظفون النشطون اليوم</h3>
-                    <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">{activeCount} من {loginEmps.length} نشط</span>
+                    <h3 className="text-sm font-bold text-slate-300">📊 حالة الموظفين</h3>
+                    <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">{activeCount} أونلاين</span>
+                    <span className="text-xs bg-slate-700/50 text-slate-400 px-2.5 py-1 rounded-full border border-slate-600/30">{loginEmps.length - activeCount} أوفلاين</span>
                   </div>
                   <span className={`text-slate-400 transition-transform duration-200 ${showActiveEmpsDropdown ? 'rotate-180' : ''}`}>▼</span>
                 </button>
@@ -3432,13 +3463,14 @@ export default function JetCleanApp() {
                         return (
                           <div key={emp.id} className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
                               <div>
                                 <span className="text-sm text-emerald-300 font-bold">{info.name}</span>
                                 <span className="text-xs text-slate-400 mr-2">- {info.branch}</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
+                              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full font-bold border border-emerald-500/20">● أونلاين</span>
                               <span className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-1 rounded-lg">{info.rooms} غرف</span>
                               {info.lastTime && <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-lg border border-indigo-500/20">🕐 {info.lastTime}</span>}
                             </div>
@@ -3448,13 +3480,13 @@ export default function JetCleanApp() {
                         return (
                           <div key={emp.id} className="flex items-center justify-between bg-slate-700/20 border border-slate-600/15 rounded-xl px-4 py-3">
                             <div className="flex items-center gap-3">
-                              <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                              <span className="w-3 h-3 rounded-full bg-slate-600"></span>
                               <div>
                                 <span className="text-sm text-slate-500">{emp.name}</span>
                                 <span className="text-xs text-slate-600 mr-2">- {branches.find(b => b.id === emp.branchId)?.name || ''}</span>
                               </div>
                             </div>
-                            <span className="text-xs text-slate-600">لم يسجل نشاط</span>
+                            <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-1 rounded-full font-bold border border-slate-600/30">● أوفلاين</span>
                           </div>
                         )
                       }
@@ -3492,6 +3524,7 @@ export default function JetCleanApp() {
           {/* بطاقات الفروع - شبكة عمودين */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {branches.map(branch => {
+              const todayStr = adminDate
               const isMulti = (e: any) => { try { return JSON.parse(e.multiBranchIds || '[]').length > 0 } catch { return false } }
               const branchEmps = employees.filter(e => e.branchId === branch.id && !isMulti(e))
               let branchWithdrawals = 0
@@ -3514,11 +3547,14 @@ export default function JetCleanApp() {
                 branchCarTotal += carTotal
                 branchCarCount += carCount
 
+                const isEmpOnline = carEntries.some(e => e.empId === emp.id && e.date === todayStr)
                 return (
-                  <div key={emp.id} className="bg-slate-900 border border-slate-700/40 rounded-xl p-3.5">
+                  <div key={emp.id} className={`bg-slate-900 border rounded-xl p-3.5 transition-all ${isEmpOnline ? 'border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.08)]' : 'border-slate-700/40'}`}>
                     <div className="flex justify-between items-center mb-2.5">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-white text-sm">{emp.name}</h3>
+                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isEmpOnline ? 'bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} title={isEmpOnline ? 'أونلاين' : 'أوفلاين'}></span>
+                        <h3 className={`text-sm ${isEmpOnline ? 'font-bold text-emerald-300' : 'font-bold text-slate-400'}`}>{emp.name}</h3>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isEmpOnline ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-700/50 border-slate-600/30'}`}>{isEmpOnline ? 'أونلاين' : 'أوفلاين'}</span>
                         <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
                         {emp.hasLogin && emp.role === 'viewer' && <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
                         {!emp.hasLogin && <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
