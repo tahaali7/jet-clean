@@ -849,6 +849,11 @@ export default function JetCleanApp() {
   const [quickExpAmount, setQuickExpAmount] = useState('')
   const [quickExpenses, setQuickExpenses] = useState<{ name: string; amount: number }[]>([])
 
+  // إشعارات الإضافة التلقائية + تحديث حي
+  const [notifications, setNotifications] = useState<{ id: string; message: string; time: string }[]>([])
+  const [lastCarEntryIds, setLastCarEntryIds] = useState<Set<string>>(new Set())
+  const [liveUpdateKey, setLiveUpdateKey] = useState(0)
+
   // Withdrawal/Shortage quick entry state
   const [qEmpId, setQEmpId] = useState('')
   const [qRecordType, setQRecordType] = useState<'withdrawal' | 'shortage'>('withdrawal')
@@ -1233,6 +1238,32 @@ export default function JetCleanApp() {
       })()
     }
   }, [screen, adminDate])
+
+  // تحديث تلقائي للبيانات في وضع المسؤول (كل 10 ثواني)
+  useEffect(() => {
+    if (screen !== 'admin' || !adminDate) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/car-entries?date=${adminDate}`)
+        if (!res.ok) return
+        const newEntries: CarEntry[] = await res.json()
+        // مقارنة مع البيانات الحالية للكشف عن الإضافات الجديدة
+        const currentIds = new Set(carEntries.map(e => e.id))
+        const added = newEntries.filter(e => !currentIds.has(e.id))
+        if (added.length > 0) {
+          // تحديث البيانات
+          setCarEntries(newEntries)
+          // إشعار لكل إضافة جديدة
+          const now = new Date().toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit' })
+          added.forEach(entry => {
+            const msg = `${entry.empName} أضاف ${entry.room} - ${entry.totalCars} سيارة`
+            setNotifications(prev => [{ id: entry.id, message: msg, time: now }, ...prev].slice(0, 20))
+          })
+        }
+      } catch {}
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [screen, adminDate, carEntries.length])
 
   // Price inputs reset on room change
   useEffect(() => {
@@ -3344,6 +3375,77 @@ export default function JetCleanApp() {
         </header>
 
         <main className="max-w-5xl mx-auto p-4 pb-24 space-y-4">
+
+          {/* إشعارات الإضافة التلقائية */}
+          {notifications.length > 0 && (
+            <div className="space-y-2">
+              {notifications.slice(0, 3).map(n => (
+                <div key={n.id} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl px-4 py-3 flex justify-between items-center text-sm animate-[fadeIn_0.3s_ease-in]">
+                  <span>🔔 {n.message}</span>
+                  <span className="text-xs text-emerald-400/60">{n.time}</span>
+                </div>
+              ))}
+              {notifications.length > 3 && (
+                <div className="text-center text-xs text-slate-500">+{notifications.length - 3} إشعارات أخرى</div>
+              )}
+              <button onClick={() => setNotifications([])} className="text-xs text-slate-500 hover:text-slate-400 transition">إخفاء الكل</button>
+            </div>
+          )}
+
+          {/* الموظفون النشطون اليوم */}
+          {(() => {
+            const todayStr = adminDate
+            const activeEmps = new Map<string, { name: string; lastTime: string; rooms: number; branch: string }>()
+            carEntries.filter(e => e.date === todayStr).forEach(e => {
+              const existing = activeEmps.get(e.empId)
+              if (existing) {
+                existing.rooms++
+                if (e.entryTime && e.entryTime > existing.lastTime) existing.lastTime = e.entryTime
+              } else {
+                const branchName = branches.find(b => b.id === e.branchId)?.name || ''
+                activeEmps.set(e.empId, { name: e.empName, lastTime: e.entryTime || '', rooms: 1, branch: branchName })
+              }
+            })
+            const allBranchEmps = employees.filter(e => !e.deleted && e.branchId && branches.some(b => b.id === e.branchId))
+            const totalEmps = allBranchEmps.length
+            const activeCount = activeEmps.size
+
+            if (totalEmps === 0) return null
+            return (
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">📊 الموظفون النشطون اليوم</h3>
+                  <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">{activeCount} من {totalEmps} نشط</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {/* الموظفون النشطون */}
+                  {allBranchEmps.map(emp => {
+                    const info = activeEmps.get(emp.id)
+                    if (info) {
+                      return (
+                        <div key={emp.id} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span className="text-sm text-emerald-300 font-medium">{info.name}</span>
+                          <span className="text-[10px] text-slate-400">{info.branch}</span>
+                          <span className="text-[10px] text-emerald-400/70">{info.rooms} غرف</span>
+                          {info.lastTime && <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">🕐 {info.lastTime}</span>}
+                        </div>
+                      )
+                    } else {
+                      return (
+                        <div key={emp.id} className="flex items-center gap-2 bg-slate-700/30 border border-slate-600/20 rounded-full px-3 py-1.5">
+                          <span className="w-2 h-2 rounded-full bg-slate-600"></span>
+                          <span className="text-sm text-slate-500">{emp.name}</span>
+                          <span className="text-[10px] text-slate-600">{branches.find(b => b.id === emp.branchId)?.name || ''}</span>
+                        </div>
+                      )
+                    }
+                  })}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* صف واحد: السحبيات + العجوزات */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
