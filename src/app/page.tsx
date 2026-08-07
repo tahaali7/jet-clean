@@ -973,6 +973,7 @@ export default function JetCleanApp() {
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false)
   const [restoreLoading, setRestoreLoading] = useState(false)
+  const [backupLoading, setBackupLoading] = useState(false)
   const [showAdminDropdown, setShowAdminDropdown] = useState(false)
   const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
   const [exportMonth, setExportMonth] = useState('')
@@ -1255,6 +1256,44 @@ export default function JetCleanApp() {
   // نسخ احتياطي تلقائي صامت
   const autoBackup = () => {
     try { fetch('/api/backup', { method: 'POST' }) } catch (_) {}
+  }
+
+  // نسخ احتياطي يدوي مع تحميل الملف
+  const handleDownloadBackup = async () => {
+    try {
+      setBackupLoading(true)
+      const res = await fetch('/api/backup', { method: 'POST' })
+      if (!res.ok) throw new Error('فشل إنشاء النسخة')
+      const result = await res.json()
+      // fetch the backup data
+      const dataRes = await fetch('/api/backup')
+      if (dataRes.ok) {
+        const backups = (await dataRes.json()).backups || []
+        if (backups.length > 0) {
+          // Get full backup data
+          const fullRes = await fetch(`/api/backup?id=${backups[0].id}`)
+          if (fullRes.ok) {
+            const fullData = await fullRes.json()
+            const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `backup_jet_clean_${new Date().toISOString().split('T')[0]}.json`
+            a.click()
+            URL.revokeObjectURL(url)
+            alert('✅ تم تحميل النسخة الاحتياطية بنجاح!\n\n' +
+              'الفروع: ' + (result.records?.branches || 0) + '\n' +
+              'الموظفين: ' + (result.records?.employees || 0) + '\n' +
+              'تسجيلات السيارات: ' + (result.records?.carEntries || 0) + '\n' +
+              'السحوبات والعجوزات: ' + (result.records?.records || 0))
+          }
+        }
+      }
+    } catch (e: any) {
+      alert('❌ خطأ: ' + e.message)
+    } finally {
+      setBackupLoading(false)
+    }
   }
 
   // ===== دوال التنبيهات =====
@@ -3716,6 +3755,9 @@ export default function JetCleanApp() {
                     </button>
                     <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-amber-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
                       <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); handleDownloadBackup() }} disabled={backupLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-emerald-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
+                      <span>{backupLoading ? '⏳' : '💾'}</span> تحميل نسخة احتياطية
                     </button>
 
                     {/* فاصل */}
