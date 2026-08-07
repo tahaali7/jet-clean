@@ -967,6 +967,7 @@ export default function JetCleanApp() {
   const [showChangePwdModal, setShowChangePwdModal] = useState(false)
   const [empNewPwd, setEmpNewPwd] = useState('')
   const [showClosingModal, setShowClosingModal] = useState(false)
+  const [showBranchCloseModal, setShowBranchCloseModal] = useState(false)
 
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false)
@@ -1620,6 +1621,11 @@ export default function JetCleanApp() {
 
   const handleDeleteCarEntry = async (id: string) => {
     const entry = carEntries.find(e => e.id === id)
+    if (!entry) return
+    // منع الموظف من الحذف إذا الفرع مقفل
+    if (!isAdminMode && user?.role !== 'admin' && entry.branchId && isDayClosedForBranch(entry.date, entry.branchId)) {
+      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك حذف البيانات')
+    }
     if (!confirm('هل تريد حذف هذا التسجيل؟')) return
     try {
       await fetch(`/api/car-entries?id=${id}`, { method: 'DELETE' })
@@ -2742,7 +2748,7 @@ export default function JetCleanApp() {
     const entryLabel = isAdminEntry ? '👨‍💼 المسؤول' : entry.empName
 
     const canEdit = isAdminMode || (!isAdminMode && entry.empId === user?.id && user?.role !== 'viewer')
-    const dayClosed = isDayClosed(entry.date)
+    const dayClosed = !isAdminMode && user?.role !== 'admin' ? isDayClosedForBranch(entry.date, entry.branchId) : false
 
     return (
       <div key={entry.id} className={`room-card bg-slate-800 border ${borderColor} rounded-2xl p-5 shadow-lg`}>
@@ -2752,6 +2758,7 @@ export default function JetCleanApp() {
           </h3>
           <div className="flex items-center gap-2">
             {entry.entryTime && <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">🕐 {entry.entryTime}</span>}
+            {dayClosed && <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">🔒 مقفل</span>}
             {canEdit && !dayClosed && (
               <>
                 <button onClick={() => handleEditCarEntry(entry)} className="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️</button>
@@ -2917,8 +2924,8 @@ export default function JetCleanApp() {
                 </button>
               )}
               {isAdminMode && (
-              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
-                📋 الإغلاق
+              <button onClick={() => setShowBranchCloseModal(true)} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
+                🔒 قفل فرع
               </button>
               )}
               {user?.role !== 'admin' && (
@@ -4780,6 +4787,116 @@ export default function JetCleanApp() {
               </button>
               <button onClick={() => setShowClosingModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm">إغلاق</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Branch Closing Modal - في صفحة تسجيل السيارات */}
+      {showBranchCloseModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-white">🔒 قفل فرع ليوم محدد</h3>
+              <button onClick={() => setShowBranchCloseModal(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1 font-semibold">📍 اختر الفرع</label>
+              <select
+                value={adminSelectedBranch || ''}
+                onChange={e => setAdminSelectedBranch(e.target.value || null)}
+                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500"
+              >
+                <option value="">-- اختر فرع --</option>
+                {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1 font-semibold">📅 التاريخ</label>
+              <div className="bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm">
+                {empDate || 'لا يوجد تاريخ محدد'}
+              </div>
+            </div>
+
+            {adminSelectedBranch && empDate && (() => {
+              const isClosed = isDayClosedForBranch(empDate, adminSelectedBranch)
+              const branch = branches.find(b => b.id === adminSelectedBranch)
+              const branchName = branch?.name || ''
+              const branchEntries = carEntries.filter(e => e.branchId === adminSelectedBranch && e.date === empDate)
+              const hasData = branchEntries.length > 0
+
+              return (
+                <div className="bg-slate-900/60 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${isClosed ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                    <span className={`text-sm font-bold ${isClosed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {isClosed ? 'الفرع مقفل لهذا اليوم' : 'الفرع مفتوح'}
+                    </span>
+                  </div>
+
+                  {!isClosed && !hasData && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+                      <p className="text-amber-400 text-sm font-semibold">⚠️ تحذير</p>
+                      <p className="text-amber-200/80 text-xs mt-1">لا توجد تسجيلات سيارات لهذا الفرع في هذا اليوم</p>
+                    </div>
+                  )}
+
+                  {hasData && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-slate-400 font-semibold">تسجيلات اليوم:</p>
+                      {branchEntries.map(e => (
+                        <div key={e.id} className="flex justify-between items-center text-xs bg-slate-800 px-3 py-2 rounded-lg">
+                          <span className="text-cyan-400">{e.room}</span>
+                          <div className="flex gap-3">
+                            <span className="text-white">{e.totalCars} سيارة</span>
+                            <span className="text-emerald-400 font-bold">{e.totalAmount} د.ل</span>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center text-xs bg-cyan-500/10 px-3 py-2 rounded-lg mt-1 border border-cyan-500/20">
+                        <span className="text-cyan-300 font-bold">الإجمالي</span>
+                        <span className="text-cyan-400 font-bold">{branchEntries.reduce((s, e) => s + e.totalAmount, 0)} د.ل</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={async () => {
+                      if (!adminSelectedBranch || !empDate) return
+                      if (!isClosed) {
+                        if (!hasData) {
+                          if (!confirm(`⚠️ الفرع "${branchName}" لم يدخل بيانات في ${empDate}!\n\nهل تريد الإغلاق مع ذلك؟`)) return
+                        }
+                        if (!confirm(`هل تريد قفل فرع "${branchName}" ليوم ${empDate}؟\nسيتمكن الموظف من تعديل البيانات بعد القفل`)) return
+                        await fetch('/api/closed-days', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ date: empDate, branchId: adminSelectedBranch })
+                        })
+                        logActivity('قفل فرع', 'الإغلاق اليومي', `قفل فرع ${branchName}${!hasData ? ' - ⚠️ بدون بيانات' : ''} - التاريخ: ${empDate}`)
+                      } else {
+                        if (!confirm(`هل تريد إعادة فتح فرع "${branchName}" ليوم ${empDate}؟\nسيتمكن الموظف من تعديل البيانات`)) return
+                        await fetch('/api/closed-days', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ date: empDate, branchId: adminSelectedBranch })
+                        })
+                        logActivity('فتح فرع', 'الإغلاق اليومي', `إعادة فتح فرع ${branchName} - التاريخ: ${empDate}`)
+                      }
+                      await loadClosedDays(empDate)
+                    }}
+                    className={`w-full font-bold py-3 rounded-xl text-sm transition ${isClosed ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+                  >
+                    {isClosed ? `🔓 إعادة فتح فرع ${branchName}` : `🔒 قفل فرع ${branchName}`}
+                  </button>
+                </div>
+              )
+            })()}
+
+            {!adminSelectedBranch && (
+              <p className="text-slate-500 text-sm text-center py-4">اختر فرعاً لعرض حالة القفل</p>
+            )}
+
+            <button onClick={() => setShowBranchCloseModal(false)} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إغلاق</button>
           </div>
         </div>
       )}
