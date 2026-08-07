@@ -1,70 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, ensureMigrations } from '@/lib/db'
+import { db } from '@/lib/db'
 
-function parseJsonFields(entry: any) {
-  let priceCounts = {}
-  let customPrices = {}
-  try { priceCounts = JSON.parse(entry.priceCounts || '{}') } catch {}
-  try { customPrices = JSON.parse(entry.customPrices || '{}') } catch {}
+function parseJsonFields(entry: { priceCounts: string; customPrices: string }) {
   return {
     ...entry,
-    priceCounts,
-    customPrices,
-    entryTime: entry.entryTime || ''
+    priceCounts: JSON.parse(entry.priceCounts || '{}'),
+    customPrices: JSON.parse(entry.customPrices || '{}')
   }
-}
-
-function escapeSql(str: string) {
-  return str.replace(/'/g, "''")
 }
 
 export async function GET(req: NextRequest) {
   try {
-    await ensureMigrations()
     const { searchParams } = new URL(req.url)
     const date = searchParams.get('date')
     const branchId = searchParams.get('branchId')
     const empId = searchParams.get('empId')
     const datesOnly = searchParams.get('datesOnly')
-    const month = searchParams.get('month')
+    const month = searchParams.get('month') // format: YYYY-MM
 
-    // تواريخ فقط (للتقويم)
+    // Return only dates that have entries (for calendar highlighting)
     if (datesOnly === 'true' && branchId && month) {
       const startDate = month + '-01'
       const [year, mon] = month.split('-').map(Number)
       const daysInMonth = new Date(year, mon, 0).getDate()
       const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
 
-      const rows: any[] = await db.$queryRawUnsafe(
-        `SELECT date FROM "CarEntry" WHERE "branchId" = '${escapeSql(branchId)}' AND date >= '${startDate}' AND date <= '${endDate}'`
-      )
-      const dateSet = new Set(rows.map((r: any) => r.date))
+      const entries = await db.carEntry.findMany({
+        where: { branchId, date: { gte: startDate, lte: endDate } },
+        select: { date: true },
+      })
+      const dateSet = new Set(entries.map(e => e.date))
       return NextResponse.json(Array.from(dateSet))
     }
 
-    // بناء الاستعلام بـ raw SQL — لا يعتمد على مطابقة السكيمة بالضبط
-    let where = 'WHERE 1=1'
-    if (date) where += ` AND date = '${escapeSql(date)}'`
-    if (branchId) where += ` AND "branchId" = '${escapeSql(branchId)}'`
-    if (empId) where += ` AND "empId" = '${escapeSql(empId)}'`
+    const where: Record<string, unknown> = {}
+    if (date) where.date = date
+    if (branchId) where.branchId = branchId
+    if (empId) where.empId = empId
 
-    let entries: any[] = []
-
-    // محاولة 1: مع entryTime
-    try {
-      const sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "extraCars", "extraAmount", "priceCounts", "customPrices", "entryTime", "createdAt" FROM "CarEntry" ${where} ORDER BY "createdAt" DESC`
-      entries = await db.$queryRawUnsafe(sql) as any[]
-    } catch {
-      // محاولة 2: بدون entryTime
-      try {
-        const sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "extraCars", "extraAmount", "priceCounts", "customPrices", "createdAt" FROM "CarEntry" ${where} ORDER BY "createdAt" DESC`
-        entries = await db.$queryRawUnsafe(sql) as any[]
-      } catch {
-        // محاولة 3: فقط الأعمدة الأساسية
-        const sql = `SELECT id, date, "branchId", "empId", "empName", room, "totalCars", "totalAmount", "priceCounts", "createdAt" FROM "CarEntry" ${where} ORDER BY "createdAt" DESC`
-        entries = await db.$queryRawUnsafe(sql) as any[]
-      }
-    }
+    const entries = await db.carEntry.findMany({
+      where,
+      orderBy: { createdAt: 'desc' }
+    })
 
     const parsed = entries.map(parseJsonFields)
     return NextResponse.json(parsed)
@@ -76,7 +53,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await ensureMigrations()
     const data = await req.json()
     const entry = await db.carEntry.create({
       data: {
@@ -90,8 +66,7 @@ export async function POST(req: NextRequest) {
         extraCars: data.extraCars || 0,
         extraAmount: data.extraAmount || 0,
         priceCounts: JSON.stringify(data.priceCounts || {}),
-        customPrices: JSON.stringify(data.customPrices || {}),
-        entryTime: data.entryTime || ''
+        customPrices: JSON.stringify(data.customPrices || {})
       }
     })
     return NextResponse.json(parseJsonFields(entry))
@@ -103,7 +78,6 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    await ensureMigrations()
     const { id, ...data } = await req.json()
     if (!id) return NextResponse.json({ error: 'معرف مطلوب' }, { status: 400 })
 
@@ -119,7 +93,6 @@ export async function PUT(req: NextRequest) {
     if (data.extraAmount !== undefined) updateData.extraAmount = data.extraAmount
     if (data.priceCounts !== undefined) updateData.priceCounts = JSON.stringify(data.priceCounts)
     if (data.customPrices !== undefined) updateData.customPrices = JSON.stringify(data.customPrices)
-    if (data.entryTime !== undefined) updateData.entryTime = data.entryTime
 
     const entry = await db.carEntry.update({ where: { id }, data: updateData })
     return NextResponse.json(parseJsonFields(entry))

@@ -45,7 +45,6 @@ interface CarEntry {
   extraAmount: number
   priceCounts: Record<string, number>
   customPrices: Record<string, { price: number; count: number }>
-  entryTime: string
   createdAt: string
 }
 
@@ -1297,10 +1296,6 @@ export default function JetCleanApp() {
 
     if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل')
 
-    // تسجيل الوقت الحالي تلقائياً
-    const now = new Date()
-    const entryTime = now.toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit', hour12: true })
-
     let empId: string, empName: string, branchId: string
     if (isAdminMode) {
       branchId = adminSelectedBranch!
@@ -1322,7 +1317,7 @@ export default function JetCleanApp() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: existing.id, date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
+            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
           })
         })
       } else {
@@ -1331,7 +1326,7 @@ export default function JetCleanApp() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
+            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
           })
         })
       }
@@ -2465,7 +2460,6 @@ export default function JetCleanApp() {
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 bg-slate-700 px-2.5 py-1 rounded-full">{entry.totalCars} سيارة</span>
-            {entry.entryTime && <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-full border border-indigo-500/20">🕐 {entry.entryTime}</span>}
             {canEdit && !dayClosed && (
               <>
                 <button onClick={() => handleEditCarEntry(entry)} className="text-cyan-400 hover:text-cyan-300 text-xs bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20 hover:bg-cyan-500/20 transition">✏️</button>
@@ -2573,15 +2567,16 @@ export default function JetCleanApp() {
     if (isAdminMode || user?.role === 'viewer') {
       const selectedBranch = user?.role === 'viewer' ? (adminSelectedBranch || user?.branchId) : adminSelectedBranch
       if (selectedBranch && empDate) {
+        const adminEmpId = 'admin_' + selectedBranch
         displayEntries = carEntries.filter(e =>
-          e.date === empDate && (e.branchId === selectedBranch || e.empId === 'admin_' + selectedBranch)
+          (e.branchId === selectedBranch || e.empId === adminEmpId) && e.date === empDate
         )
       }
     } else {
       if (user?.branchId && empDate) {
-        // عرض كل بيانات الفرع لليوم المحدد (موظف + مسؤول)
+        const adminEmpId = 'admin_' + user.branchId
         displayEntries = carEntries.filter(e =>
-          e.date === empDate && (e.branchId === user!.branchId || e.empId === 'admin_' + user!.branchId)
+          (e.empId === user.id || e.empId === adminEmpId) && e.date === empDate
         )
       }
     }
@@ -3442,18 +3437,6 @@ export default function JetCleanApp() {
                         <span className="font-bold text-rose-400">{shortages}</span>
                       </div>
                     </div>
-
-                    {/* آخر وقت إدخال للغرف */}
-                    {(() => {
-                      const empDayEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate && e.branchId === branch.id && e.entryTime)
-                      if (empDayEntries.length === 0) return null
-                      const times = empDayEntries.map(e => `${e.room}: ${e.entryTime}`)
-                      return (
-                        <div className="mt-1.5 text-[10px] text-teal-400/70 bg-teal-500/5 px-2.5 py-1.5 rounded-lg border border-teal-500/10">
-                          🕐 {times.join(' | ')}
-                        </div>
-                      )
-                    })()}
 
                     {/* سجل حركات الشهر */}
                     <div className="space-y-1 mt-2 max-h-52 overflow-y-auto custom-scrollbar">
