@@ -821,6 +821,7 @@ export default function JetCleanApp() {
   const [branches, setBranches] = useState<Branch[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [carEntries, setCarEntries] = useState<CarEntry[]>([])
+  const [adminCarEntries, setAdminCarEntries] = useState<CarEntry[]>([])
   const [records, setRecords] = useState<FinancialRecord[]>([])
   const [closedDays, setClosedDays] = useState<ClosedDay[]>([])
   const [workerExpenses, setWorkerExpenses] = useState<WorkerExpense[]>([])
@@ -1054,7 +1055,7 @@ export default function JetCleanApp() {
       const params = new URLSearchParams()
       if (date) params.set('date', date)
       const res = await fetch(`/api/car-entries?${params}`)
-      if (res.ok) setCarEntries(await res.json())
+      if (res.ok) setAdminCarEntries(await res.json())
     } catch (e) { console.error(e) }
   }
 
@@ -1464,11 +1465,11 @@ export default function JetCleanApp() {
         if (!res.ok) return
         const newEntries: CarEntry[] = await res.json()
         // مقارنة مع البيانات الحالية للكشف عن الإضافات الجديدة
-        const currentIds = new Set(carEntries.map(e => e.id))
+        const currentIds = new Set(adminCarEntries.map(e => e.id))
         const added = newEntries.filter(e => !currentIds.has(e.id))
         if (added.length > 0) {
           // تحديث البيانات
-          setCarEntries(newEntries)
+          setAdminCarEntries(newEntries)
           // إشعار لكل إضافة جديدة
           const now = new Date().toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit' })
           added.forEach(entry => {
@@ -1479,7 +1480,7 @@ export default function JetCleanApp() {
       } catch {}
     }, 10000)
     return () => clearInterval(interval)
-  }, [screen, adminDate, carEntries.length])
+  }, [screen, adminDate, adminCarEntries.length])
 
   // Price inputs reset on room change
   useEffect(() => {
@@ -2071,7 +2072,7 @@ export default function JetCleanApp() {
   // قفل/فتح فرع واحد
   const handleToggleBranchClose = async (branchId: string, branchName: string) => {
     const isClosed = isDayClosedForBranch(adminDate, branchId)
-    const todayCarEntries = carEntries.filter(e => e.branchId === branchId && e.date === adminDate)
+    const todayCarEntries = adminCarEntries.filter(e => e.branchId === branchId && e.date === adminDate)
     const hasData = todayCarEntries.length > 0
 
     if (!isClosed) {
@@ -3743,7 +3744,7 @@ export default function JetCleanApp() {
           {(() => {
             const todayStr = adminDate
             const loginEmps = employees.filter(e => !e.deleted && e.hasLogin && e.branchId && branches.some(b => b.id === e.branchId))
-            const onlineCount = loginEmps.filter(e => carEntries.some(ce => ce.empId === e.id && ce.date === todayStr)).length
+            const onlineCount = loginEmps.filter(e => adminCarEntries.some(ce => ce.empId === e.id && ce.date === todayStr)).length
             const offlineCount = loginEmps.length - onlineCount
             if (loginEmps.length === 0) return null
             return (
@@ -3773,7 +3774,7 @@ export default function JetCleanApp() {
           {(() => {
             const todayStr = adminDate
             const activeEmps = new Map<string, { name: string; lastTime: string; rooms: number; branch: string }>()
-            carEntries.filter(e => e.date === todayStr).forEach(e => {
+            adminCarEntries.filter(e => e.date === todayStr).forEach(e => {
               const existing = activeEmps.get(e.empId)
               if (existing) {
                 existing.rooms++
@@ -3887,13 +3888,13 @@ export default function JetCleanApp() {
                 branchWithdrawals += withdrawals
                 branchShortages += shortages
 
-                const empCarEntries = carEntries.filter(e => e.empId === emp.id && e.date === adminDate)
+                const empCarEntries = adminCarEntries.filter(e => e.empId === emp.id && e.date === adminDate)
                 const carTotal = empCarEntries.reduce((s, e) => s + e.totalAmount, 0)
                 const carCount = empCarEntries.reduce((s, e) => s + e.totalCars, 0)
                 branchCarTotal += carTotal
                 branchCarCount += carCount
 
-                const isEmpOnline = carEntries.some(e => e.empId === emp.id && e.date === todayStr)
+                const isEmpOnline = adminCarEntries.some(e => e.empId === emp.id && e.date === todayStr)
                 return (
                   <div key={emp.id} className={`bg-slate-900 border rounded-xl p-3.5 transition-all ${isEmpOnline ? 'border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.08)]' : 'border-slate-700/40'}`}>
                     {/* الهيدر: اسم + أزرار */}
