@@ -5,20 +5,9 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const dbUrl = process.env.DATABASE_URL || ''
-  const separator = dbUrl.includes('?') ? '&' : '?'
-  const poolUrl = `${dbUrl}${separator}connection_limit=3&pool_timeout=10`
-
-  const client = new PrismaClient({
+  return new PrismaClient({
     log: [],
-    datasources: {
-      db: {
-        url: poolUrl
-      }
-    }
   })
-
-  return client
 }
 
 export const db = globalForPrisma.prisma ?? createPrismaClient()
