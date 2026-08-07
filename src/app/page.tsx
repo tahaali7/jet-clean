@@ -853,7 +853,7 @@ export default function JetCleanApp() {
   const [notifications, setNotifications] = useState<{ id: string; message: string; time: string }[]>([])
   const [lastCarEntryIds, setLastCarEntryIds] = useState<Set<string>>(new Set())
   const [liveUpdateKey, setLiveUpdateKey] = useState(0)
-  const [showActiveEmpsDropdown, setShowActiveEmpsDropdown] = useState(true)
+  const [showActiveEmpsDropdown, setShowActiveEmpsDropdown] = useState(false)
 
   // Withdrawal/Shortage quick entry state
   const [qEmpId, setQEmpId] = useState('')
