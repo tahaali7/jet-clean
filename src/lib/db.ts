@@ -24,7 +24,46 @@ export const db = globalForPrisma.prisma ?? createPrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
 
+// ============================================
+// استخراج رابط مباشر من DATABASE_URL (بدون PgBouncer)
+// ============================================
+function getDirectUrl(): string {
+  // 1. لو DIRECT_URL موجود، استخدمه
+  if (process.env.DIRECT_URL) return process.env.DIRECT_URL
+
+  const dbUrl = process.env.DATABASE_URL || ''
+  if (!dbUrl.startsWith('postgres')) return ''
+
+  try {
+    const url = new URL(dbUrl)
+
+    // 2. لو الرابط فيه -pooler (Neon)، نستبدله بالإصدار المباشر
+    let hostname = url.hostname
+    if (hostname.includes('-pooler')) {
+      hostname = hostname.replace('-pooler', '')
+      url.hostname = hostname
+      url.port = '5432'
+    }
+
+    // 3. نزيل معاملات PgBouncer
+    url.searchParams.delete('pgbouncer')
+    url.searchParams.delete('prepared_statements')
+    url.searchParams.delete('statement_cache_size')
+
+    // 4. نضيف sslmode لو ما موجودش
+    if (!url.searchParams.has('sslmode')) {
+      url.searchParams.set('sslmode', 'require')
+    }
+
+    return url.toString()
+  } catch {
+    return dbUrl
+  }
+}
+
+// ============================================
 // ترحيل تلقائي
+// ============================================
 const MIGRATIONS = [
   `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "entryTime" TEXT NOT NULL DEFAULT ''`,
   `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "hasLogin" BOOLEAN NOT NULL DEFAULT false`,
@@ -37,28 +76,31 @@ const MIGRATIONS = [
   `ALTER TABLE "WorkerExpense" ADD COLUMN IF NOT EXISTS "jsonData" TEXT`,
 ]
 
-async function runMigrationsWithRawPg() {
-  const directUrl = process.env.DIRECT_URL || process.env.DATABASE_URL || ''
-  if (!directUrl || !directUrl.startsWith('postgres')) {
-    console.log('[Migration] No postgres URL, skipping raw pg migration')
+async function runMigrationsWithPg() {
+  const directUrl = getDirectUrl()
+  if (!directUrl) {
+    console.log('[Migration] No postgres URL available')
     return false
   }
 
   try {
     const pg = await import('pg')
-    const client = new pg.Client({ connectionString: directUrl })
+    const client = new pg.Client({
+      connectionString: directUrl,
+      ssl: directUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined
+    })
     await client.connect()
 
     for (const sql of MIGRATIONS) {
       try {
         await client.query(sql)
-        console.log('[Migration-pg] OK:', sql.substring(7, 50))
+        console.log('[Migration] OK:', sql.substring(7, 50))
       } catch (error: any) {
         const msg = error?.message || String(error)
         if (msg.includes('already exists')) {
-          console.log('[Migration-pg] Already exists:', sql.substring(7, 50))
+          console.log('[Migration] Skip (exists):', sql.substring(7, 50))
         } else {
-          console.error('[Migration-pg] Error:', sql.substring(7, 50), msg)
+          console.error('[Migration] Error:', sql.substring(7, 50), msg)
         }
       }
     }
@@ -66,7 +108,7 @@ async function runMigrationsWithRawPg() {
     await client.end()
     return true
   } catch (error: any) {
-    console.error('[Migration-pg] Failed:', error?.message || error)
+    console.error('[Migration] pg failed:', error?.message || error)
     return false
   }
 }
@@ -79,7 +121,7 @@ async function runMigrationsWithPrisma() {
     } catch (error: any) {
       const msg = error?.message || String(error)
       if (msg.includes('already exists')) {
-        console.log('[Migration-prisma] Already exists:', sql.substring(7, 50))
+        console.log('[Migration-prisma] Skip:', sql.substring(7, 50))
       } else {
         console.error('[Migration-prisma] Error:', sql.substring(7, 50), msg)
       }
@@ -88,8 +130,10 @@ async function runMigrationsWithPrisma() {
 }
 
 async function runMigrations() {
-  const pgSuccess = await runMigrationsWithRawPg()
-  if (!pgSuccess) {
+  // نحاول بالاتصال المباشر (pg) أولاً — يتجاوز PgBouncer
+  const pgOk = await runMigrationsWithPg()
+  if (!pgOk) {
+    // لو فشل، نحاول بـ Prisma
     await runMigrationsWithPrisma()
   }
 }
