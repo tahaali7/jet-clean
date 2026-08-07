@@ -2924,9 +2924,14 @@ export default function JetCleanApp() {
                 </button>
               )}
               {isAdminMode && (
-              <button onClick={() => setShowBranchCloseModal(true)} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
+              <>
+              <button onClick={() => setShowBranchCloseModal(true)} className="bg-violet-600/20 hover:bg-violet-600 text-violet-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-violet-500/20">
                 🔒 قفل فرع
               </button>
+              <button onClick={handleExportCarEntryPDF} disabled={exportingEmp} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
+                📋 الإغلاق
+              </button>
+              </>
               )}
               {user?.role !== 'admin' && (
               <button onClick={() => { setShowChangePwdModal(true); setEmpNewPwd('') }} className="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-cyan-500/20">
