@@ -3838,24 +3838,14 @@ export default function JetCleanApp() {
                 const isEmpOnline = carEntries.some(e => e.empId === emp.id && e.date === todayStr)
                 return (
                   <div key={emp.id} className={`bg-slate-900 border rounded-xl p-3.5 transition-all ${isEmpOnline ? 'border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.08)]' : 'border-slate-700/40'}`}>
-                    <div className="flex justify-between items-center mb-2.5">
-                      <div className="flex items-center gap-2">
+                    {/* الهيدر: اسم + أزرار */}
+                    <div className="flex justify-between items-center mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isEmpOnline ? 'bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} title={isEmpOnline ? 'أونلاين' : 'أوفلاين'}></span>
-                        <h3 className={`text-sm ${isEmpOnline ? 'font-bold text-emerald-300' : 'font-bold text-slate-400'}`}>{emp.name}</h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isEmpOnline ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-700/50 border-slate-600/30'}`}>{isEmpOnline ? 'أونلاين' : 'أوفلاين'}</span>
-                        <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
-                        {emp.hasLogin && emp.role === 'viewer' && <span className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
-                        {!emp.hasLogin && <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
-                        {emp.endDate ? (
-                          <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">متوقف</span>
-                        ) : (
-                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">{emp.startDate ? 'مستمر' : 'مستمر'}</span>
-                        )}
-                        {(() => { try { const ids = JSON.parse(emp.multiBranchIds || '[]'); if (ids.length > 0) return true; return false } catch { return false } })() && (
-                          <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">🌐 متعدد الفروع</span>
-                        )}
+                        <h3 className={`text-sm truncate ${isEmpOnline ? 'font-bold text-emerald-300' : 'font-bold text-slate-300'}`}>{emp.name}</h3>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full border flex-shrink-0 ${isEmpOnline ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-700/50 border-slate-600/30'}`}>{isEmpOnline ? 'أونلاين' : 'أوفلاين'}</span>
                       </div>
-                      <div className="flex gap-1.5">
+                      <div className="flex gap-1 flex-shrink-0">
                         {user?.role !== 'viewer' && !dayClosed && (
                           <button
                             onClick={() => {
@@ -3873,6 +3863,21 @@ export default function JetCleanApp() {
                         <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
                         </>}
                       </div>
+                    </div>
+
+                    {/* الباجات: شفت + حالات */}
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2.5 pl-[18px]">
+                      <span className="text-[9px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+                      {emp.hasLogin && emp.role === 'viewer' && <span className="text-[9px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
+                      {!emp.hasLogin && <span className="text-[9px] text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
+                      {emp.endDate ? (
+                        <span className="text-[9px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-full border border-rose-500/20">⏸️ متوقف</span>
+                      ) : (
+                        <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">✅ مستمر</span>
+                      )}
+                      {(() => { try { const ids = JSON.parse(emp.multiBranchIds || '[]'); if (ids.length > 0) return true; return false } catch { return false } })() && (
+                        <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">🌐 متعدد</span>
+                      )}
                     </div>
 
                     {/* سحب + عجز */}
