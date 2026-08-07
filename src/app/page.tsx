@@ -2229,16 +2229,16 @@ export default function JetCleanApp() {
         const dayExps = grouped[date] || []
         if (dayExps.length === 0) continue
         if (date !== prevDate) {
-          rowNum++
           const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
           rowsHtml += '<tr style="background:#1e40af;color:#ffffff;">' +
             '<td colspan="2" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
             '<td style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + dayTotal + ' د.ل</td>' +
             '</tr>'
           dayExps.forEach(exp => {
+            rowNum++
             rowsHtml += '<tr style="background:#f8fafc;">' +
-              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#475569;">' + (rowNum) + '</td>' +
-              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#1e293b;">' + exp.name + '</td>' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#000000;">' + (rowNum) + '</td>' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + exp.name + '</td>' +
               '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + exp.amount + ' د.ل</td>' +
               '</tr>'
           })
@@ -2247,10 +2247,10 @@ export default function JetCleanApp() {
       }
 
       pages.push(
-        '<div style="width:780px;background:#ffffff;color:#1e293b;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="width:780px;background:#ffffff;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
         '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
         '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
-        '<p style="font-size:15px;margin:8px 0 0;color:#64748b;">تقرير مصروفات الفرع: <strong style="color:#1e293b;">' + branchName + '</strong> | ' + periodLabel + '</p>' +
+        '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير مصروفات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
         '</div>' +
         '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;background:#fef2f2;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">📋 المصروفات</h2>' +
         (rowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
@@ -2280,7 +2280,7 @@ export default function JetCleanApp() {
         dayRecs.forEach(rec => {
           const isWithdrawal = rec.type === 'withdrawal'
           recRowsHtml += '<tr style="background:#f8fafc;">' +
-            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#1e293b;">' + rec.empName + '</td>' +
+            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + rec.empName + '</td>' +
             '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#ffffff;background:' + (isWithdrawal ? '#d97706' : '#dc2626') + ';">' + (isWithdrawal ? '💰 سحب' : '⚠️ عجز') + '</td>' +
             '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + rec.amount + ' د.ل</td>' +
             '</tr>'
@@ -2288,10 +2288,10 @@ export default function JetCleanApp() {
       }
 
       pages.push(
-        '<div style="width:780px;background:#ffffff;color:#1e293b;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="width:780px;background:#ffffff;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
         '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
         '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
-        '<p style="font-size:15px;margin:8px 0 0;color:#64748b;">تقرير سحوبات وعجوزات الفرع: <strong style="color:#1e293b;">' + branchName + '</strong> | ' + periodLabel + '</p>' +
+        '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير سحوبات وعجوزات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
         '</div>' +
         '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;background:#fffbeb;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">💰 السحوبات والعجوزات</h2>' +
         (recRowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
