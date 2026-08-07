@@ -26,27 +26,42 @@ export const db = globalForPrisma.prisma ?? createPrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
 
 // ترحيل تلقائي: إضافة أعمدة جديدة إذا لم تكن موجودة
-export async function ensureMigrations() {
-  if (globalForPrisma.migrationsRan) return
-  try {
-    await db.$executeRawUnsafe(`ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "entryTime" TEXT NOT NULL DEFAULT ''`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "hasLogin" BOOLEAN NOT NULL DEFAULT false`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'employee'`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "startDate" TEXT NOT NULL DEFAULT ''`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "endDate" TEXT NOT NULL DEFAULT ''`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "multiBranchIds" TEXT NOT NULL DEFAULT '[]'`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "deleted" BOOLEAN NOT NULL DEFAULT false`)
-    await db.$executeRawUnsafe(`ALTER TABLE "Branch" ADD COLUMN IF NOT EXISTS "config" TEXT`)
-    await db.$executeRawUnsafe(`ALTER TABLE "WorkerExpense" ADD COLUMN IF NOT EXISTS "jsonData" TEXT`)
-    globalForPrisma.migrationsRan = true
-  } catch (error: any) {
-    // إذا كان العمود موجوداً بالفعل، نتجاهل الخطأ
-    const msg = error?.message || ''
-    if (msg.includes('already exists') || msg.includes('relation') || msg.includes('does not exist')) {
-      globalForPrisma.migrationsRan = true
-    } else {
-      console.error('Migration error:', error)
-      globalForPrisma.migrationsRan = true // لا نعيد المحاولة
+const MIGRATIONS = [
+  `ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "entryTime" TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "hasLogin" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "role" TEXT NOT NULL DEFAULT 'employee'`,
+  `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "startDate" TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "endDate" TEXT NOT NULL DEFAULT ''`,
+  `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "multiBranchIds" TEXT NOT NULL DEFAULT '[]'`,
+  `ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "deleted" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE "Branch" ADD COLUMN IF NOT EXISTS "config" TEXT`,
+  `ALTER TABLE "WorkerExpense" ADD COLUMN IF NOT EXISTS "jsonData" TEXT`,
+]
+
+async function runMigrations() {
+  for (const sql of MIGRATIONS) {
+    try {
+      await db.$executeRawUnsafe(sql)
+      console.log('[Migration] OK:', sql.substring(7, 50))
+    } catch (error: any) {
+      const msg = error?.message || String(error)
+      if (msg.includes('already exists')) {
+        console.log('[Migration] Already exists:', sql.substring(7, 50))
+      } else {
+        console.error('[Migration] Error:', sql.substring(7, 50), msg)
+      }
     }
   }
+}
+
+export async function ensureMigrations() {
+  if (globalForPrisma.migrationsRan) return
+  globalForPrisma.migrationsRan = true
+  await runMigrations()
+}
+
+// إعادة تشغيل الترحيل بالقوة (عند فشل الاستعلام بسبب عمود مفقود)
+export async function forceMigrations() {
+  globalForPrisma.migrationsRan = false
+  await runMigrations()
 }

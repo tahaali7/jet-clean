@@ -9,43 +9,61 @@ function parseJsonFields(entry: any) {
   }
 }
 
+// تشغيل الترحيل ثم المحاولة - لو فشل الاستعلام الأول (العمود مفقود) نعيد الترحيل والمحاولة
+async function withMigration<T>(fn: () => Promise<T>): Promise<T> {
+  await ensureMigrations()
+  try {
+    return await fn()
+  } catch (error: any) {
+    // لو الخطأ بسبب عمود مفقود، أعد الترحيل بقوة وحاول مرة تانية
+    const msg = error?.message || ''
+    if (msg.includes('does not exist') || msg.includes('column') || msg.includes('relation')) {
+      console.log('[Retry] Re-running migrations after column error...')
+      const { forceMigrations } = await import('@/lib/db')
+      await forceMigrations()
+      return await fn()
+    }
+    throw error
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
-    await ensureMigrations()
-    const { searchParams } = new URL(req.url)
-    const date = searchParams.get('date')
-    const branchId = searchParams.get('branchId')
-    const empId = searchParams.get('empId')
-    const datesOnly = searchParams.get('datesOnly')
-    const month = searchParams.get('month') // format: YYYY-MM
+    const result = await withMigration(async () => {
+      const { searchParams } = new URL(req.url)
+      const date = searchParams.get('date')
+      const branchId = searchParams.get('branchId')
+      const empId = searchParams.get('empId')
+      const datesOnly = searchParams.get('datesOnly')
+      const month = searchParams.get('month')
 
-    // Return only dates that have entries (for calendar highlighting)
-    if (datesOnly === 'true' && branchId && month) {
-      const startDate = month + '-01'
-      const [year, mon] = month.split('-').map(Number)
-      const daysInMonth = new Date(year, mon, 0).getDate()
-      const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
+      if (datesOnly === 'true' && branchId && month) {
+        const startDate = month + '-01'
+        const [year, mon] = month.split('-').map(Number)
+        const daysInMonth = new Date(year, mon, 0).getDate()
+        const endDate = month + '-' + String(daysInMonth).padStart(2, '0')
+
+        const entries = await db.carEntry.findMany({
+          where: { branchId, date: { gte: startDate, lte: endDate } },
+          select: { date: true },
+        })
+        const dateSet = new Set(entries.map((e: any) => e.date))
+        return Array.from(dateSet)
+      }
+
+      const where: Record<string, unknown> = {}
+      if (date) where.date = date
+      if (branchId) where.branchId = branchId
+      if (empId) where.empId = empId
 
       const entries = await db.carEntry.findMany({
-        where: { branchId, date: { gte: startDate, lte: endDate } },
-        select: { date: true },
+        where,
+        orderBy: { createdAt: 'desc' }
       })
-      const dateSet = new Set(entries.map(e => e.date))
-      return NextResponse.json(Array.from(dateSet))
-    }
 
-    const where: Record<string, unknown> = {}
-    if (date) where.date = date
-    if (branchId) where.branchId = branchId
-    if (empId) where.empId = empId
-
-    const entries = await db.carEntry.findMany({
-      where,
-      orderBy: { createdAt: 'desc' }
+      return entries.map(parseJsonFields)
     })
-
-    const parsed = entries.map(parseJsonFields)
-    return NextResponse.json(parsed)
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Get car entries error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
