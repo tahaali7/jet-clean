@@ -2549,7 +2549,7 @@ export default function JetCleanApp() {
                 ))}
                 <option value="__extra__">💳 {branchName === 'بن غرسه' ? 'البطاقة المصرفية / الكوبونات' : 'البطاقة المصرفية'}</option>
                 <option value="__expenses__">📋 إدخال مصروفات</option>
-                <option value="__withdrawal__">💰 سحب أو عجز لموظف</option>
+                <option value="__withdrawal__">💰 {isAdminMode || user?.role === 'viewer' ? 'سحب أو عجز لموظف' : 'سحب لموظف'}</option>
               </select>
             </div>
 
@@ -2683,7 +2683,7 @@ export default function JetCleanApp() {
               })
               return (
               <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/30">
-                <h3 className="text-lg font-bold text-amber-400 mb-4">💰 سحب أو عجز لموظف</h3>
+                <h3 className="text-lg font-bold text-amber-400 mb-4">💰 {!isEmployee ? 'سحب أو عجز لموظف' : 'سحب لموظف'}</h3>
                 <div className="space-y-3">
                   {/* اختيار الموظف */}
                   <div>
