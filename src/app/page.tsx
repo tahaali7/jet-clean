@@ -1063,9 +1063,19 @@ export default function JetCleanApp() {
     try {
       const searchParams = new URLSearchParams()
       if (params?.empId) searchParams.set('empId', params.empId)
+      if (params?.date) searchParams.set('date', params.date)
+      if (params?.branchId) searchParams.set('branchId', params.branchId)
       if (cacheBuster) searchParams.set('_t', String(Date.now()))
       const res = await fetch(`/api/records?${searchParams}`, { cache: 'no-store' })
-      if (res.ok) setRecords(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setRecords(prev => {
+          // Merge: replace records for the same date+branch, keep others
+          const prevMap = new Map(prev.map(r => [r.id, r]))
+          data.forEach((r: any) => prevMap.set(r.id, r))
+          return Array.from(prevMap.values())
+        })
+      }
     } catch (e) { console.error(e) }
   }
 
@@ -1425,12 +1435,11 @@ export default function JetCleanApp() {
       ;(async () => {
         try { await loadBranches() } catch(e) { console.error(e) }
         try { await loadEmployees() } catch(e) { console.error(e) }
-        if ((isAdminMode || user?.role === 'viewer') && adminSelectedBranch) {
-          try { await loadCarEntries(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
-          try { await loadWorkerExpenses(empDate, adminSelectedBranch) } catch(e) { console.error(e) }
-        } else if (!isAdminMode && user?.role !== 'viewer' && user?.role === 'employee' && user.branchId) {
-          try { await loadCarEntries(empDate, user.branchId) } catch(e) { console.error(e) }
-          try { await loadWorkerExpenses(empDate, user.branchId) } catch(e) { console.error(e) }
+        const branchId = (isAdminMode || user?.role === 'viewer') ? adminSelectedBranch : user?.branchId
+        if (branchId) {
+          try { await loadCarEntries(empDate, branchId) } catch(e) { console.error(e) }
+          try { await loadWorkerExpenses(empDate, branchId) } catch(e) { console.error(e) }
+          try { await loadRecords({ date: empDate, branchId }) } catch(e) { console.error(e) }
         }
         try { await loadClosedDays(empDate) } catch(e) { console.error(e) }
         try { await loadEmpAlerts() } catch(e) { console.error(e) }
