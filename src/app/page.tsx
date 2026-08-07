@@ -3271,9 +3271,8 @@ export default function JetCleanApp() {
   const renderAdminScreen = () => {
     const dayClosed = isDayClosed(adminDate)
 
-    // حساب الإجماليات للشهر الحالي
-    const now = new Date()
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    // حساب الإجماليات للشهر الحالي (كل الفروع)
+    const currentMonth = adminDate.substring(0, 7)
     let grandWithdrawals = 0
     let grandShortages = 0
     records.forEach(r => {
@@ -3373,8 +3372,8 @@ export default function JetCleanApp() {
 
               const currentMonth = adminDate.substring(0, 7) // 'YYYY-MM'
               const empCards = branchEmps.map(emp => {
-                const empRecordsDay = records.filter(r => r.empId === emp.id && r.date === adminDate)
-                const empRecordsMonth = records.filter(r => r.empId === emp.id && r.date.startsWith(currentMonth))
+                const empRecordsDay = records.filter(r => r.empId === emp.id && r.date === adminDate && r.branchId === branch.id)
+                const empRecordsMonth = records.filter(r => r.empId === emp.id && r.date.startsWith(currentMonth) && r.branchId === branch.id)
                 const withdrawals = empRecordsMonth.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
                 const shortages = empRecordsMonth.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
                 branchWithdrawals += withdrawals
@@ -4187,7 +4186,7 @@ export default function JetCleanApp() {
                 branches.forEach(branch => {
                   const bEmps = employees.filter(e => e.branchId === branch.id)
                   bEmps.forEach(emp => {
-                    const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate)
+                    const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate && r.branchId === branch.id)
                     gw += eRecs.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
                     gs += eRecs.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
                   })
@@ -4213,7 +4212,7 @@ export default function JetCleanApp() {
                 const isClosed = isDayClosedForBranch(adminDate, branch.id)
                 let bw = 0, bs = 0
                 const rows = bEmps.map(emp => {
-                  const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate)
+                  const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate && r.branchId === branch.id)
                   if (eRecs.length === 0) return null
                   const w = eRecs.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
                   const s2 = eRecs.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
