@@ -7,7 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   const dbUrl = process.env.DATABASE_URL || ''
   const separator = dbUrl.includes('?') ? '&' : '?'
-  const poolUrl = `${dbUrl}${separator}connection_limit=5&pool_timeout=10`
+  // تقليل عدد الاتصالات لتجنب استهلاك الحد الأقصى في Neon
+  const poolUrl = `${dbUrl}${separator}connection_limit=3&pool_timeout=5`
 
   return new PrismaClient({
     log: [],
@@ -21,4 +22,7 @@ function createPrismaClient() {
 
 export const db = globalForPrisma.prisma ?? createPrismaClient()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+// في الإنتاج: نحافظ على الاتصال نفسه (global singleton)
+if (process.env.NODE_ENV === 'production') {
+  globalForPrisma.prisma = db
+}

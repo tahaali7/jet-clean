@@ -5,8 +5,17 @@ function esc(s: string) { return String(s || '').replace(/'/g, "''") }
 
 // فحص وإنشاء جدول سجل النشاطات تلقائياً
 let tableReady: boolean | null = null
+let tableCheckInProgress = false
 async function ensureTable() {
   if (tableReady === true) return
+  if (tableCheckInProgress) {
+    // انتظر حتى ينتهي الفحص الآخر
+    while (tableCheckInProgress) {
+      await new Promise(r => setTimeout(r, 100))
+    }
+    return
+  }
+  tableCheckInProgress = true
   try {
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "ActivityLog" (
@@ -23,15 +32,12 @@ async function ensureTable() {
         "createdAt" TIMESTAMP DEFAULT NOW()
       )
     `)
-    // محاولة إنشاء الفهارس (لو فشلت ما تمنع العمل)
-    try { await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_activity_createdAt" ON "ActivityLog" ("createdAt")`) } catch {}
-    try { await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_activity_branchId" ON "ActivityLog" ("branchId")`) } catch {}
-    try { await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "idx_activity_userId" ON "ActivityLog" ("userId")`) } catch {}
     tableReady = true
   } catch (e) {
     console.error('Failed to create ActivityLog table:', e)
-    tableReady = false
-    throw e
+    // ما نعمل throw - عشان ما نوقف باقي العمليات
+  } finally {
+    tableCheckInProgress = false
   }
 }
 
