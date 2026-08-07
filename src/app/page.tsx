@@ -3474,63 +3474,79 @@ export default function JetCleanApp() {
 
     return (
       <div className="min-h-screen bg-slate-900">
-        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="logo" className="w-10 h-10 rounded-xl" />
-                <div>
-                  <h1 className="text-base font-bold text-cyan-400">مغسلة جيت كلين - لوحة التحكم</h1>
-                  <p className="text-xs text-slate-400">{user?.role === 'viewer' ? 'مرحباً المشاهد 👁️' : 'مرحباً المسؤول طه علي 👨‍💼'}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={switchToCarEntry} className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1">
-                  🚗 إعداد الغرف
+        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+          {/* الشريط العلوي - صف واحد */}
+          <div className="px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="logo" className="w-8 h-8 rounded-lg" />
+              <h1 className="text-sm font-bold text-cyan-400">جيت كلين</h1>
+              {maintenanceMode && <span className="text-[9px] bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded-full border border-rose-500/20 animate-pulse">🔧 صيانة</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button onClick={switchToCarEntry} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
+                🚗 الغرف
+              </button>
+              {user?.role !== 'viewer' && <>
+              <div className="relative">
+                <button onClick={(e) => { e.stopPropagation(); setShowAdminDropdown(!showAdminDropdown) }} className="bg-slate-700/80 hover:bg-slate-600 text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-slate-600/50">
+                  ⚙️ أدوات
                 </button>
-                {user?.role !== 'viewer' && <>
-                <div className="relative">
-                  <button onClick={(e) => { e.stopPropagation(); setShowAdminDropdown(!showAdminDropdown) }} className="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-slate-600">
-                    ⚙️ أدوات
-                  </button>
-                  {showAdminDropdown && (
-                    <div className="absolute top-full mt-2 left-0 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-2 min-w-[180px]" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowEmpReportModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>📄</span> تقرير الموظفين
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowExpReportModal(true); setExpReportBranchId('') }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>📋</span> تقرير مصروفات الفروع
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>➕</span> إضافة فرع
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowMultiBranchPicker(false); setShowEmpModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>👤</span> إضافة موظف
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>🔑</span> كلمات السر
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowNotifModal(true); setNotifMessage(''); setNotifBranchId(''); setNotifType('normal') }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>📢</span> إرسال تنبيه
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
-                        <span>📜</span> سجل التنبيهات
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); toggleMaintenance() }} className={`w-full text-right px-4 py-2.5 hover:bg-slate-700 text-sm flex items-center gap-2 transition ${maintenanceMode ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        <span>{maintenanceMode ? '🔧' : '⚙️'}</span> {maintenanceMode ? 'إيقاف الصيانة' : 'تشغيل الصيانة'}
-                        {maintenanceMode && <span className="mr-auto text-[10px] bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">قيد التشغيل</span>}
-                      </button>
-                      <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-amber-300 text-sm flex items-center gap-2 transition disabled:opacity-50">
-                        <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
-                      </button>
+                {showAdminDropdown && (
+                  <div className="absolute top-full mt-2 left-0 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-1 w-[220px]" onClick={e => e.stopPropagation()}>
+                    {/* مجموعة الإدارة */}
+                    <div className="px-3 pt-2 pb-1">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">إدارة</span>
                     </div>
-                  )}
-                </div>
-                </>}
-                <button onClick={handleLogout} className="bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold px-3 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-1 border border-rose-500/30">
-                  🚪 خروج
-                </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>➕</span> إضافة فرع
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowMultiBranchPicker(false); setShowEmpModal(true) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>👤</span> إضافة موظف
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>🔑</span> كلمات السر
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-amber-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
+                      <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة
+                    </button>
+
+                    {/* فاصل */}
+                    <div className="border-t border-slate-700 my-1"></div>
+
+                    {/* مجموعة التقارير */}
+                    <div className="px-3 pt-1 pb-1">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">تقارير</span>
+                    </div>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowEmpReportModal(true) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>📄</span> تقرير الموظفين
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowExpReportModal(true); setExpReportBranchId('') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>📋</span> تقرير المصروفات
+                    </button>
+
+                    {/* فاصل */}
+                    <div className="border-t border-slate-700 my-1"></div>
+
+                    {/* مجموعة الأدوات */}
+                    <div className="px-3 pt-1 pb-1">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">أدوات</span>
+                    </div>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowNotifModal(true); setNotifMessage(''); setNotifBranchId(''); setNotifType('normal') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>📢</span> إرسال تنبيه
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+                      <span>📜</span> سجل التنبيهات
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); toggleMaintenance() }} className={`w-full text-right px-4 py-2 hover:bg-slate-700 text-xs flex items-center gap-2 transition ${maintenanceMode ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      <span>{maintenanceMode ? '🔧' : '⚙️'}</span> {maintenanceMode ? 'إيقاف الصيانة' : 'تشغيل الصيانة'}
+                    </button>
+                  </div>
+                )}
               </div>
+              </>}
+              <button onClick={handleLogout} className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-rose-500/20">
+                🚪
+              </button>
             </div>
           </div>
         </header>
