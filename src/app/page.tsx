@@ -853,6 +853,7 @@ export default function JetCleanApp() {
   const [notifications, setNotifications] = useState<{ id: string; message: string; time: string }[]>([])
   const [lastCarEntryIds, setLastCarEntryIds] = useState<Set<string>>(new Set())
   const [liveUpdateKey, setLiveUpdateKey] = useState(0)
+  const [showActiveEmpsDropdown, setShowActiveEmpsDropdown] = useState(true)
 
   // Withdrawal/Shortage quick entry state
   const [qEmpId, setQEmpId] = useState('')
@@ -3406,42 +3407,60 @@ export default function JetCleanApp() {
                 activeEmps.set(e.empId, { name: e.empName, lastTime: e.entryTime || '', rooms: 1, branch: branchName })
               }
             })
-            const allBranchEmps = employees.filter(e => !e.deleted && e.branchId && branches.some(b => b.id === e.branchId))
-            const totalEmps = allBranchEmps.length
-            const activeCount = activeEmps.size
+            // موظفين لديهم رمز دخول فقط
+            const loginEmps = employees.filter(e => !e.deleted && e.hasLogin && e.branchId && branches.some(b => b.id === e.branchId))
+            const activeCount = loginEmps.filter(e => activeEmps.has(e.id)).length
 
-            if (totalEmps === 0) return null
+            if (loginEmps.length === 0) return null
             return (
-              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2">📊 الموظفون النشطون اليوم</h3>
-                  <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">{activeCount} من {totalEmps} نشط</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {/* الموظفون النشطون */}
-                  {allBranchEmps.map(emp => {
-                    const info = activeEmps.get(emp.id)
-                    if (info) {
-                      return (
-                        <div key={emp.id} className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                          <span className="text-sm text-emerald-300 font-medium">{info.name}</span>
-                          <span className="text-[10px] text-slate-400">{info.branch}</span>
-                          <span className="text-[10px] text-emerald-400/70">{info.rooms} غرف</span>
-                          {info.lastTime && <span className="text-[10px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">🕐 {info.lastTime}</span>}
-                        </div>
-                      )
-                    } else {
-                      return (
-                        <div key={emp.id} className="flex items-center gap-2 bg-slate-700/30 border border-slate-600/20 rounded-full px-3 py-1.5">
-                          <span className="w-2 h-2 rounded-full bg-slate-600"></span>
-                          <span className="text-sm text-slate-500">{emp.name}</span>
-                          <span className="text-[10px] text-slate-600">{branches.find(b => b.id === emp.branchId)?.name || ''}</span>
-                        </div>
-                      )
-                    }
-                  })}
-                </div>
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+                <button
+                  onClick={() => setShowActiveEmpsDropdown(!showActiveEmpsDropdown)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-slate-750 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-300">📊 الموظفون النشطون اليوم</h3>
+                    <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">{activeCount} من {loginEmps.length} نشط</span>
+                  </div>
+                  <span className={`text-slate-400 transition-transform duration-200 ${showActiveEmpsDropdown ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+                {showActiveEmpsDropdown && (
+                  <div className="border-t border-slate-700 p-3 space-y-1.5">
+                    {loginEmps.map(emp => {
+                      const info = activeEmps.get(emp.id)
+                      if (info) {
+                        return (
+                          <div key={emp.id} className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                              <div>
+                                <span className="text-sm text-emerald-300 font-bold">{info.name}</span>
+                                <span className="text-xs text-slate-400 mr-2">- {info.branch}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-1 rounded-lg">{info.rooms} غرف</span>
+                              {info.lastTime && <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-lg border border-indigo-500/20">🕐 {info.lastTime}</span>}
+                            </div>
+                          </div>
+                        )
+                      } else {
+                        return (
+                          <div key={emp.id} className="flex items-center justify-between bg-slate-700/20 border border-slate-600/15 rounded-xl px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                              <div>
+                                <span className="text-sm text-slate-500">{emp.name}</span>
+                                <span className="text-xs text-slate-600 mr-2">- {branches.find(b => b.id === emp.branchId)?.name || ''}</span>
+                              </div>
+                            </div>
+                            <span className="text-xs text-slate-600">لم يسجل نشاط</span>
+                          </div>
+                        )
+                      }
+                    })}
+                  </div>
+                )}
               </div>
             )
           })()}
