@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { Prisma } from '@prisma/client'
+import { ensureMigrations, forceMigrations } from '@/lib/db'
 
 export async function GET() {
   try {
-    // Add entryTime column if it doesn't exist
-    await db.$executeRaw(Prisma.sql`ALTER TABLE "CarEntry" ADD COLUMN IF NOT EXISTS "entryTime" TEXT NOT NULL DEFAULT ''`)
-    return NextResponse.json({ success: true, message: 'تم إضافة عمود entryTime بنجاح' })
+    // تشغيل كل الترحيلات بالقوة
+    await forceMigrations()
+    return NextResponse.json({
+      success: true,
+      message: 'تم تشغيل الترحيلات بنجاح - جميع الأعمدة الجديدة تم إضافتها'
+    })
   } catch (error: any) {
-    if (error?.message?.includes('already exists')) {
-      return NextResponse.json({ success: true, message: 'العمود موجود بالفعل' })
-    }
     console.error('Migration error:', error)
-    return NextResponse.json({ success: false, error: error?.message || 'فشل الترحيل' }, { status: 500 })
+    return NextResponse.json({
+      success: false,
+      error: error?.message || 'فشل الترحيل'
+    }, { status: 500 })
   }
 }
