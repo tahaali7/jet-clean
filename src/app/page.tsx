@@ -2884,7 +2884,7 @@ export default function JetCleanApp() {
                     >
                       <option value="">-- اختر الموظف --</option>
                       {branchEmps.map(emp => (
-                        <option key={emp.id} value={emp.id}>{emp.name} ({emp.shift})</option>
+                        <option key={emp.id} value={emp.id}>{emp.name}</option>
                       ))}
                     </select>
                   </div>
@@ -3621,7 +3621,7 @@ export default function JetCleanApp() {
                 {employees.filter(emp => emp.hasLogin).map(emp => {
                   const brName = branches.find(b => b.id === emp.branchId)?.name || ''
                   return (
-                    <option key={emp.id} value={emp.id}>{emp.name} ({brName}) - {emp.shift}{emp.role === 'viewer' ? ' 👁️ مشاهد' : ''}</option>
+                    <option key={emp.id} value={emp.id}>{emp.name}{emp.role === 'viewer' ? ' 👁️ مشاهد' : ''}</option>
                   )
                 })}
               </select>
