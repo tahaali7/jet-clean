@@ -896,6 +896,13 @@ export default function JetCleanApp() {
   const [exporting, setExporting] = useState(false)
   const [exportingEmp, setExportingEmp] = useState(false)
   const [showEmpReportModal, setShowEmpReportModal] = useState(false)
+  const [showExpReportModal, setShowExpReportModal] = useState(false)
+  const [expReportBranchId, setExpReportBranchId] = useState<string>('')
+  const [expReportPeriod, setExpReportPeriod] = useState<'day' | 'range' | 'month'>('day')
+  const [expReportDay, setExpReportDay] = useState(() => new Date().toISOString().split('T')[0])
+  const [expReportFrom, setExpReportFrom] = useState('')
+  const [expReportTo, setExpReportTo] = useState('')
+  const [expReportMonth, setExpReportMonth] = useState(() => new Date().toISOString().substring(0, 7))
   const [empReportRange, setEmpReportRange] = useState<'month' | 'day' | 'range'>('month')
   const [empReportMonth, setEmpReportMonth] = useState(() => {
     const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0')
@@ -2137,6 +2144,186 @@ export default function JetCleanApp() {
     setExporting(false)
   }
 
+  // ==================== BRANCH EXPENSES PDF EXPORT ====================
+  const handleExportExpensesPDF = async () => {
+    setExporting(true)
+    try {
+      if (!expReportBranchId) { setExporting(false); return alert('الرجاء اختيار الفرع') }
+
+      const branch = branches.find(b => b.id === expReportBranchId)
+      const branchName = branch ? branch.name : ''
+
+      // Calculate dates
+      const dates: string[] = []
+      let periodLabel = ''
+
+      if (expReportPeriod === 'day') {
+        if (!expReportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+        dates.push(expReportDay)
+        periodLabel = formatDateShort(expReportDay)
+      } else if (expReportPeriod === 'range') {
+        if (!expReportFrom || !expReportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+        const start = new Date(expReportFrom)
+        const end = new Date(expReportTo)
+        const cur = new Date(start)
+        while (cur <= end) {
+          dates.push(cur.toISOString().split('T')[0])
+          cur.setDate(cur.getDate() + 1)
+        }
+        periodLabel = formatDateShort(expReportFrom) + ' إلى ' + formatDateShort(expReportTo)
+      } else {
+        const [y, m] = expReportMonth.split('-').map(Number)
+        const daysInMonth = new Date(y, m, 0).getDate()
+        for (let d = 1; d <= daysInMonth; d++) {
+          dates.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
+        }
+        const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+        periodLabel = monthNames[m - 1] + ' ' + y
+      }
+
+      // Fetch worker expenses for all dates
+      const allExpenses: { date: string; name: string; amount: number }[] = []
+      const allRecords: { date: string; empName: string; type: string; amount: number }[] = []
+
+      for (const date of dates) {
+        // Worker expenses (treasury)
+        const weRes = await fetch(`/api/worker-expenses?date=${date}&branchId=${expReportBranchId}`, { cache: 'no-store' })
+        if (weRes.ok) {
+          const weData = await weRes.json()
+          for (const item of weData) {
+            const treas = item.jsonData?.treasury || {}
+            for (const [key, val] of Object.entries(treas)) {
+              if (key.startsWith('مصروف_') && val && typeof val === 'object' && 'expense' in val) {
+                allExpenses.push({ date, name: key.replace('مصروف_', ''), amount: (val as any).expense || 0 })
+              }
+            }
+          }
+        }
+        // Financial records (withdrawals/shortages)
+        const recRes = await fetch(`/api/records?date=${date}&branchId=${expReportBranchId}`, { cache: 'no-store' })
+        if (recRes.ok) {
+          const recData = await recRes.json()
+          for (const r of recData) {
+            allRecords.push({ date, empName: r.employee?.name || '', type: r.type, amount: r.amount })
+          }
+        }
+      }
+
+      const totalExpAmount = allExpenses.reduce((s, e) => s + e.amount, 0)
+      const totalRecAmount = allRecords.reduce((s, r) => s + r.amount, 0)
+
+      // Build PDF HTML pages
+      const pages: string[] = []
+
+      // Page 1: Expenses summary
+      let rowsHtml = ''
+      let rowNum = 0
+      let prevDate = ''
+      const grouped: Record<string, { name: string; amount: number }[]> = {}
+      allExpenses.forEach(e => {
+        if (!grouped[e.date]) grouped[e.date] = []
+        grouped[e.date].push(e)
+      })
+
+      for (const date of dates) {
+        const dayExps = grouped[date] || []
+        if (dayExps.length === 0) continue
+        if (date !== prevDate) {
+          rowNum++
+          const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
+          rowsHtml += '<tr style="background:rgba(30,41,59,0.8);">' +
+            '<td colspan="2" style="padding:6px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#22d3ee;">' + formatDateShort(date) + '</td>' +
+            '<td style="padding:6px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#f87171;">' + dayTotal + ' د.ل</td>' +
+            '</tr>'
+          dayExps.forEach(exp => {
+            rowsHtml += '<tr>' +
+              '<td style="padding:4px 10px;border:1px solid #555;font-size:9px;text-align:center;color:#94a3b8;">' + (rowNum) + '</td>' +
+              '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;text-align:right;color:#e2e8f0;">' + exp.name + '</td>' +
+              '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#f87171;">' + exp.amount + ' د.ل</td>' +
+              '</tr>'
+          })
+          prevDate = date
+        }
+      }
+
+      pages.push(
+        '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:10px;">' +
+        '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين</h1>' +
+        '<p style="font-size:14px;margin:5px 0 0;color:#555;">تقرير مصروفات الفرع: ' + branchName + ' | ' + periodLabel + '</p>' +
+        '</div>' +
+        '<h2 style="font-size:16px;font-weight:bold;color:#f87171;margin:15px 0 10px;">📋 المصروفات</h2>' +
+        (rowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
+        '<tr style="background:#e0e0e0;"><th style="padding:8px;border:1px solid #555;font-size:11px;">م</th><th style="padding:8px;border:1px solid #555;font-size:11px;">البيان</th><th style="padding:8px;border:1px solid #555;font-size:11px;">المبلغ</th></tr>' +
+        rowsHtml +
+        '<tr style="background:#fde2e2;"><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:8px 10px;border:1px solid #555;font-size:14px;font-weight:bold;text-align:center;color:#dc2626;">' + totalExpAmount + ' د.ل</td></tr>' +
+        '</table>' : '<p style="text-align:center;color:#999;padding:20px;">لا توجد مصروفات في هذه الفترة</p>') +
+        '</div>'
+      )
+
+      // Page 2: Withdrawals & Shortages
+      let recRowsHtml = ''
+      const groupedRec: Record<string, { empName: string; type: string; amount: number }[]> = {}
+      allRecords.forEach(r => {
+        if (!groupedRec[r.date]) groupedRec[r.date] = []
+        groupedRec[r.date].push(r)
+      })
+      const totalWithdrawals = allRecords.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+      const totalShortages = allRecords.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+
+      for (const date of dates) {
+        const dayRecs = groupedRec[date] || []
+        if (dayRecs.length === 0) continue
+        recRowsHtml += '<tr style="background:rgba(30,41,59,0.8);">' +
+          '<td colspan="3" style="padding:6px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#22d3ee;">' + formatDateShort(date) + '</td>' +
+          '</tr>'
+        dayRecs.forEach(rec => {
+          recRowsHtml += '<tr>' +
+            '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;text-align:right;color:#e2e8f0;">' + rec.empName + '</td>' +
+            '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:' + (rec.type === 'withdrawal' ? '#fbbf24' : '#f87171') + ';">' + (rec.type === 'withdrawal' ? 'سحب' : 'عجز') + '</td>' +
+            '<td style="padding:4px 10px;border:1px solid #555;font-size:10px;font-weight:bold;text-align:center;color:#f87171;">' + rec.amount + ' د.ل</td>' +
+            '</tr>'
+        })
+      }
+
+      pages.push(
+        '<div style="width:780px;background:#fff;color:#000;padding:20px;font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:10px;">' +
+        '<h1 style="font-size:22px;font-weight:bold;margin:0;">مغسلة جيت كلين</h1>' +
+        '<p style="font-size:14px;margin:5px 0 0;color:#555;">تقرير سحوبات وعجوزات الفرع: ' + branchName + ' | ' + periodLabel + '</p>' +
+        '</div>' +
+        (recRowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
+        '<tr style="background:#e0e0e0;"><th style="padding:8px;border:1px solid #555;font-size:11px;">الموظف</th><th style="padding:8px;border:1px solid #555;font-size:11px;">النوع</th><th style="padding:8px;border:1px solid #555;font-size:11px;">المبلغ</th></tr>' +
+        recRowsHtml +
+        '<tr style="background:#fef3c7;"><td style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:14px;font-weight:bold;text-align:center;color:#d97706;">' + totalWithdrawals + ' د.ل</td></tr>' +
+        '<tr style="background:#fde2e2;"><td style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:14px;font-weight:bold;text-align:center;color:#dc2626;">' + totalShortages + ' د.ل</td></tr>' +
+        '<tr style="background:#e0e0e0;"><td style="padding:8px 10px;border:1px solid #555;font-size:12px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:8px 10px;border:1px solid #555;font-size:16px;font-weight:bold;text-align:center;color:#000;">' + totalRecAmount + ' د.ل</td></tr>' +
+        '</table>' : '<p style="text-align:center;color:#999;padding:20px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>') +
+        '</div>'
+      )
+
+      // Generate PDF
+      const jspdfModule = await import('jspdf')
+      const jsPDF = jspdfModule.default
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+
+      for (let i = 0; i < pages.length; i++) {
+        const canvas = await renderHtmlToCanvas(pages[i], 800)
+        const imgHeight = (canvas.height * pageWidth) / canvas.width
+        if (i > 0) pdf.addPage()
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, imgHeight)
+      }
+
+      pdf.save('تقرير_مصروفات_' + branchName + '_' + periodLabel + '.pdf')
+      setShowExpReportModal(false)
+    } catch (err: any) {
+      console.error('Expenses Report Error:', err?.message)
+      alert('حدث خطأ أثناء التصدير')
+    }
+    setExporting(false)
+  }
+
   // ==================== CAR ENTRY PDF EXPORT (Employee Screen) ====================
   const handleExportCarEntryPDF = async () => {
     setExportingEmp(true)
@@ -3119,6 +3306,9 @@ export default function JetCleanApp() {
                     <div className="absolute top-full mt-2 left-0 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-2 min-w-[180px]" onClick={e => e.stopPropagation()}>
                       <button onClick={() => { setShowAdminDropdown(false); setShowEmpReportModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>📄</span> تقرير الموظفين
+                      </button>
+                      <button onClick={() => { setShowAdminDropdown(false); setShowExpReportModal(true); setExpReportBranchId('') }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
+                        <span>📋</span> تقرير مصروفات الفروع
                       </button>
                       <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2.5 hover:bg-slate-700 text-white text-sm flex items-center gap-2 transition">
                         <span>➕</span> إضافة فرع
@@ -4126,6 +4316,89 @@ export default function JetCleanApp() {
                 {exporting ? '⏳ جاري التصدير...' : '📄 تصدير'}
               </button>
               <button onClick={() => setShowEmpReportModal(false)} disabled={exporting} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expenses Report Modal */}
+      {showExpReportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 className="text-lg font-bold text-white text-center">📋 تقرير مصروفات الفروع</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">اختر الفرع</label>
+                <select
+                  value={expReportBranchId}
+                  onChange={e => setExpReportBranchId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="">-- اختر الفرع --</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">نوع الفترة</label>
+                <select
+                  value={expReportPeriod}
+                  onChange={e => setExpReportPeriod(e.target.value as 'day' | 'range' | 'month')}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="day">يوم واحد</option>
+                  <option value="range">فترة مخصصة</option>
+                  <option value="month">شهر كامل</option>
+                </select>
+              </div>
+
+              {expReportPeriod === 'day' && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">اختر اليوم</label>
+                  <input type="date" value={expReportDay}
+                    onChange={e => setExpReportDay(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
+
+              {expReportPeriod === 'range' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">من تاريخ</label>
+                    <input type="date" value={expReportFrom}
+                      onChange={e => setExpReportFrom(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 mb-1 block">إلى تاريخ</label>
+                    <input type="date" value={expReportTo}
+                      onChange={e => setExpReportTo(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {expReportPeriod === 'month' && (
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">اختر الشهر</label>
+                  <input type="month" value={expReportMonth}
+                    onChange={e => setExpReportMonth(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleExportExpensesPDF} disabled={exporting || !expReportBranchId} className="flex-1 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                {exporting ? '⏳ جاري التصدير...' : '📋 تصدير PDF'}
+              </button>
+              <button onClick={() => setShowExpReportModal(false)} disabled={exporting} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>
