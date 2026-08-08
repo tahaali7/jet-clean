@@ -2933,7 +2933,7 @@ export default function JetCleanApp() {
         let priceLabel = `${price} د.ل`
         // عرض خصم الإكسترا فقط إذا البيانات فيها إكسترا فعلي أو الفرع مفعّل فيه الإكسترا
         const entryHasExtra = entry.extraCars > 0 && EXTRA_PRICES.includes(price)
-        const branchHasExtra = isExtraEnabledForBranch(branchName)
+        const branchHasExtra = isExtraEnabledForBranch(branchName) && EXTRA_PRICES.includes(price)
         if (entryHasExtra || branchHasExtra) {
           subtotal = (price - 5) * count
           priceLabel = <>{price} د.ل <span className="text-amber-400 text-[11px]">(بعد خصم 5 إكسترا = {price - 5} د.ل)</span></>
