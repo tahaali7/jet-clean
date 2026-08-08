@@ -965,6 +965,8 @@ export default function JetCleanApp() {
   const [showMultiBranchPicker, setShowMultiBranchPicker] = useState(false)
   const [showEditEmpModal, setShowEditEmpModal] = useState(false)
   const [editEmp, setEditEmp] = useState<any>(null)
+  const [showEditBranchModal, setShowEditBranchModal] = useState(false)
+  const [editBranch, setEditBranch] = useState<any>(null)
   const [showPasswordsModal, setShowPasswordsModal] = useState(false)
   const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
   const [adminPassword, setAdminPassword] = useState('')
@@ -2106,6 +2108,55 @@ export default function JetCleanApp() {
         logActivity('تعديل الإكسترا', 'إعدادات الفروع', `${!isCurrentlyDisabled ? 'إيقاف' : 'تفعيل'} الإكسترا لفرع ${branchName}`)
       } else {
         alert('حدث خطأ في تعديل الإكسترا')
+      }
+    } catch (e) { alert('حدث خطأ') }
+    autoBackup()
+  }
+
+  const handleOpenEditBranch = (branchId: string) => {
+    const branch = branches.find(b => b.id === branchId)
+    if (!branch) return
+    const cfg = (branch as any).config || {}
+    setEditBranch({
+      id: branch.id,
+      name: branch.name,
+      rooms: cfg.rooms || 6,
+      hasMachine: cfg.hasMachine !== false,
+      extraDisabled: cfg.extraDisabled || false,
+      netDeduction: cfg.netDeduction || 0,
+      machineNoDeduction: cfg.machineNoDeduction || false,
+      cleanType: cfg.cleanliness?.type || 'select',
+      cleanValue: cfg.cleanliness?.value || 20,
+      cleanOptions: cfg.cleanliness?.options ? cfg.cleanliness.options.join(',') : '10,20',
+    })
+    setShowEditBranchModal(true)
+  }
+
+  const handleSaveEditBranch = async () => {
+    if (!editBranch) return
+    const config = {
+      rooms: editBranch.rooms,
+      hasMachine: editBranch.hasMachine,
+      extraDisabled: editBranch.extraDisabled,
+      netDeduction: editBranch.netDeduction,
+      machineNoDeduction: editBranch.machineNoDeduction,
+      cleanliness: editBranch.cleanType === 'fixed'
+        ? { type: 'fixed', value: editBranch.cleanValue }
+        : { type: 'select', options: editBranch.cleanOptions.split(',').map(Number).filter(n => !isNaN(n)) }
+    }
+    try {
+      const res = await fetch('/api/branches', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editBranch.id, config })
+      })
+      if (res.ok) {
+        setShowEditBranchModal(false)
+        setEditBranch(null)
+        await loadBranches()
+        syncBranchConfigs()
+        logActivity('تعديل إعدادات الفرع', 'إعدادات الفروع', `تعديل إعدادات فرع ${editBranch.name}`)
+      } else {
+        alert('حدث خطأ في تعديل الفرع')
       }
     } catch (e) { alert('حدث خطأ') }
     autoBackup()
@@ -4180,23 +4231,24 @@ export default function JetCleanApp() {
                       {isDayClosedForBranch(adminDate, branch.id) && (
                         <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">🔒 مقفل</span>
                       )}
+                      {user?.role !== 'viewer' && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleBranchExtra(branch.id, branch.name)}
+                          className={`relative w-9 h-5 rounded-full transition-colors ${isExtraEnabledForBranch(branch.name) ? 'bg-amber-500' : 'bg-slate-600'}`}
+                          title={isExtraEnabledForBranch(branch.name) ? 'إيقاف الإكسترا' : 'تفعيل الإكسترا'}
+                        >
+                          <span className={`absolute top-0.5 ${isExtraEnabledForBranch(branch.name) ? 'left-[18px]' : 'left-0.5'} w-4 h-4 bg-white rounded-full transition-all shadow-sm`} />
+                        </button>
+                      )}
                     </div>
                     {user?.role !== 'viewer' && (
-                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => handleToggleBranchExtra(branch.id, branch.name)}
-                          className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition ${isExtraEnabledForBranch(branch.name) ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'text-slate-500 bg-slate-700/50 border-slate-600/30 hover:bg-slate-700'}`}
-                          title={isExtraEnabledForBranch(branch.name) ? 'إيقاف الإكسترا (البيانات محفوظة)' : 'تفعيل الإكسترا'}
-                        >
-                          ⭐ اكسترا {isExtraEnabledForBranch(branch.name) ? '✅' : '❌'}
-                        </button>
-                        <button
-                          onClick={() => handleToggleBranchClose(branch.id, branch.name)}
-                          className={`text-[11px] font-bold px-3 py-1.5 rounded-lg border transition ${isDayClosedForBranch(adminDate, branch.id) ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20'}`}
-                        >
-                          {isDayClosedForBranch(adminDate, branch.id) ? '🔓 فتح' : '🔒 قفل'}
-                        </button>
-                        <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">حذف</button>
+                          onClick={() => handleOpenEditBranch(branch.id)}
+                          className="text-cyan-400 hover:text-cyan-300 text-[11px] font-bold bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-cyan-500/20 hover:bg-cyan-500/20 transition"
+                        >✏️ تعديل</button>
+                        <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">🗑️</button>
                       </div>
                     )}
                   </div>
@@ -4578,6 +4630,104 @@ export default function JetCleanApp() {
             <div className="flex gap-3">
               <button onClick={handleCreateBranch} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
               <button onClick={() => { setShowBranchModal(false); setNewBranchName(''); setNewBranchRooms(6); setNewBranchHasMachine(true); setNewBranchNetDeduction(0); setNewBranchMachineNoDeduction(false); setNewBranchCleanType('select'); setNewBranchCleanValue(20); setNewBranchCleanOptions('10,20') }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Branch Modal */}
+      {showEditBranchModal && editBranch && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <h3 className="text-lg font-bold text-white text-center">✏️ تعديل فرع: {editBranch.name}</h3>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">عدد الغرف ({editBranch.rooms})</label>
+              <input type="range" min="1" max="6" value={editBranch.rooms}
+                onChange={e => setEditBranch(prev => ({ ...prev!, rooms: Number(e.target.value) }))}
+                className="w-full accent-cyan-500"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500"><span>1</span><span>6</span></div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">مكينة غسيل</label>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <button type="button"
+                  onClick={() => setEditBranch(prev => ({ ...prev!, hasMachine: !prev!.hasMachine }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${editBranch.hasMachine ? 'bg-cyan-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 ${editBranch.hasMachine ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                </button>
+                <span className={`text-sm ${editBranch.hasMachine ? 'text-cyan-400' : 'text-slate-500'}`}>
+                  {editBranch.hasMachine ? '✅ نعم' : '❌ لا'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">⭐ الإكسترا</label>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <button type="button"
+                  onClick={() => setEditBranch(prev => ({ ...prev!, extraDisabled: !prev!.extraDisabled }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${!editBranch.extraDisabled ? 'bg-amber-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 ${!editBranch.extraDisabled ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                </button>
+                <span className={`text-sm ${!editBranch.extraDisabled ? 'text-amber-400' : 'text-slate-500'}`}>
+                  {!editBranch.extraDisabled ? '✅ مفعّل' : '❌ متوقف'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">خصم الصافي (لكل سيارة)</label>
+              <input type="number" min="0" max="20" value={editBranch.netDeduction}
+                onChange={e => setEditBranch(prev => ({ ...prev!, netDeduction: Number(e.target.value) }))}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">مكينة بدون خصم</label>
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+                <button type="button"
+                  onClick={() => setEditBranch(prev => ({ ...prev!, machineNoDeduction: !prev!.machineNoDeduction }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${editBranch.machineNoDeduction ? 'bg-cyan-600' : 'bg-slate-600'}`}
+                >
+                  <span className={`absolute top-0.5 ${editBranch.machineNoDeduction ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+                </button>
+                <span className={`text-sm ${editBranch.machineNoDeduction ? 'text-cyan-400' : 'text-slate-500'}`}>
+                  {editBranch.machineNoDeduction ? '✅ نعم' : '❌ لا'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">نوع النظافة</label>
+              <select value={editBranch.cleanType}
+                onChange={e => setEditBranch(prev => ({ ...prev!, cleanType: e.target.value as 'fixed' | 'select' }))}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+              >
+                <option value="select">اختيار من قيم</option>
+                <option value="fixed">قيمة ثابتة</option>
+              </select>
+            </div>
+            {editBranch.cleanType === 'fixed' ? (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">قيمة النظافة (د.ل)</label>
+                <input type="number" min="0" value={editBranch.cleanValue}
+                  onChange={e => setEditBranch(prev => ({ ...prev!, cleanValue: Number(e.target.value) }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">خيارات النظافة (مفصولة بفاصلة)</label>
+                <input type="text" value={editBranch.cleanOptions}
+                  onChange={e => setEditBranch(prev => ({ ...prev!, cleanOptions: e.target.value }))}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+                  placeholder="10,20,30"
+                />
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={handleSaveEditBranch} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+              <button onClick={() => { setShowEditBranchModal(false); setEditBranch(null) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
           </div>
         </div>
