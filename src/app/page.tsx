@@ -4251,10 +4251,11 @@ export default function JetCleanApp() {
                         <button
                           type="button"
                           onClick={() => handleToggleBranchExtra(branch.id, branch.name)}
-                          className={`relative w-9 h-5 rounded-full transition-colors ${isExtraEnabledForBranch(branch.name) ? 'bg-amber-500' : 'bg-slate-600'}`}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${isExtraEnabledForBranch(branch.name) ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25' : 'bg-slate-700/50 text-slate-500 border-slate-600/40 hover:bg-slate-700'}`}
                           title={isExtraEnabledForBranch(branch.name) ? 'إيقاف الإكسترا' : 'تفعيل الإكسترا'}
                         >
-                          <span className={`absolute top-0.5 ${isExtraEnabledForBranch(branch.name) ? 'left-[18px]' : 'left-0.5'} w-4 h-4 bg-white rounded-full transition-all shadow-sm`} />
+                          <span>{isExtraEnabledForBranch(branch.name) ? '⭐' : '☆'}</span>
+                          <span>اكسترا</span>
                         </button>
                       )}
                     </div>
