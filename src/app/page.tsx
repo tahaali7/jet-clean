@@ -1683,10 +1683,15 @@ export default function JetCleanApp() {
       branchId = user!.branchId!
     }
 
-    // البحث عن تسجيل موجود
-    // في وضع المسؤول: استخدم carEntries (يُحمّل بـ empDate الصحيح)
-    // في وضع الموظف: استخدم carEntries
-    const existing = carEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
+    // البحث عن تسجيل موجود - نبحث في قاعدة البيانات مباشرة لضمان الدقة
+    let existing: CarEntry | undefined
+    try {
+      const res = await fetch(`/api/car-entries?date=${date}&branchId=${branchId}`)
+      if (res.ok) {
+        const allEntries: CarEntry[] = await res.json()
+        existing = allEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
+      }
+    } catch {}
 
     setSaving(true)
     try {
