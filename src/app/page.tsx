@@ -194,7 +194,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   prices.forEach((price, idx) => {
     const count = mergedCounts[price] || 0
     rowNum++
-    const isExtra = EXTRA_PRICES.includes(price) && isExtraEnabledForBranch(brName)
+    const isExtra = EXTRA_PRICES.includes(price) && isExtraEnabledForBranch(branchName)
     const displayPrice = isExtra ? (price - 5) : price
     const rowAmount = displayPrice * count
     rowsHtml += '<tr>' +
