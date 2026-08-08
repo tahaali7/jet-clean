@@ -1029,6 +1029,15 @@ export default function JetCleanApp() {
               MACHINE_NO_DEDUCTION_BRANCHES.push(b.name)
             }
             if (cfg.cleanliness) BRANCH_CLEANLINESS[b.name] = cfg.cleanliness
+            // إكسترا: تحديث حالة الإكسترا من قاعدة البيانات
+            if (cfg.extraDisabled) {
+              if (!BRANCH_EXTRA_DISABLED.includes(b.name)) BRANCH_EXTRA_DISABLED.push(b.name)
+            } else {
+              BRANCH_EXTRA_DISABLED = BRANCH_EXTRA_DISABLED.filter(n => n !== b.name)
+            }
+          } else {
+            // إذا لا يوجد config، تأكد أن الفرع ليس في قائمة الإيقاف
+            BRANCH_EXTRA_DISABLED = BRANCH_EXTRA_DISABLED.filter(n => n !== b.name)
           }
         })
       }
