@@ -102,3 +102,20 @@ Stage Summary:
 - ✅ `adminCarEntries` يتحدث فوراً عند إضافة/حذف سيارة من وضع المسؤول
 - ✅ التحديث التلقائي كل 10 ثواني يعمل بشكل أكثر استقراراً
 - ✅ بناء ناجح
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: إصلاح بطاقات السحوبات/العجوزات (لا تزال لا تعمل) + مشكلة التعديل يظهر كإضافة غرفة جديدة
+
+Work Log:
+- تشخيص المشكلة 1 (السحوبات/العجوزات): إضافة تحقق أمان (null checks + Number conversion) لحساب الإجماليات + إزالة `include: { employee: true }` من records API لتجنب مشاكل serialization
+- تشخيص المشكلة 2 (التعديل = إضافة): في وضع المسؤول، `handleSaveCarEntry` كان يبحث في `adminCarEntries` (يُحمّل بـ `adminDate`) بينما واجهة تسجيل السيارات تستخدم `empDate`. عند اختلاف التاريخين، `existing.find()` لا يجد المدخل → يُنشئ مدخل جديد (POST) بدلاً من التعديل (PUT)
+- الحل: استخدام `carEntries` بدلاً من `adminCarEntries` للبحث عن التسجيل الموجود في `handleSaveCarEntry` لأن `carEntries` يُحمّل بـ `empDate` الصحيح
+- إنشاء /api/db-check محدث للتشخيص (يرجع counts + samples + month calculations)
+
+Stage Summary:
+- ✅ تم إصلاح مشكلة التعديل يظهر كإضافة - الآن يستخدم `carEntries` الصحيح
+- ✅ تحسين أمان حساب الإجماليات (null checks + Number conversion)
+- ✅ إزالة `include: { employee: true }` من records API
+- ✅ بناء ناجح

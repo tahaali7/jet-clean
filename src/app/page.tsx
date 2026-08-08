@@ -1683,9 +1683,10 @@ export default function JetCleanApp() {
       branchId = user!.branchId!
     }
 
-    // البحث عن تسجيل موجود - استخدم adminCarEntries في وضع المسؤول
-    const searchEntries = isAdminMode ? adminCarEntries : carEntries
-    const existing = searchEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
+    // البحث عن تسجيل موجود
+    // في وضع المسؤول: استخدم carEntries (يُحمّل بـ empDate الصحيح)
+    // في وضع الموظف: استخدم carEntries
+    const existing = carEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
 
     setSaving(true)
     try {
@@ -3870,15 +3871,17 @@ export default function JetCleanApp() {
     let grandWithdrawals = 0
     let grandShortages = 0
     const selectedBranchId = adminSelectedBranch || user?.branchId
-    records.forEach(r => {
-      if (r.date.startsWith(currentMonth)) {
-        // إذا تم اختيار فرع، نفلتر به، وإلا نحسب كل الفروع
-        if (!selectedBranchId || r.branchId === selectedBranchId) {
-          if (r.type === 'withdrawal') grandWithdrawals += r.amount
-          if (r.type === 'shortage') grandShortages += r.amount
+    if (records && records.length > 0) {
+      records.forEach(r => {
+        if (r.date && r.date.startsWith(currentMonth)) {
+          if (!selectedBranchId || r.branchId === selectedBranchId) {
+            const amt = Number(r.amount) || 0
+            if (r.type === 'withdrawal') grandWithdrawals += amt
+            if (r.type === 'shortage') grandShortages += amt
+          }
         }
-      }
-    })
+      })
+    }
 
     return (
       <div className="min-h-screen bg-slate-900">

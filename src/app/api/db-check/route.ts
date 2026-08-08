@@ -1,38 +1,40 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { Prisma } from '@prisma/client'
 
 export async function GET() {
   try {
     const result: Record<string, unknown> = {}
 
-    // Basic counts
-    try {
-      result.branchCount = await db.branch.count()
-    } catch (e: any) { result.branchError = e.message }
+    // 1. Total counts
+    result.totalRecords = await db.record.count()
+    result.employeeCount = await db.employee.count()
+    result.branchCount = await db.branch.count()
+    result.carEntryCount = await db.carEntry.count()
 
-    try {
-      result.employeeCount = await db.employee.count()
-    } catch (e: any) { result.employeeError = e.message }
+    // 2. Current month records (2026-08)
+    const monthRecords = await db.record.findMany({
+      where: { date: { startsWith: '2026-08' } }
+    })
+    result.month2026_08_count = monthRecords.length
+    result.month2026_08_withdrawals = monthRecords.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+    result.month2026_08_shortages = monthRecords.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+    result.month2026_08_sample = monthRecords.slice(0, 5).map(r => ({
+      empId: r.empId, type: r.type, amount: r.amount, date: r.date, branchId: r.branchId
+    }))
 
-    try {
-      result.carEntryCount = await db.carEntry.count()
-    } catch (e: any) { result.carEntryError = e.message }
+    // 3. All records sample
+    const allRecords = await db.record.findMany({ take: 10, orderBy: { date: 'desc' } })
+    result.allRecordsSample = allRecords.map(r => ({
+      empId: r.empId, type: r.type, amount: r.amount, date: r.date, branchId: r.branchId
+    }))
 
-    try {
-      result.recordCount = await db.record.count()
-    } catch (e: any) { result.recordError = e.message }
+    // 4. Branches
+    const branches = await db.branch.findMany()
+    result.branches = branches.map(b => ({ id: b.id, name: b.name }))
 
-    // Check empId matching between CarEntry and Employee
-    try {
-      const emps = await db.employee.findMany({ select: { id: true } })
-      const empIds = new Set(emps.map(e => e.id))
-      const entries = await db.carEntry.findMany({ take: 10, orderBy: { createdAt: 'desc' }, select: { empId: true, empName: true, date: true } })
-      const unmatched = entries.filter(e => !empIds.has(e.empId))
-      result.recentEntries = entries
-      result.unmatchedEmpIds = unmatched
-      result.empIdsSample = emps.slice(0, 3).map(e => e.id)
-    } catch (e: any) { result.matchError = e.message }
+    // 5. Employees
+    const emps = await db.employee.findMany()
+    result.employees = emps.map(e => ({ id: e.id, name: e.name, branchId: e.branchId, hasLogin: e.hasLogin, deleted: e.deleted }))
 
     return NextResponse.json(result)
   } catch (error: any) {
