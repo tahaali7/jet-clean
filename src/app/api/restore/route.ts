@@ -3,34 +3,58 @@ import { db } from '@/lib/db'
 
 // دالة مشتركة لاستعادة الداتا
 async function restoreData(data: any) {
-  // Delete existing data
-  await db.record.deleteMany({})
-  await db.carEntry.deleteMany({})
-  await db.workerExpense.deleteMany({})
-  await db.treasury.deleteMany({})
-  await db.closedDay.deleteMany({})
-  await db.employee.deleteMany({})
-  await db.branch.deleteMany({})
-  await db.adminAccount.deleteMany({})
+  // Delete existing data (order matters for foreign keys)
+  try { await db.record.deleteMany({}) } catch {}
+  try { await db.carEntry.deleteMany({}) } catch {}
+  try { await db.workerExpense.deleteMany({}) } catch {}
+  try { await db.treasury.deleteMany({}) } catch {}
+  try { await db.closedDay.deleteMany({}) } catch {}
+  try { await db.employee.deleteMany({}) } catch {}
+  try { await db.branch.deleteMany({}) } catch {}
+  try { await db.adminAccount.deleteMany({}) } catch {}
 
-  // Restore in order (branches first, then employees that reference branches, etc.)
+  // Restore branches (include config if exists)
   for (const branch of data.branches || []) {
-    await db.branch.create({ data: { id: branch.id, name: branch.name } })
+    try {
+      await db.branch.create({
+        data: {
+          id: branch.id, name: branch.name,
+          ...(branch.config ? { config: branch.config } : {})
+        }
+      })
+    } catch (e: any) {
+      console.error('Restore branch error:', branch.name, e.message)
+    }
   }
-  for (const admin of data.adminAccount || []) {
-    await db.adminAccount.create({ data: { id: admin.id, name: admin.name, password: admin.password } })
+  // Restore admin accounts
+  for (const admin of (data.adminAccounts || data.adminAccount || [])) {
+    try {
+      await db.adminAccount.create({ data: { id: admin.id, name: admin.name, password: admin.password } })
+    } catch (e: any) {
+      console.error('Restore admin error:', e.message)
+    }
   }
+  // Restore employees with flexible field handling
   for (const emp of data.employees || []) {
-    await db.employee.create({
-      data: {
-        id: emp.id, name: emp.name, branchId: emp.branchId, shift: emp.shift,
-        password: emp.password || '', role: emp.role || 'employee', hasLogin: emp.hasLogin ?? false,
-        multiBranchIds: emp.multiBranchIds || null,
-        startDate: emp.startDate || null,
-        endDate: emp.endDate || null,
-        deleted: emp.deleted ?? false
+    try {
+      const empData: Record<string, unknown> = {
+        id: emp.id,
+        name: emp.name,
+        shift: emp.shift || '',
+        password: emp.password || '',
       }
-    })
+      // Only set branchId if it exists in the backup
+      if (emp.branchId !== undefined && emp.branchId !== null) empData.branchId = emp.branchId
+      if (emp.role) empData.role = emp.role
+      if (emp.hasLogin !== undefined) empData.hasLogin = emp.hasLogin
+      if (emp.multiBranchIds) empData.multiBranchIds = emp.multiBranchIds
+      if (emp.startDate) empData.startDate = emp.startDate
+      if (emp.endDate) empData.endDate = emp.endDate
+      if (emp.deleted !== undefined) empData.deleted = emp.deleted
+      await db.employee.create({ data: empData as any })
+    } catch (e: any) {
+      console.error('Restore employee error:', emp.name, e.message)
+    }
   }
   for (const entry of data.carEntries || []) {
     await db.carEntry.create({
