@@ -194,7 +194,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   prices.forEach((price, idx) => {
     const count = mergedCounts[price] || 0
     rowNum++
-    const isExtra = EXTRA_PRICES.includes(price)
+    const isExtra = price > 5 && isExtraEnabledForBranch(brName)
     const displayPrice = isExtra ? (price - 5) : price
     const rowAmount = displayPrice * count
     rowsHtml += '<tr>' +
@@ -1656,7 +1656,7 @@ export default function JetCleanApp() {
       if (count > 0) {
         priceCounts[String(price)] = count
         totalCars += count
-        if (branchHasExtra && EXTRA_PRICES.includes(price)) {
+        if (branchHasExtra && price > 5) {
           totalAmount += (price - 5) * count
           extraCars += count
           extraAmount += 5 * count
@@ -2932,7 +2932,7 @@ export default function JetCleanApp() {
         let subtotal = price * count
         let priceLabel = `${price} د.ل`
         // عرض خصم الإكسترا فقط إذا البيانات فيها إكسترا فعلي أو الفرع مفعّل فيه الإكسترا
-        const entryHasExtra = entry.extraCars > 0 && EXTRA_PRICES.includes(price)
+        const entryHasExtra = entry.extraCars > 0 && price > 5
         const branchHasExtra = isExtraEnabledForBranch(branchName)
         if (entryHasExtra || branchHasExtra) {
           subtotal = (price - 5) * count
@@ -3022,7 +3022,7 @@ export default function JetCleanApp() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-5">
         {prices.map(price => {
-          const isExtraPrice = EXTRA_PRICES.includes(price) && isExtraEnabledForBranch(currentBranchName)
+          const isExtraPrice = price > 5 && isExtraEnabledForBranch(currentBranchName)
           return (
             <div key={price} className={`room-card ${PRICE_BG[price] || 'bg-slate-700/10 border-slate-600/30'} border rounded-xl p-4 text-center`}>
               <p className="text-xs text-slate-400 mb-2">تسعيرة</p>
