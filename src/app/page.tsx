@@ -1841,6 +1841,8 @@ export default function JetCleanApp() {
     if (!confirm('هل تريد حذف هذه الحركة؟')) return
     try {
       await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
+      // إزالة السجل فوراً من الـ state
+      setRecords(prev => prev.filter(r => r.id !== id))
       await new Promise(r => setTimeout(r, 300))
       await loadRecords({ date: empDate || adminDate }, true)
     } catch (e) { alert('حدث خطأ أثناء الحذف') }
