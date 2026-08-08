@@ -44,7 +44,12 @@ export async function POST(req: NextRequest) {
     const employee = await withRetry(() =>
       db.employee.findUnique({ where: { id: empId } })
     )
-    if (!employee || employee.deleted) {
+    if (!employee) {
+      return NextResponse.json({ success: false, error: 'الموظف غير موجود' }, { status: 404 })
+    }
+
+    // Check deleted status safely
+    if ((employee as any).deleted === true) {
       return NextResponse.json({ success: false, error: 'الموظف غير موجود' }, { status: 404 })
     }
 
