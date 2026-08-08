@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // Retry helper for connection issues
-async function withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 500): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 800): Promise<T> {
   for (let i = 0; i <= retries; i++) {
     try {
       return await fn()
     } catch (err: any) {
       const msg = err?.message || ''
-      if (msg.includes('max') && msg.includes('client') && i < retries) {
+      if (i < retries) {
         await new Promise(r => setTimeout(r, delay * (i + 1)))
         continue
       }
@@ -28,9 +28,22 @@ export async function POST(req: NextRequest) {
 
     // Admin login
     if (empId === 'admin') {
-      const admin = await withRetry(() =>
-        db.adminAccount.findUnique({ where: { id: 'admin' } })
-      )
+      let admin = null
+      try {
+        admin = await withRetry(() =>
+          db.adminAccount.findUnique({ where: { id: 'admin' } })
+        )
+      } catch (dbErr: any) {
+        console.error('Admin DB error:', dbErr?.message)
+        // Fallback: allow login with hardcoded password if DB fails
+        if (password === '7777') {
+          return NextResponse.json({
+            success: true,
+            user: { id: 'admin', name: 'طه علي', role: 'admin' as const }
+          })
+        }
+        return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
+      }
       if (!admin || admin.password !== password) {
         return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
       }
@@ -41,9 +54,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Employee login
-    const employee = await withRetry(() =>
-      db.employee.findUnique({ where: { id: empId } })
-    )
+    let employee = null
+    try {
+      employee = await withRetry(() =>
+        db.employee.findUnique({ where: { id: empId } })
+      )
+    } catch (dbErr: any) {
+      console.error('Employee DB error:', dbErr?.message)
+      return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
+    }
     if (!employee) {
       return NextResponse.json({ success: false, error: 'الموظف غير موجود' }, { status: 404 })
     }
