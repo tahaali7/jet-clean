@@ -3777,7 +3777,7 @@ export default function JetCleanApp() {
               .filter(r => r.date === empDate && r.branchId === expBranchId)
               .map(r => ({
                 key: r.id,
-                name: (r.type === 'withdrawal' ? '💸 سحب: ' : '📉 عجز: ') + (r.employee?.name || ''),
+                name: (r.type === 'withdrawal' ? '💸 سحب: ' : '📉 عجز: ') + (r.employee?.name || employees.find(e => e.id === r.empId)?.name || ''),
                 amount: r.amount,
                 type: r.type as 'withdrawal' | 'shortage'
               }))
