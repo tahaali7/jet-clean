@@ -6,54 +6,33 @@ export async function GET() {
   try {
     const result: Record<string, unknown> = {}
 
-    // Check raw table counts using queryRaw
+    // Basic counts
     try {
-      const branchCount = await db.$queryRaw`SELECT COUNT(*)::int as count FROM "Branch"`
-      result.branchCount = branchCount
+      result.branchCount = await db.branch.count()
     } catch (e: any) { result.branchError = e.message }
 
     try {
-      const empCount = await db.$queryRaw`SELECT COUNT(*)::int as count FROM "Employee"`
-      result.employeeCount = empCount
+      result.employeeCount = await db.employee.count()
     } catch (e: any) { result.employeeError = e.message }
 
     try {
-      const adminCount = await db.$queryRaw`SELECT COUNT(*)::int as count FROM "AdminAccount"`
-      result.adminCount = adminCount
-    } catch (e: any) { result.adminError = e.message }
-
-    try {
-      const carCount = await db.$queryRaw`SELECT COUNT(*)::int as count FROM "CarEntry"`
-      result.carEntryCount = carCount
+      result.carEntryCount = await db.carEntry.count()
     } catch (e: any) { result.carEntryError = e.message }
 
     try {
-      const recordCount = await db.$queryRaw`SELECT COUNT(*)::int as count FROM "Record"`
-      result.recordCount = recordCount
+      result.recordCount = await db.record.count()
     } catch (e: any) { result.recordError = e.message }
 
-    // Check Employee table columns
+    // Check empId matching between CarEntry and Employee
     try {
-      const columns = await db.$queryRaw`
-        SELECT column_name, data_type, is_nullable 
-        FROM information_schema.columns 
-        WHERE table_name = 'Employee' 
-        ORDER BY ordinal_position
-      `
-      result.employeeColumns = columns
-    } catch (e: any) { result.columnsError = e.message }
-
-    // Check AdminAccount data
-    try {
-      const admins = await db.$queryRaw`SELECT * FROM "AdminAccount"`
-      result.adminData = admins
-    } catch (e: any) { result.adminDataError = e.message }
-
-    // Check Prisma schema info
-    try {
-      const dims = (Prisma as any).dmmf?.datamodel?.models?.map((m: any) => m.name)
-      result.prismaModels = dims
-    } catch {}
+      const emps = await db.employee.findMany({ select: { id: true } })
+      const empIds = new Set(emps.map(e => e.id))
+      const entries = await db.carEntry.findMany({ take: 10, orderBy: { createdAt: 'desc' }, select: { empId: true, empName: true, date: true } })
+      const unmatched = entries.filter(e => !empIds.has(e.empId))
+      result.recentEntries = entries
+      result.unmatchedEmpIds = unmatched
+      result.empIdsSample = emps.slice(0, 3).map(e => e.id)
+    } catch (e: any) { result.matchError = e.message }
 
     return NextResponse.json(result)
   } catch (error: any) {

@@ -1566,6 +1566,10 @@ export default function JetCleanApp() {
     }
   }, [screen, adminDate])
 
+  // مرجع للـ adminCarEntries لاستخدامه في التحديث التلقائي بدون إعادة تشغيل الـ effect
+  const adminCarEntriesRef = useRef(adminCarEntries)
+  adminCarEntriesRef.current = adminCarEntries
+
   // تحديث تلقائي للبيانات في وضع المسؤول (كل 10 ثواني)
   useEffect(() => {
     if (screen !== 'admin' || !adminDate) return
@@ -1575,7 +1579,7 @@ export default function JetCleanApp() {
         if (!res.ok) return
         const newEntries: CarEntry[] = await res.json()
         // مقارنة مع البيانات الحالية للكشف عن الإضافات الجديدة
-        const currentIds = new Set(adminCarEntries.map(e => e.id))
+        const currentIds = new Set(adminCarEntriesRef.current.map(e => e.id))
         const added = newEntries.filter(e => !currentIds.has(e.id))
         if (added.length > 0) {
           // تحديث البيانات
@@ -1590,7 +1594,7 @@ export default function JetCleanApp() {
       } catch {}
     }, 10000)
     return () => clearInterval(interval)
-  }, [screen, adminDate, adminCarEntries.length])
+  }, [screen, adminDate])
 
   // Price inputs reset on room change
   useEffect(() => {
@@ -1711,6 +1715,7 @@ export default function JetCleanApp() {
 
       if (isAdminMode) {
         await loadCarEntries(date, adminSelectedBranch!)
+        await loadAllCarEntries(date)
       } else {
         await loadCarEntries(date, branchId)
       }
@@ -1754,6 +1759,7 @@ export default function JetCleanApp() {
       }
       if (isAdminMode && adminSelectedBranch) {
         await loadCarEntries(empDate, adminSelectedBranch)
+        await loadAllCarEntries(empDate)
       } else if (user?.branchId) {
         await loadCarEntries(empDate, user.branchId)
       }
@@ -3859,19 +3865,20 @@ export default function JetCleanApp() {
   const renderAdminScreen = () => {
     const dayClosed = isDayClosed(adminDate)
 
-    // حساب الإجماليات للشهر الحالي من سجلات الفرع المحدد
+    // حساب الإجماليات للشهر الحالي - جميع الفروع أو الفرع المحدد
     const currentMonth = adminDate.substring(0, 7)
     let grandWithdrawals = 0
     let grandShortages = 0
     const selectedBranchId = adminSelectedBranch || user?.branchId
-    if (selectedBranchId) {
-      records.forEach(r => {
-        if (r.date.startsWith(currentMonth) && r.branchId === selectedBranchId) {
+    records.forEach(r => {
+      if (r.date.startsWith(currentMonth)) {
+        // إذا تم اختيار فرع، نفلتر به، وإلا نحسب كل الفروع
+        if (!selectedBranchId || r.branchId === selectedBranchId) {
           if (r.type === 'withdrawal') grandWithdrawals += r.amount
           if (r.type === 'shortage') grandShortages += r.amount
         }
-      })
-    }
+      }
+    })
 
     return (
       <div className="min-h-screen bg-slate-900">
