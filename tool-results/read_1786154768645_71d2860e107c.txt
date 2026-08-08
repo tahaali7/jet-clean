@@ -1,0 +1,2002 @@
+   885→
+   886→  // دالة تسجيل النشاطات (ترسل في الخلفية بدون انتظار)
+   887→  const logActivity = (action: string, category: string, details: string = '', branchIdOverride?: string) => {
+   888→    if (!user) return
+   889→    try {
+   890→      const branchId = branchIdOverride || (isAdminMode ? adminSelectedBranch : user.branchId) || ''
+   891→      const branchName = branches.find(b => b.id === branchId)?.name || ''
+   892→      fetch('/api/activity-log', {
+   893→        method: 'POST',
+   894→        headers: { 'Content-Type': 'application/json' },
+   895→        body: JSON.stringify({
+   896→          userId: user.id,
+   897→          userName: user.name,
+   898→          userRole: user.role,
+   899→          branchId,
+   900→          branchName,
+   901→          action,
+   902→          category,
+   903→          details
+   904→        })
+   905→      }).then(res => {
+   906→        if (!res.ok) console.error('[ActivityLog] فشل الحفظ:', res.status, action)
+   907→      }).catch(err => {
+   908→        console.error('[ActivityLog] خطأ في الشبكة:', err)
+   909→      })
+   910→    } catch (e) {
+   911→      console.error('[ActivityLog] خطأ:', e)
+   912→    }
+   913→  }
+   914→
+   915→  // جلب سجل النشاطات
+   916→  const loadActivityLogs = async (page = 1) => {
+   917→    setActivityLogLoading(true)
+   918→    try {
+   919→      const params = new URLSearchParams()
+   920→      params.set('page', String(page))
+   921→      params.set('limit', '100')
+   922→      if (activityFilterBranch) params.set('branchId', activityFilterBranch)
+   923→      if (activityFilterCategory) params.set('category', activityFilterCategory)
+   924→
+   925→      const res = await fetch(`/api/activity-log?${params}`)
+   926→      if (res.ok) {
+   927→        const data = await res.json()
+   928→        setActivityLogs(data.entries || [])
+   929→        setActivityLogTotal(data.total || 0)
+   930→        setActivityLogPage(page)
+   931→      }
+   932→    } catch (e) {
+   933→      console.error('Load activity log error:', e)
+   934→    }
+   935→    setActivityLogLoading(false)
+   936→  }
+   937→
+   938→  // Withdrawal/Shortage quick entry state
+   939→  const [qEmpId, setQEmpId] = useState('')
+   940→  const [qRecordType, setQRecordType] = useState<'withdrawal' | 'shortage'>('withdrawal')
+   941→  const [qRecordAmount, setQRecordAmount] = useState('')
+   942→  const [qRecordNote, setQRecordNote] = useState('')
+   943→
+   944→  // Admin screen state
+   945→  const [adminDate, setAdminDate] = useState(todayISO())
+   946→
+   947→  // Modal states
+   948→  const [showRecordModal, setShowRecordModal] = useState(false)
+   949→  const [recordModalData, setRecordModalData] = useState({
+   950→    id: '', empId: '', empName: '', type: 'withdrawal' as 'withdrawal' | 'shortage',
+   951→    amount: '', note: '', date: todayISO(), branchId: ''
+   952→  })
+   953→  const [showBranchModal, setShowBranchModal] = useState(false)
+   954→  const [newBranchName, setNewBranchName] = useState('')
+   955→  const [newBranchRooms, setNewBranchRooms] = useState(6)
+   956→  const [newBranchHasMachine, setNewBranchHasMachine] = useState(true)
+   957→  const [newBranchExtraDisabled, setNewBranchExtraDisabled] = useState(false)
+   958→  const [newBranchNetDeduction, setNewBranchNetDeduction] = useState(0)
+   959→  const [newBranchMachineNoDeduction, setNewBranchMachineNoDeduction] = useState(false)
+   960→  const [newBranchCleanType, setNewBranchCleanType] = useState<'fixed' | 'select'>('select')
+   961→  const [newBranchCleanValue, setNewBranchCleanValue] = useState(20)
+   962→  const [newBranchCleanOptions, setNewBranchCleanOptions] = useState('10,20')
+   963→  const [showEmpModal, setShowEmpModal] = useState(false)
+   964→  const [newEmp, setNewEmp] = useState({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '', multiBranchIds: [] as string[] })
+   965→  const [showMultiBranchPicker, setShowMultiBranchPicker] = useState(false)
+   966→  const [showEditEmpModal, setShowEditEmpModal] = useState(false)
+   967→  const [editEmp, setEditEmp] = useState<any>(null)
+   968→  const [showEditBranchModal, setShowEditBranchModal] = useState(false)
+   969→  const [editBranch, setEditBranch] = useState<any>(null)
+   970→  const [showPasswordsModal, setShowPasswordsModal] = useState(false)
+   971→  const [empPasswords, setEmpPasswords] = useState<Record<string, string>>({})
+   972→  const [adminPassword, setAdminPassword] = useState('')
+   973→  const [showChangePwdModal, setShowChangePwdModal] = useState(false)
+   974→  const [empNewPwd, setEmpNewPwd] = useState('')
+   975→  const [showClosingModal, setShowClosingModal] = useState(false)
+   976→  const [showBranchCloseModal, setShowBranchCloseModal] = useState(false)
+   977→
+   978→  // Export modal state
+   979→  const [showExportModal, setShowExportModal] = useState(false)
+   980→  const [restoreLoading, setRestoreLoading] = useState(false)
+   981→  const [backupLoading, setBackupLoading] = useState(false)
+   982→  const [showAdminDropdown, setShowAdminDropdown] = useState(false)
+   983→  const [exportRangeType, setExportRangeType] = useState<'month' | 'day' | 'range'>('month')
+   984→  const [exportMonth, setExportMonth] = useState('')
+   985→  const [exportDay, setExportDay] = useState('')
+   986→  const [exportFrom, setExportFrom] = useState('')
+   987→  const [exportTo, setExportTo] = useState('')
+   988→  const [exporting, setExporting] = useState(false)
+   989→  const [exportingEmp, setExportingEmp] = useState(false)
+   990→  const [showEmpReportModal, setShowEmpReportModal] = useState(false)
+   991→  const [showExpReportModal, setShowExpReportModal] = useState(false)
+   992→  const [expReportBranchId, setExpReportBranchId] = useState<string>('')
+   993→  const [expReportPeriod, setExpReportPeriod] = useState<'day' | 'range' | 'month'>('day')
+   994→  const [expReportDay, setExpReportDay] = useState(() => new Date().toISOString().split('T')[0])
+   995→  const [expReportFrom, setExpReportFrom] = useState('')
+   996→  const [expReportTo, setExpReportTo] = useState('')
+   997→  const [expReportMonth, setExpReportMonth] = useState(() => new Date().toISOString().substring(0, 7))
+   998→  const [empReportRange, setEmpReportRange] = useState<'month' | 'day' | 'range'>('month')
+   999→  const [empReportMonth, setEmpReportMonth] = useState(() => {
+  1000→    const n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0')
+  1001→  })
+  1002→  const [empReportDay, setEmpReportDay] = useState(() => new Date().toISOString().split('T')[0])
+  1003→  const [empReportFrom, setEmpReportFrom] = useState('')
+  1004→  const [empReportTo, setEmpReportTo] = useState('')
+  1005→
+  1006→  // Worker expenses state
+  1007→  const [cleanlinessAmount, setCleanlinessAmount] = useState(0)
+  1008→  const [workerExpData, setWorkerExpData] = useState<Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>>({})
+  1009→
+  1010→  const pdfAreaRef = useRef<HTMLDivElement>(null)
+  1011→
+  1012→  // ==================== DATA FETCHING ====================
+  1013→  const loadBranches = async () => {
+  1014→    try {
+  1015→      const res = await fetch('/api/branches')
+  1016→      if (res.ok) {
+  1017→        const data = await res.json()
+  1018→        setBranches(data)
+  1019→        // Sync branch configs to global constants
+  1020→        data.forEach((b: any) => {
+  1021→          if (b.config) {
+  1022→            const cfg = b.config as any
+  1023→            const rooms: string[] = []
+  1024→            for (let i = 1; i <= (cfg.rooms || 6); i++) rooms.push(`غرفة ${i}`)
+  1025→            if (cfg.hasMachine !== false) rooms.push('مكينة الغسيل')
+  1026→            BRANCH_ROOMS[b.name] = rooms
+  1027→            BRANCH_NET_DEDUCTION[b.name] = cfg.netDeduction ?? 0
+  1028→            if (cfg.machineNoDeduction && !MACHINE_NO_DEDUCTION_BRANCHES.includes(b.name)) {
+  1029→              MACHINE_NO_DEDUCTION_BRANCHES.push(b.name)
+  1030→            }
+  1031→            if (cfg.cleanliness) BRANCH_CLEANLINESS[b.name] = cfg.cleanliness
+  1032→          }
+  1033→        })
+  1034→      }
+  1035→    } catch (e) { console.error(e) }
+  1036→  }
+  1037→
+  1038→  const loadEmployees = async () => {
+  1039→    try {
+  1040→      const res = await fetch('/api/employees')
+  1041→      if (res.ok) {
+  1042→        const allEmps = await res.json()
+  1043→        setEmployees(allEmps.filter((e: any) => !e.deleted))
+  1044→      }
+  1045→    } catch (e) { console.error(e) }
+  1046→  }
+  1047→
+  1048→  const loadCarEntries = async (date?: string, branchId?: string, empId?: string) => {
+  1049→    try {
+  1050→      const params = new URLSearchParams()
+  1051→      if (date) params.set('date', date)
+  1052→      if (branchId) params.set('branchId', branchId)
+  1053→      if (empId) params.set('empId', empId)
+  1054→      const res = await fetch(`/api/car-entries?${params}`)
+  1055→      if (res.ok) setCarEntries(await res.json())
+  1056→    } catch (e) { console.error(e) }
+  1057→  }
+  1058→
+  1059→  const loadAllCarEntries = async (date?: string) => {
+  1060→    try {
+  1061→      const params = new URLSearchParams()
+  1062→      if (date) params.set('date', date)
+  1063→      const res = await fetch(`/api/car-entries?${params}`)
+  1064→      if (res.ok) setAdminCarEntries(await res.json())
+  1065→    } catch (e) { console.error(e) }
+  1066→  }
+  1067→
+  1068→  const loadRecords = async (params?: { empId?: string; date?: string; branchId?: string }, cacheBuster?: boolean) => {
+  1069→    try {
+  1070→      const searchParams = new URLSearchParams()
+  1071→      if (params?.empId) searchParams.set('empId', params.empId)
+  1072→      if (params?.date) searchParams.set('date', params.date)
+  1073→      if (params?.branchId) searchParams.set('branchId', params.branchId)
+  1074→      if (cacheBuster) searchParams.set('_t', String(Date.now()))
+  1075→      const res = await fetch(`/api/records?${searchParams}`, { cache: 'no-store' })
+  1076→      if (res.ok) {
+  1077→        const data = await res.json()
+  1078→        setRecords(prev => {
+  1079→          // Merge: replace records for the same date+branch, keep others
+  1080→          const prevMap = new Map(prev.map(r => [r.id, r]))
+  1081→          data.forEach((r: any) => prevMap.set(r.id, r))
+  1082→          return Array.from(prevMap.values())
+  1083→        })
+  1084→      }
+  1085→    } catch (e) { console.error(e) }
+  1086→  }
+  1087→
+  1088→  const loadClosedDays = async (date?: string) => {
+  1089→    try {
+  1090→      const params = new URLSearchParams()
+  1091→      if (date) params.set('date', date)
+  1092→      const res = await fetch(`/api/closed-days?${params}`)
+  1093→      if (res.ok) setClosedDays(await res.json())
+  1094→    } catch (e) { console.error(e) }
+  1095→  }
+  1096→
+  1097→  const loadWorkerExpenses = async (date?: string, branchId?: string) => {
+  1098→    try {
+  1099→      const params = new URLSearchParams()
+  1100→      if (date) params.set('date', date)
+  1101→      if (branchId) params.set('branchId', branchId)
+  1102→      const res = await fetch(`/api/worker-expenses?${params}`)
+  1103→      if (res.ok) {
+  1104→        const data = await res.json()
+  1105→        setWorkerExpenses(data)
+  1106→        // Parse jsonData into workerExpData
+  1107→        if (data.length > 0 && data[0].jsonData) {
+  1108→          const jd = data[0].jsonData as { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }
+  1109→          const branch = branches.find(b => b.id === branchId)
+  1110→          const bName = branch?.name || ''
+  1111→          if (bName && date) {
+  1112→            setWorkerExpData(prev => ({ ...prev, [bName + '_' + date]: jd }))
+  1113→          }
+  1114→        }
+  1115→      }
+  1116→    } catch (e) { console.error(e) }
+  1117→  }
+  1118→
+  1119→  const loadTreasuries = async (date?: string, branchId?: string) => {
+  1120→    try {
+  1121→      const params = new URLSearchParams()
+  1122→      if (date) params.set('date', date)
+  1123→      if (branchId) params.set('branchId', branchId)
+  1124→      const res = await fetch(`/api/treasury?${params}`)
+  1125→      if (res.ok) setTreasuries(await res.json())
+  1126→    } catch (e) { console.error(e) }
+  1127→  }
+  1128→
+  1129→  // ==================== LOGIN ====================
+  1130→  const handleLogin = async () => {
+  1131→    if (!loginEmpId) { setLoginError('الرجاء اختيار اسم المستخدم'); return }
+  1132→    if (!loginPassword) { setLoginError('الرجاء إدخال رمز المرور'); return }
+  1133→    setLoginLoading(true)
+  1134→    setLoginError('')
+  1135→
+  1136→    try {
+  1137→      const res = await fetch('/api/auth/login', {
+  1138→        method: 'POST',
+  1139→        headers: { 'Content-Type': 'application/json' },
+  1140→        body: JSON.stringify({ empId: loginEmpId, password: loginPassword })
+  1141→      })
+  1142→      const data = await res.json()
+  1143→      if (!data.success) {
+  1144→        // تسجيل محاولة دخول فاشلة
+  1145→        try {
+  1146→          fetch('/api/activity-log', {
+  1147→            method: 'POST',
+  1148→            headers: { 'Content-Type': 'application/json' },
+  1149→            body: JSON.stringify({
+  1150→              userId: loginEmpId,
+  1151→              userName: loginEmpId,
+  1152→              userRole: 'unknown',
+  1153→              action: 'محاولة دخول فاشلة',
+  1154→              category: 'تسجيل الدخول',
+  1155→              details: `السبب: ${data.error}`
+  1156→            })
+  1157→          }).catch(() => {})
+  1158→        } catch {}
+  1159→        setLoginError(data.error)
+  1160→        setLoginLoading(false)
+  1161→        return
+  1162→      }
+  1163→
+  1164→      setUser(data.user)
+  1165→      setLoginPassword('')
+  1166→      setLoginEmpId('')
+  1167→      setLoginLoading(false)
+  1168→
+  1169→      // تسجيل عملية الدخول في سجل النشاطات
+  1170→      try {
+  1171→        const branchId = data.user.branchId || ''
+  1172→        const branchName = branches.find(b => b.id === branchId)?.name || ''
+  1173→        fetch('/api/activity-log', {
+  1174→          method: 'POST',
+  1175→          headers: { 'Content-Type': 'application/json' },
+  1176→          body: JSON.stringify({
+  1177→            userId: data.user.id,
+  1178→            userName: data.user.name,
+  1179→            userRole: data.user.role,
+  1180→            branchId,
+  1181→            branchName,
+  1182→            action: 'تسجيل دخول',
+  1183→            category: 'تسجيل الدخول',
+  1184→            details: `دخول بنجاح - الدور: ${data.user.role === 'admin' ? 'مسؤول' : data.user.role === 'viewer' ? 'مشاهد' : 'موظف'}${branchName ? ' - الفرع: ' + branchName : ''}`
+  1185→          })
+  1186→        }).catch(() => {})
+  1187→      } catch {}
+  1188→
+  1189→      if (data.user.role === 'admin' || data.user.role === 'viewer') {
+  1190→        setIsAdminMode(false)
+  1191→        setAdminSelectedBranch(null)
+  1192→        setAdminDate(todayISO())
+  1193→        setScreen('admin')
+  1194→      } else {
+  1195→        setIsAdminMode(false)
+  1196→        setAdminSelectedBranch(null)
+  1197→        setEmpDate(todayISO())
+  1198→        setScreen('employee')
+  1199→      }
+  1200→    } catch {
+  1201→      setLoginError('حدث خطأ في الاتصال')
+  1202→      setLoginLoading(false)
+  1203→    }
+  1204→  }
+  1205→
+  1206→  const getEmployeeBranch = () => {
+  1207→    if (!user?.branchId) return null
+  1208→    return branches.find(b => b.id === user.branchId) || null
+  1209→  }
+  1210→
+  1211→  const switchToCarEntry = () => {
+  1212→    if (user?.role === 'viewer') {
+  1213→      setIsAdminMode(false)
+  1214→    } else {
+  1215→      setIsAdminMode(true)
+  1216→    }
+  1217→    setAdminSelectedBranch(null)
+  1218→    setPriceInputs({})
+  1219→    setCustomPricesData({})
+  1220→    setSelectedRoom('')
+  1221→    setEmpDate(todayISO())
+  1222→    setScreen('employee')
+  1223→  }
+  1224→
+  1225→  const switchToAdminManagement = () => {
+  1226→    setIsAdminMode(false)
+  1227→    setAdminSelectedBranch(null)
+  1228→    setAdminDate(todayISO())
+  1229→    setScreen('admin')
+  1230→  }
+  1231→
+  1232→  const handleLogout = () => {
+  1233→    if (!confirm('هل تريد تسجيل الخروج؟')) return
+  1234→    setUser(null)
+  1235→    setIsAdminMode(false)
+  1236→    setAdminSelectedBranch(null)
+  1237→    setScreen('login')
+  1238→  }
+  1239→
+  1240→  const handleChangeOwnPassword = async () => {
+  1241→    if (!user) return
+  1242→    const trimmed = empNewPwd.trim()
+  1243→    if (!trimmed) return alert('الرجاء إدخال كلمة المرور الجديدة')
+  1244→    if (trimmed.length < 4) return alert('كلمة المرور يجب أن تكون 4 أرقام على الأقل')
+  1245→    try {
+  1246→      const res = await fetch('/api/employees', {
+  1247→        method: 'PUT',
+  1248→        headers: { 'Content-Type': 'application/json' },
+  1249→        body: JSON.stringify({ id: user.id, password: trimmed })
+  1250→      })
+  1251→      if (res.ok) {
+  1252→        alert('✅ تم تغيير كلمة المرور بنجاح')
+  1253→        setEmpNewPwd('')
+  1254→        setShowChangePwdModal(false)
+  1255→      } else {
+  1256→        alert('حدث خطأ أثناء تغيير كلمة المرور')
+  1257→      }
+  1258→    } catch (e) { alert('حدث خطأ') }
+  1259→  }
+  1260→
+  1261→  // نسخ احتياطي تلقائي صامت
+  1262→  const autoBackup = () => {
+  1263→    try { fetch('/api/backup', { method: 'POST' }) } catch (_) {}
+  1264→  }
+  1265→
+  1266→  // نسخ احتياطي يدوي مع تحميل الملف
+  1267→  const handleDownloadBackup = async () => {
+  1268→    try {
+  1269→      setBackupLoading(true)
+  1270→      const res = await fetch('/api/backup', { method: 'POST' })
+  1271→      if (!res.ok) throw new Error('فشل إنشاء النسخة')
+  1272→      const result = await res.json()
+  1273→      // fetch the backup data
+  1274→      const dataRes = await fetch('/api/backup')
+  1275→      if (dataRes.ok) {
+  1276→        const backups = (await dataRes.json()).backups || []
+  1277→        if (backups.length > 0) {
+  1278→          // Get full backup data
+  1279→          const fullRes = await fetch(`/api/backup?id=${backups[0].id}`)
+  1280→          if (fullRes.ok) {
+  1281→            const fullData = await fullRes.json()
+  1282→            const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' })
+  1283→            const url = URL.createObjectURL(blob)
+  1284→            const a = document.createElement('a')
+  1285→            a.href = url
+  1286→            a.download = `backup_jet_clean_${new Date().toISOString().split('T')[0]}.json`
+  1287→            a.click()
+  1288→            URL.revokeObjectURL(url)
+  1289→            alert('✅ تم تحميل النسخة الاحتياطية بنجاح!\n\n' +
+  1290→              'الفروع: ' + (result.records?.branches || 0) + '\n' +
+  1291→              'الموظفين: ' + (result.records?.employees || 0) + '\n' +
+  1292→              'تسجيلات السيارات: ' + (result.records?.carEntries || 0) + '\n' +
+  1293→              'السحوبات والعجوزات: ' + (result.records?.records || 0))
+  1294→          }
+  1295→        }
+  1296→      }
+  1297→    } catch (e: any) {
+  1298→      alert('❌ خطأ: ' + e.message)
+  1299→    } finally {
+  1300→      setBackupLoading(false)
+  1301→    }
+  1302→  }
+  1303→
+  1304→  // استعادة من ملف JSON مرفوع
+  1305→  const handleUploadRestore = () => {
+  1306→    const input = document.createElement('input')
+  1307→    input.type = 'file'
+  1308→    input.accept = '.json'
+  1309→    input.onchange = async (e: any) => {
+  1310→      const file = e.target?.files?.[0]
+  1311→      if (!file) return
+  1312→      if (!confirm('⚠️ سيتم حذف جميع البيانات الحالية واستبدالها بالنسخة المرفوعة!\n\nهل أنت متأكد؟')) return
+  1313→      try {
+  1314→        setRestoreLoading(true)
+  1315→        const text = await file.text()
+  1316→        // Validate JSON
+  1317→        const parsed = JSON.parse(text)
+  1318→        const data = parsed.data || parsed
+  1319→        const stats = {
+  1320→          branches: (data.branches || []).length,
+  1321→          employees: (data.employees || []).length,
+  1322→          carEntries: (data.carEntries || []).length,
+  1323→          records: (data.records || []).length
+  1324→        }
+  1325→        if (stats.branches === 0 && stats.carEntries === 0) {
+  1326→          alert('❌ الملف لا يحتوي على بيانات صالحة')
+  1327→          setRestoreLoading(false)
+  1328→          return
+  1329→        }
+  1330→        const res = await fetch('/api/restore', {
+  1331→          method: 'POST',
+  1332→          headers: { 'Content-Type': 'application/json' },
+  1333→          body: JSON.stringify({ uploadData: text })
+  1334→        })
+  1335→        if (res.ok) {
+  1336→          const result = await res.json()
+  1337→          alert('✅ تمت الاستعادة بنجاح!\n\n' +
+  1338→            'الفروع: ' + (result.stats?.branches || stats.branches) + '\n' +
+  1339→            'الموظفين: ' + (result.stats?.employees || stats.employees) + '\n' +
+  1340→            'تسجيلات السيارات: ' + (result.stats?.carEntries || stats.carEntries) + '\n' +
+  1341→            'السحوبات والعجوزات: ' + (result.stats?.records || stats.records))
+  1342→          // Reload data
+  1343→          await loadBranches()
+  1344→          await loadEmployees()
+  1345→        } else {
+  1346→          const err = await res.json()
+  1347→          alert('❌ خطأ في الاستعادة: ' + (err.error || ''))
+  1348→        }
+  1349→      } catch (e: any) {
+  1350→        alert('❌ خطأ: ' + e.message)
+  1351→      } finally {
+  1352→        setRestoreLoading(false)
+  1353→      }
+  1354→    }
+  1355→    input.click()
+  1356→  }
+  1357→
+  1358→  // ===== دوال التنبيهات =====
+  1359→  const handleSendNotif = async () => {
+  1360→    if (!notifMessage.trim()) return alert('الرجاء كتابة نص التنبيه')
+  1361→    if (!notifTargetAll && notifBranchIds.length === 0) return alert('الرجاء اختيار فرع واحد على الأقل')
+  1362→    setSendingNotif(true)
+  1363→    try {
+  1364→      await fetch('/api/notifications', {
+  1365→        method: 'POST',
+  1366→        headers: { 'Content-Type': 'application/json' },
+  1367→        body: JSON.stringify({
+  1368→          message: notifMessage.trim(),
+  1369→          branchIds: notifTargetAll ? null : notifBranchIds,
+  1370→          type: notifType,
+  1371→          createdBy: isAdminMode ? 'المسؤول' : (user?.name || '')
+  1372→        })
+  1373→      })
+  1374→      setNotifMessage('')
+  1375→      setNotifBranchIds([])
+  1376→      setNotifTargetAll(true)
+  1377→      setNotifType('normal')
+  1378→      setShowNotifModal(false)
+  1379→      loadAdminNotifs()
+  1380→      logActivity('إرسال تنبيه', 'التنبيهات', `${notifType === 'urgent' ? '🔴 عاجل' : '⚪ عادي'} - ${notifTargetAll ? 'كل الفروع' : 'فروع محددة'} - "${notifMessage.substring(0, 50)}"`)
+  1381→      alert('✅ تم إرسال التنبيه بنجاح!')
+  1382→    } catch {
+  1383→      alert('❌ حدث خطأ أثناء إرسال التنبيه')
+  1384→    }
+  1385→    setSendingNotif(false)
+  1386→  }
+  1387→
+  1388→  const loadAdminNotifs = async () => {
+  1389→    try {
+  1390→      const res = await fetch('/api/notifications?all=true')
+  1391→      const data = await res.json()
+  1392→      setAdminNotifs(Array.isArray(data) ? data : [])
+  1393→    } catch {}
+  1394→  }
+  1395→
+  1396→  const loadEmpAlerts = async () => {
+  1397→    if (!user?.id || isAdminMode) return
+  1398→    try {
+  1399→      const branchId = user.branchId || ''
+  1400→      const res = await fetch(`/api/notifications?empId=${user.id}&branchId=${branchId}`)
+  1401→      const data = await res.json()
+  1402→      setEmpAlerts(Array.isArray(data) ? data : [])
+  1403→    } catch {}
+  1404→  }
+  1405→
+  1406→  const handleDismissAlert = async (notifId: string) => {
+  1407→    if (!user?.id) return
+  1408→    try {
+  1409→      await fetch('/api/notifications', {
+  1410→        method: 'PUT',
+  1411→        headers: { 'Content-Type': 'application/json' },
+  1412→        body: JSON.stringify({ id: notifId, empId: user.id })
+  1413→      })
+  1414→      setEmpAlerts(prev => prev.filter(n => n.id !== notifId))
+  1415→      setCurrentAlertIdx(prev => Math.max(0, prev))
+  1416→    } catch {}
+  1417→  }
+  1418→
+  1419→  const handleDeleteNotif = async (notifId: string) => {
+  1420→    if (!confirm('هل تريد حذف هذا التنبيه؟')) return
+  1421→    try {
+  1422→      await fetch(`/api/notifications?id=${notifId}`, { method: 'DELETE' })
+  1423→      logActivity('حذف تنبيه', 'التنبيهات', `معرف التنبيه: ${notifId}`)
+  1424→      loadAdminNotifs()
+  1425→    } catch {}
+  1426→  }
+  1427→
+  1428→  // ===== دوال الصيانة =====
+  1429→  const checkMaintenance = async () => {
+  1430→    try {
+  1431→      const res = await fetch('/api/maintenance')
+  1432→      const data = await res.json()
+  1433→      setMaintenanceMode(data.enabled === true)
+  1434→    } catch {
+  1435→      setMaintenanceMode(false)
+  1436→    }
+  1437→    setCheckingMaintenance(false)
+  1438→  }
+  1439→
+  1440→  const toggleMaintenance = async () => {
+  1441→    const newState = !maintenanceMode
+  1442→    if (!confirm(newState ? '⚠️ سيتم إيقاف الموقع للموظفين!\nسيظهر لهم رسالة "الموقع تحت الصيانة"\n\nهل تريد المتابعة؟' : '✅ سيتم إعادة فتح الموقع للموظفين\n\nهل تريد المتابعة؟')) return
+  1443→    try {
+  1444→      await fetch('/api/maintenance', {
+  1445→        method: 'PUT',
+  1446→        headers: { 'Content-Type': 'application/json' },
+  1447→        body: JSON.stringify({ enabled: newState })
+  1448→      })
+  1449→      setMaintenanceMode(newState)
+  1450→      logActivity(newState ? 'تشغيل وضع الصيانة' : 'إيقاف وضع الصيانة', 'الصيانة', newState ? 'تم حظر وصول الموظفين' : 'تم إعادة فتح الموقع للموظفين')
+  1451→    } catch {
+  1452→      alert('❌ حدث خطأ')
+  1453→    }
+  1454→  }
+  1455→
+  1456→  const handleRestore = async () => {
+  1457→    setRestoreLoading(true)
+  1458→    try {
+  1459→      // Get list of backups
+  1460→      const listRes = await fetch('/api/backup')
+  1461→      const listData = await listRes.json()
+  1462→      const backups = listData.backups || []
+  1463→      if (backups.length === 0) {
+  1464→        alert('❌ لا توجد نسخ احتياطية')
+  1465→        setRestoreLoading(false)
+  1466→        return
+  1467→      }
+  1468→
+  1469→      // Show backup list to user
+  1470→      const options = backups.map((b: any, i: number) => `${i + 1}. ${b.label} (${new Date(b.createdAt).toLocaleString('ar-LY')})`).join('\n')
+  1471→      const choice = prompt(`⚠️ اختر رقم النسخة للاستعادة:\n${options}`)
+  1472→      if (!choice) { setRestoreLoading(false); return }
+  1473→
+  1474→      const idx = parseInt(choice) - 1
+  1475→      if (idx < 0 || idx >= backups.length) {
+  1476→        alert('❌ رقم غير صحيح')
+  1477→        setRestoreLoading(false)
+  1478→        return
+  1479→      }
+  1480→
+  1481→      if (!confirm('⚠️ سيتم حذف جميع البيانات الحالية واستبدالها بالنسخة المختارة!\nهل أنت متأكد؟')) {
+  1482→        setRestoreLoading(false)
+  1483→        return
+  1484→      }
+  1485→
+  1486→      const res = await fetch('/api/restore', {
+  1487→        method: 'POST',
+  1488→        headers: { 'Content-Type': 'application/json' },
+  1489→        body: JSON.stringify({ id: backups[idx].id })
+  1490→      })
+  1491→      const result = await res.json()
+  1492→      if (res.ok) {
+  1493→        alert('✅ تمت الاستعادة بنجاح!')
+  1494→        await loadBranches()
+  1495→        await loadEmployees()
+  1496→        if (adminDate) {
+  1497→          await loadRecords({ date: adminDate })
+  1498→          await loadAllCarEntries(adminDate)
+  1499→          await loadClosedDays(adminDate)
+  1500→        }
+  1501→      } else {
+  1502→        alert('❌ خطأ: ' + result.error)
+  1503→      }
+  1504→    } catch (e: any) { alert('❌ خطأ: ' + e.message) }
+  1505→    setRestoreLoading(false)
+  1506→  }
+  1507→
+  1508→  // ==================== EFFECTS ====================
+  1509→  // Login screen: load branches + employees for dropdown
+  1510→  useEffect(() => {
+  1511→    if (screen === 'login') {
+  1512→      ;(async () => {
+  1513→        try { await loadBranches() } catch(e) { console.error(e) }
+  1514→        try { await loadEmployees() } catch(e) { console.error(e) }
+  1515→      })()
+  1516→    }
+  1517→  }, [screen])
+  1518→
+  1519→  // Fetch dates with data for calendar highlighting
+  1520→  useEffect(() => {
+  1521→    if (!calMonth) return
+  1522→    const branchId = (isAdminMode || user?.role === 'viewer') ? (adminSelectedBranch || user?.branchId) : user?.branchId
+  1523→    if (!branchId) return
+  1524→    fetch('/api/car-entries?datesOnly=true&branchId=' + branchId + '&month=' + calMonth)
+  1525→      .then(r => r.ok ? r.json() : [])
+  1526→      .then((dates: string[]) => setDatesWithData(dates))
+  1527→      .catch(() => setDatesWithData([]))
+  1528→  }, [calMonth, isAdminMode, adminSelectedBranch, user?.branchId])
+  1529→
+  1530→  // Employee screen data fetching - sequential
+  1531→  useEffect(() => {
+  1532→    if (screen === 'employee' && empDate) {
+  1533→      ;(async () => {
+  1534→        try { await loadBranches() } catch(e) { console.error(e) }
+  1535→        try { await loadEmployees() } catch(e) { console.error(e) }
+  1536→        const branchId = (isAdminMode || user?.role === 'viewer') ? adminSelectedBranch : user?.branchId
+  1537→        if (branchId) {
+  1538→          try { await loadCarEntries(empDate, branchId) } catch(e) { console.error(e) }
+  1539→          try { await loadWorkerExpenses(empDate, branchId) } catch(e) { console.error(e) }
+  1540→          try { await loadRecords({ date: empDate, branchId }) } catch(e) { console.error(e) }
+  1541→        }
+  1542→        try { await loadClosedDays(empDate) } catch(e) { console.error(e) }
+  1543→        try { await loadEmpAlerts() } catch(e) { console.error(e) }
+  1544→        try { await checkMaintenance() } catch(e) { console.error(e) }
+  1545→      })()
+  1546→    }
+  1547→  }, [screen, empDate, isAdminMode, adminSelectedBranch, user])
+  1548→
+  1549→  // Admin screen data fetching - sequential to avoid connection saturation
+  1550→  useEffect(() => {
+  1551→    if (screen === 'admin') {
+  1552→      ;(async () => {
+  1553→        try { await checkMaintenance() } catch(e) { console.error(e) }
+  1554→        try { await loadBranches() } catch(e) { console.error(e) }
+  1555→        try { await loadEmployees() } catch(e) { console.error(e) }
+  1556→        if (adminDate) {
+  1557→          const currentMonth = adminDate.substring(0, 7)
+  1558→          try { await loadRecords({ date: adminDate }) } catch(e) { console.error(e) }
+  1559→          // تحميل سجلات الشهر للسحوبات والعجوزات
+  1560→          try { await loadRecords({ date: currentMonth }, true) } catch(e) { console.error(e) }
+  1561→          try { await loadAllCarEntries(adminDate) } catch(e) { console.error(e) }
+  1562→          try { await loadClosedDays(adminDate) } catch(e) { console.error(e) }
+  1563→          try { await loadAdminNotifs() } catch(e) { console.error(e) }
+  1564→        }
+  1565→      })()
+  1566→    }
+  1567→  }, [screen, adminDate])
+  1568→
+  1569→  // مرجع للـ adminCarEntries لاستخدامه في التحديث التلقائي بدون إعادة تشغيل الـ effect
+  1570→  const adminCarEntriesRef = useRef(adminCarEntries)
+  1571→  adminCarEntriesRef.current = adminCarEntries
+  1572→
+  1573→  // تحديث تلقائي للبيانات في وضع المسؤول (كل 10 ثواني)
+  1574→  useEffect(() => {
+  1575→    if (screen !== 'admin' || !adminDate) return
+  1576→    const interval = setInterval(async () => {
+  1577→      try {
+  1578→        const res = await fetch(`/api/car-entries?date=${adminDate}`)
+  1579→        if (!res.ok) return
+  1580→        const newEntries: CarEntry[] = await res.json()
+  1581→        // مقارنة مع البيانات الحالية للكشف عن الإضافات الجديدة
+  1582→        const currentIds = new Set(adminCarEntriesRef.current.map(e => e.id))
+  1583→        const added = newEntries.filter(e => !currentIds.has(e.id))
+  1584→        if (added.length > 0) {
+  1585→          // تحديث البيانات
+  1586→          setAdminCarEntries(newEntries)
+  1587→          // إشعار لكل إضافة جديدة
+  1588→          const now = new Date().toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit' })
+  1589→          added.forEach(entry => {
+  1590→            const msg = `${entry.empName} أضاف ${entry.room} - ${entry.totalCars} سيارة`
+  1591→            setNotifications(prev => [{ id: entry.id, message: msg, time: now }, ...prev].slice(0, 20))
+  1592→          })
+  1593→        }
+  1594→      } catch {}
+  1595→    }, 10000)
+  1596→    return () => clearInterval(interval)
+  1597→  }, [screen, adminDate])
+  1598→
+  1599→  // Price inputs reset on room change
+  1600→  useEffect(() => {
+  1601→    if (!selectedRoom) return
+  1602→    const prices = getPricesForRoom(selectedRoom)
+  1603→    const newInputs: Record<number, number> = {}
+  1604→    prices.forEach(p => { newInputs[p] = 0 })
+  1605→    setPriceInputs(newInputs)
+  1606→    setCustomPricesData({})
+  1607→  }, [selectedRoom])
+  1608→
+  1609→  // Cleanliness reset on date/branch change
+  1610→  useEffect(() => {
+  1611→    if (screen === 'employee' && isAdminMode && adminSelectedBranch && empDate) {
+  1612→      const branch = branches.find(b => b.id === adminSelectedBranch)
+  1613→      if (branch) {
+  1614→        const config = BRANCH_CLEANLINESS[branch.name]
+  1615→        if (config?.type === 'fixed') setCleanlinessAmount(config.value || 0)
+  1616→        else setCleanlinessAmount(0)
+  1617→      }
+  1618→    }
+  1619→  }, [screen, isAdminMode, adminSelectedBranch, empDate, branches])
+  1620→
+  1621→  // ==================== CAR ENTRY ACTIONS ====================
+  1622→  const handleSaveCarEntry = async () => {
+  1623→    if (!selectedRoom || selectedRoom.startsWith('__')) return alert('الرجاء اختيار الغرفة')
+  1624→    // منع الموظف من الحفظ إذا الفرع مقفل
+  1625→    if (!isAdminMode && user?.role !== 'admin' && user?.branchId && isDayClosedForBranch(empDate, user.branchId)) {
+  1626→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل البيانات')
+  1627→    }
+  1628→    const date = empDate
+  1629→    if (!date) return alert('الرجاء تحديد التاريخ')
+  1630→    if (!isAdminMode && !user) return
+  1631→    if (isAdminMode && !adminSelectedBranch) return alert('الرجاء اختيار الفرع')
+  1632→
+  1633→    const prices = getPricesForRoom(selectedRoom)
+  1634→    const priceCounts: Record<string, number> = {}
+  1635→    let totalCars = 0
+  1636→    let totalAmount = 0
+  1637→    let extraCars = 0
+  1638→    let extraAmount = 0
+  1639→
+  1640→    // تحقق من الإكسترا للفرع
+  1641→    const activeBranch = branches.find(b => b.id === (isAdminMode ? adminSelectedBranch : user?.branchId))
+  1642→    const activeBranchName = activeBranch?.name || ''
+  1643→    const branchHasExtra = isExtraEnabledForBranch(activeBranchName)
+  1644→
+  1645→    prices.forEach(price => {
+  1646→      const count = priceInputs[price] || 0
+  1647→      if (count > 0) {
+  1648→        priceCounts[String(price)] = count
+  1649→        totalCars += count
+  1650→        if (branchHasExtra && EXTRA_PRICES.includes(price)) {
+  1651→          totalAmount += (price - 5) * count
+  1652→          extraCars += count
+  1653→          extraAmount += 5 * count
+  1654→        } else {
+  1655→          totalAmount += price * count
+  1656→        }
+  1657→      }
+  1658→    })
+  1659→
+  1660→    const customPricesSaved: Record<string, { price: number; count: number }> = {}
+  1661→    Object.keys(customPricesData).forEach(key => {
+  1662→      const item = customPricesData[key]
+  1663→      priceCounts[key] = item.count
+  1664→      customPricesSaved[key] = item
+  1665→      totalCars += item.count
+  1666→      totalAmount += item.price * item.count
+  1667→    })
+  1668→
+  1669→    if (totalCars === 0) return alert('الرجاء إدخال عدد سيارات واحد على الأقل')
+  1670→
+  1671→    // تسجيل الوقت الحالي تلقائياً
+  1672→    const now = new Date()
+  1673→    const entryTime = now.toLocaleTimeString('ar-LY', { hour: '2-digit', minute: '2-digit', hour12: true })
+  1674→
+  1675→    let empId: string, empName: string, branchId: string
+  1676→    if (isAdminMode) {
+  1677→      branchId = adminSelectedBranch!
+  1678→      empId = 'admin_' + adminSelectedBranch
+  1679→      empName = 'المسؤول'
+  1680→    } else {
+  1681→      empId = user!.id
+  1682→      empName = user!.name
+  1683→      branchId = user!.branchId!
+  1684→    }
+  1685→
+  1686→    setSaving(true)
+  1687→    try {
+  1688→      // استخدم endpoint upsert: يبحث عن المدخل الموجود ويعدّله أو ينشئ جديد
+  1689→      const res = await fetch('/api/car-entries/upsert', {
+  1690→        method: 'POST',
+  1691→        headers: { 'Content-Type': 'application/json' },
+  1692→        body: JSON.stringify({
+  1693→          date, branchId, empId, empName, room: selectedRoom,
+  1694→          totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
+  1695→        })
+  1696→      })
+  1697→      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as any).error || 'فشل الحفظ') }
+  1698→      const result = await res.json()
+  1699→      const isUpdate = result.action === 'updated'
+  1700→      logActivity(
+  1701→        isUpdate ? 'تعديل تسجيل سيارات' : 'إدخال تسجيل سيارات',
+  1702→        'تسجيل السيارات',
+  1703→        `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`,
+  1704→        branchId
+  1705→      )
+  1706→
+  1707→      if (isAdminMode) {
+  1708→        await loadCarEntries(date, adminSelectedBranch!)
+  1709→        await loadAllCarEntries(date)
+  1710→      } else {
+  1711→        await loadCarEntries(date, branchId)
+  1712→      }
+  1713→
+  1714→      const newInputs: Record<number, number> = {}
+  1715→      prices.forEach(p => { newInputs[p] = 0 })
+  1716→      setPriceInputs(newInputs)
+  1717→      setCustomPricesData({})
+  1718→      setCustomPriceInput('')
+  1719→      setCustomCountInput('')
+  1720→
+  1721→      const branchName = isAdminMode
+  1722→        ? (branches.find(b => b.id === adminSelectedBranch)?.name || '')
+  1723→        : (branches.find(b => b.id === branchId)?.name || '')
+  1724→      const branchRooms = getRoomsForBranch(branchName)
+  1725→      const currentIdx = branchRooms.indexOf(selectedRoom)
+  1726→      if (currentIdx >= 0 && currentIdx < branchRooms.length - 1) {
+  1727→        setSelectedRoom(branchRooms[currentIdx + 1])
+  1728→      }
+  1729→
+  1730→      alert(`تم الحفظ بنجاح!\n${selectedRoom} - ${totalCars} سيارات - ${totalAmount} د.ل`)
+  1731→    } catch (e: any) {
+  1732→      alert('حدث خطأ أثناء الحفظ: ' + (e?.message || 'خطأ غير معروف'))
+  1733→    }
+  1734→    setSaving(false)
+  1735→    autoBackup()
+  1736→  }
+  1737→
+  1738→  const handleDeleteCarEntry = async (id: string) => {
+  1739→    const entry = carEntries.find(e => e.id === id)
+  1740→    if (!entry) return
+  1741→    // منع الموظف من الحذف إذا الفرع مقفل
+  1742→    if (!isAdminMode && user?.role !== 'admin' && entry.branchId && isDayClosedForBranch(entry.date, entry.branchId)) {
+  1743→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك حذف البيانات')
+  1744→    }
+  1745→    if (!confirm('هل تريد حذف هذا التسجيل؟')) return
+  1746→    try {
+  1747→      await fetch(`/api/car-entries?id=${id}`, { method: 'DELETE' })
+  1748→      if (entry) {
+  1749→        logActivity('حذف تسجيل سيارات', 'تسجيل السيارات', `${entry.room} - ${entry.totalCars} سيارة - ${entry.totalAmount} د.ل - التاريخ: ${entry.date}`, entry.branchId)
+  1750→      }
+  1751→      if (isAdminMode && adminSelectedBranch) {
+  1752→        await loadCarEntries(empDate, adminSelectedBranch)
+  1753→        await loadAllCarEntries(empDate)
+  1754→      } else if (user?.branchId) {
+  1755→        await loadCarEntries(empDate, user.branchId)
+  1756→      }
+  1757→    } catch (e) { alert('حدث خطأ أثناء الحذف') }
+  1758→    autoBackup()
+  1759→  }
+  1760→
+  1761→  const handleEditCarEntry = (entry: CarEntry) => {
+  1762→    setSelectedRoom(entry.room)
+  1763→    const prices = getPricesForRoom(entry.room)
+  1764→    const newInputs: Record<number, number> = {}
+  1765→    prices.forEach(p => { newInputs[p] = 0 })
+  1766→    Object.keys(entry.priceCounts).forEach(key => {
+  1767→      if (!key.startsWith('custom_')) {
+  1768→        newInputs[Number(key)] = entry.priceCounts[key]
+  1769→      }
+  1770→    })
+  1771→    setPriceInputs(newInputs)
+  1772→    setCustomPricesData(entry.customPrices || {})
+  1773→  }
+  1774→
+  1775→  const handleAddCustomPrice = () => {
+  1776→    const price = parseFloat(customPriceInput)
+  1777→    const count = parseInt(customCountInput) || 0
+  1778→    if (!price || price <= 0) return alert('الرجاء إدخال سعر صحيح')
+  1779→    if (count <= 0) return alert('الرجاء إدخال عدد سيارات صحيح')
+  1780→    const key = 'custom_' + price
+  1781→    setCustomPricesData(prev => ({ ...prev, [key]: { price, count } }))
+  1782→    setCustomPriceInput('')
+  1783→    setCustomCountInput('')
+  1784→  }
+  1785→
+  1786→  const handleRemoveCustomPrice = (key: string) => {
+  1787→    setCustomPricesData(prev => {
+  1788→      const next = { ...prev }
+  1789→      delete next[key]
+  1790→      return next
+  1791→    })
+  1792→  }
+  1793→
+  1794→  // ==================== RECORD ACTIONS ====================
+  1795→  const handleSaveRecord = async () => {
+  1796→    const amount = parseFloat(recordModalData.amount)
+  1797→    if (!amount || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح')
+  1798→    if (!recordModalData.date) return alert('الرجاء تحديد تاريخ الحركة')
+  1799→    // منع الموظف من الحفظ إذا الفرع مقفل
+  1800→    if (!isAdminMode && user?.role !== 'admin' && recordModalData.branchId && isDayClosedForBranch(recordModalData.date, recordModalData.branchId)) {
+  1801→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك إضافة حركات')
+  1802→    }
+  1803→
+  1804→    try {
+  1805→      if (recordModalData.id) {
+  1806→        await fetch(`/api/records?id=${recordModalData.id}`, { method: 'DELETE' })
+  1807→      }
+  1808→      await fetch('/api/records', {
+  1809→        method: 'POST',
+  1810→        headers: { 'Content-Type': 'application/json' },
+  1811→        body: JSON.stringify({
+  1812→          empId: recordModalData.empId,
+  1813→          type: recordModalData.type,
+  1814→          amount,
+  1815→          note: recordModalData.note,
+  1816→          date: recordModalData.date,
+  1817→          branchId: recordModalData.branchId
+  1818→        })
+  1819→      })
+  1820→      setShowRecordModal(false)
+  1821→      await new Promise(r => setTimeout(r, 300))
+  1822→      await loadRecords({ date: recordModalData.date }, true)
+  1823→    } catch (e) { alert('حدث خطأ أثناء الحفظ') }
+  1824→    autoBackup()
+  1825→  }
+  1826→
+  1827→  const handleDeleteRecord = async (id: string, empDate?: string) => {
+  1828→    // منع الموظف من الحذف إذا الفرع مقفل
+  1829→    if (!isAdminMode && user?.role !== 'admin' && user?.branchId && isDayClosedForBranch(empDate || '', user?.branchId)) {
+  1830→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك حذف الحركات')
+  1831→    }
+  1832→    if (!confirm('هل تريد حذف هذه الحركة؟')) return
+  1833→    try {
+  1834→      await fetch(`/api/records?id=${id}`, { method: 'DELETE' })
+  1835→      await new Promise(r => setTimeout(r, 300))
+  1836→      await loadRecords({ date: empDate || adminDate }, true)
+  1837→    } catch (e) { alert('حدث خطأ أثناء الحذف') }
+  1838→    autoBackup()
+  1839→  }
+  1840→
+  1841→  // ==================== WORKER EXPENSES & TREASURY ====================
+  1842→  const saveWorkerExpData = async (branchId: string, date: string, data: { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }) => {
+  1843→    try {
+  1844→      await fetch('/api/worker-expenses', {
+  1845→        method: 'POST',
+  1846→        headers: { 'Content-Type': 'application/json' },
+  1847→        body: JSON.stringify({ date, branchId, jsonData: data })
+  1848→      })
+  1849→    } catch (e) { console.error(e) }
+  1850→  }
+  1851→
+  1852→  const handleCleanlinessChange = (key: string, value: number, branchId: string, date: string) => {
+  1853→    setWorkerExpData(prev => {
+  1854→      const updated = { ...prev }
+  1855→      if (!updated[key]) updated[key] = {}
+  1856→      updated[key] = { ...updated[key], cleanliness: value }
+  1857→      void saveWorkerExpData(branchId, date, updated[key])
+  1858→      return updated
+  1859→    })
+  1860→  }
+  1861→
+  1862→  const handleExpenseRename = (wKey: string, branchId: string, date: string, oldKey: string, newName: string) => {
+  1863→    if (!newName.trim()) return
+  1864→    const newKey = 'مصروف_' + newName.trim()
+  1865→    if (newKey === oldKey) return
+  1866→    setWorkerExpData(prev => {
+  1867→      const updated = { ...prev }
+  1868→      if (!updated[wKey]?.treasury) return updated
+  1869→      const t = { ...updated[wKey].treasury! }
+  1870→      const oldData = t[oldKey]
+  1871→      if (!oldData) return updated
+  1872→      delete t[oldKey]
+  1873→      t[newKey] = { ...oldData }
+  1874→      updated[wKey] = { ...updated[wKey], treasury: t }
+  1875→      void saveWorkerExpData(branchId, date, updated[wKey])
+  1876→      return updated
+  1877→    })
+  1878→  }
+  1879→
+  1880→  const handleTreasuryFieldChange = (key: string, branchName: string, branchId: string, date: string, itemKey: string, fieldType: 'income' | 'expense', value: number) => {
+  1881→    setWorkerExpData(prev => {
+  1882→      const updated = { ...prev }
+  1883→      if (!updated[key]) updated[key] = {}
+  1884→      if (!updated[key].treasury) updated[key].treasury = {}
+  1885→      updated[key] = {
+  1886→        ...updated[key],
+  1887→        treasury: { ...updated[key].treasury!, [itemKey]: { ...(updated[key].treasury![itemKey] || { income: 0, expense: 0 }), [fieldType]: value } }
+  1888→      }
+  1889→      void saveWorkerExpData(branchId, date, updated[key])
+  1890→      return updated
+  1891→    })
+  1892→  }
+  1893→
+  1894→  const handleQuickTreasurySave = (branchId: string, branchName: string, date: string) => {
+  1895→    // منع الموظف إذا الفرع مقفل
+  1896→    if (!isAdminMode && user?.role !== 'admin' && isDayClosedForBranch(date, branchId)) {
+  1897→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل البيانات')
+  1898→    }
+  1899→    const wKey = branchName + '_' + date
+  1900→    const bankVal = parseInt(quickBankCardSale) || 0
+  1901→    const coupVal = parseInt(quickCoupons) || 0
+  1902→    if (bankVal === 0 && coupVal === 0) return
+  1903→
+  1904→    setWorkerExpData(prev => {
+  1905→      const updated = { ...prev }
+  1906→      if (!updated[wKey]) updated[wKey] = {}
+  1907→      if (!updated[wKey].treasury) updated[wKey].treasury = {}
+  1908→
+  1909→      const treasury = { ...updated[wKey].treasury! }
+  1910→      if (bankVal > 0) {
+  1911→        treasury['بيع_البطاقة'] = { ...(treasury['بيع_البطاقة'] || { income: 0, expense: 0 }), expense: bankVal }
+  1912→      }
+  1913→      if (coupVal > 0 && branchName === 'بن غرسه') {
+  1914→        treasury['كوبونات'] = { ...(treasury['كوبونات'] || { income: 0, expense: 0 }), expense: coupVal }
+  1915→      }
+  1916→      updated[wKey] = { ...updated[wKey], treasury }
+  1917→
+  1918→      void saveWorkerExpData(branchId, date, updated[wKey])
+  1919→      return updated
+  1920→    })
+  1921→    setQuickBankCardSale('')
+  1922→    setQuickCoupons('')
+  1923→  }
+  1924→
+  1925→  const handleAddQuickExpense = () => {
+  1926→    const name = quickExpName.trim()
+  1927→    const amount = parseInt(quickExpAmount) || 0
+  1928→    if (!name || amount <= 0) return alert('الرجاء إدخال اسم المصروف وقيمته')
+  1929→    setQuickExpenses(prev => [...prev, { name, amount }])
+  1930→    setQuickExpName('')
+  1931→    setQuickExpAmount('')
+  1932→  }
+  1933→
+  1934→  const handleRemoveQuickExpense = (idx: number) => {
+  1935→    setQuickExpenses(prev => prev.filter((_, i) => i !== idx))
+  1936→  }
+  1937→
+  1938→  const handleSaveQuickExpenses = (branchId: string, branchName: string, date: string) => {
+  1939→    // منع الموظف إذا الفرع مقفل
+  1940→    if (!isAdminMode && user?.role !== 'admin' && isDayClosedForBranch(date, branchId)) {
+  1941→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل البيانات')
+  1942→    }
+  1943→    if (quickExpenses.length === 0) return
+  1944→    const wKey = branchName + '_' + date
+  1945→
+  1946→    setWorkerExpData(prev => {
+  1947→      const updated = { ...prev }
+  1948→      if (!updated[wKey]) updated[wKey] = {}
+  1949→      if (!updated[wKey].treasury) updated[wKey].treasury = {}
+  1950→
+  1951→      const treasury = { ...updated[wKey].treasury! }
+  1952→      quickExpenses.forEach(exp => {
+  1953→        const key = 'مصروف_' + exp.name
+  1954→        const existing = treasury[key] || { income: 0, expense: 0 }
+  1955→        treasury[key] = { ...existing, expense: (existing.expense || 0) + exp.amount }
+  1956→      })
+  1957→      updated[wKey] = { ...updated[wKey], treasury }
+  1958→
+  1959→      void saveWorkerExpData(branchId, date, updated[wKey])
+  1960→      return updated
+  1961→    })
+  1962→    setQuickExpenses([])
+  1963→  }
+  1964→
+  1965→  const handleSaveQuickRecord = async (branchId: string, empDate: string) => {
+  1966→    const amount = parseInt(qRecordAmount) || 0
+  1967→    if (!qEmpId || amount <= 0) return alert('اختر الموظف وأدخل المبلغ')
+  1968→    // منع الموظف إذا الفرع مقفل
+  1969→    if (!isAdminMode && user?.role !== 'admin' && isDayClosedForBranch(empDate, branchId)) {
+  1970→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك إضافة حركات')
+  1971→    }
+  1972→    try {
+  1973→      setSaving(true)
+  1974→      const res = await fetch('/api/records', {
+  1975→        method: 'POST',
+  1976→        headers: { 'Content-Type': 'application/json' },
+  1977→        body: JSON.stringify({
+  1978→          empId: qEmpId,
+  1979→          type: qRecordType,
+  1980→          amount,
+  1981→          note: qRecordNote,
+  1982→          date: empDate,
+  1983→          branchId
+  1984→        })
+  1985→      })
+  1986→      if (res.ok) {
+  1987→        setQEmpId('')
+  1988→        setQRecordAmount('')
+  1989→        setQRecordNote('')
+  1990→        setSelectedRoom('')
+  1991→        await loadRecords({ date: empDate }, true)
+  1992→        alert(qRecordType === 'withdrawal' ? '✅ تم تسجيل السحب' : '✅ تم تسجيل العجز')
+  1993→      }
+  1994→    } catch (e) {
+  1995→      console.error(e)
+  1996→      alert('حدث خطأ أثناء الحفظ')
+  1997→    } finally {
+  1998→      setSaving(false)
+  1999→    }
+  2000→  }
+  2001→
+  2002→  const handleEditRecord = async (id: string, amount: number, empDate: string) => {
+  2003→    // منع الموظف من التعديل إذا الفرع مقفل
+  2004→    if (!isAdminMode && user?.role !== 'admin' && user?.branchId && isDayClosedForBranch(empDate, user?.branchId)) {
+  2005→      return alert('🔒 الفرع مقفل لهذا اليوم — لا يمكنك تعديل الحركات')
+  2006→    }
+  2007→    try {
+  2008→      const res = await fetch('/api/records', {
+  2009→        method: 'PUT',
+  2010→        headers: { 'Content-Type': 'application/json' },
+  2011→        body: JSON.stringify({ id, amount })
+  2012→      })
+  2013→      if (res.ok) {
+  2014→        await loadRecords({ date: empDate }, true)
+  2015→      }
+  2016→    } catch (e) { console.error(e) }
+  2017→  }
+  2018→
+  2019→  // ==================== BRANCH & EMPLOYEE MANAGEMENT ====================
+  2020→  const syncBranchConfigs = () => {
+  2021→    branches.forEach(b => {
+  2022→      if ((b as any).config) {
+  2023→        const cfg = (b as any).config as any
+  2024→        const rooms: string[] = []
+  2025→        for (let i = 1; i <= (cfg.rooms || 6); i++) rooms.push(`غرفة ${i}`)
+  2026→        if (cfg.hasMachine !== false) rooms.push('مكينة الغسيل')
+  2027→        BRANCH_ROOMS[b.name] = rooms
+  2028→        BRANCH_NET_DEDUCTION[b.name] = cfg.netDeduction ?? 0
+  2029→        if (cfg.machineNoDeduction && !MACHINE_NO_DEDUCTION_BRANCHES.includes(b.name)) {
+  2030→          MACHINE_NO_DEDUCTION_BRANCHES.push(b.name)
+  2031→        }
+  2032→        if (cfg.cleanliness) BRANCH_CLEANLINESS[b.name] = cfg.cleanliness
+  2033→        // إكسترا: إذا extraDisabled = true → أضف الفرع للقائمة
+  2034→        if (cfg.extraDisabled) {
+  2035→          if (!BRANCH_EXTRA_DISABLED.includes(b.name)) BRANCH_EXTRA_DISABLED.push(b.name)
+  2036→        } else {
+  2037→          BRANCH_EXTRA_DISABLED = BRANCH_EXTRA_DISABLED.filter(n => n !== b.name)
+  2038→        }
+  2039→      }
+  2040→    })
+  2041→  }
+  2042→
+  2043→  const handleCreateBranch = async () => {
+  2044→    if (!newBranchName.trim()) return alert('الرجاء كتابة اسم الفرع')
+  2045→    const config = {
+  2046→      rooms: newBranchRooms,
+  2047→      hasMachine: newBranchHasMachine,
+  2048→      netDeduction: newBranchNetDeduction,
+  2049→      machineNoDeduction: newBranchMachineNoDeduction,
+  2050→      extraDisabled: newBranchExtraDisabled,
+  2051→      cleanliness: newBranchCleanType === 'fixed'
+  2052→        ? { type: 'fixed', value: newBranchCleanValue }
+  2053→        : { type: 'select', options: newBranchCleanOptions.split(',').map(Number).filter(n => !isNaN(n)) }
+  2054→    }
+  2055→    try {
+  2056→      const res = await fetch('/api/branches', {
+  2057→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  2058→        body: JSON.stringify({ name: newBranchName.trim(), config })
+  2059→      })
+  2060→      if (res.ok) {
+  2061→        setShowBranchModal(false)
+  2062→        setNewBranchName('')
+  2063→        setNewBranchRooms(6)
+  2064→        setNewBranchHasMachine(true)
+  2065→        setNewBranchExtraDisabled(false)
+  2066→        setNewBranchNetDeduction(0)
+  2067→        setNewBranchMachineNoDeduction(false)
+  2068→        setNewBranchCleanType('select')
+  2069→        setNewBranchCleanValue(20)
+  2070→        setNewBranchCleanOptions('10,20')
+  2071→        await loadBranches()
+  2072→        syncBranchConfigs()
+  2073→      } else {
+  2074→        const data = await res.json()
+  2075→        alert(data.error || 'حدث خطأ')
+  2076→      }
+  2077→    } catch (e) { alert('حدث خطأ') }
+  2078→    autoBackup()
+  2079→  }
+  2080→
+  2081→  const handleDeleteBranch = async (id: string) => {
+  2082→    if (!confirm('هل أنت متأكد من حذف الفرع؟')) return
+  2083→    try {
+  2084→      await fetch(`/api/branches?id=${id}`, { method: 'DELETE' })
+  2085→      await loadBranches()
+  2086→      await loadEmployees()
+  2087→    } catch (e) { alert('حدث خطأ') }
+  2088→    autoBackup()
+  2089→  }
+  2090→
+  2091→  const handleToggleBranchExtra = async (branchId: string, branchName: string) => {
+  2092→    try {
+  2093→      const branch = branches.find(b => b.id === branchId)
+  2094→      if (!branch) return
+  2095→      const currentConfig = (branch as any).config || {}
+  2096→      const isCurrentlyDisabled = !!currentConfig.extraDisabled
+  2097→      const newConfig = { ...currentConfig, extraDisabled: !isCurrentlyDisabled }
+  2098→      const res = await fetch('/api/branches', {
+  2099→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  2100→        body: JSON.stringify({ id: branchId, config: newConfig })
+  2101→      })
+  2102→      if (res.ok) {
+  2103→        await loadBranches()
+  2104→        syncBranchConfigs()
+  2105→        logActivity('تعديل الإكسترا', 'إعدادات الفروع', `${!isCurrentlyDisabled ? 'إيقاف' : 'تفعيل'} الإكسترا لفرع ${branchName}`)
+  2106→      } else {
+  2107→        alert('حدث خطأ في تعديل الإكسترا')
+  2108→      }
+  2109→    } catch (e) { alert('حدث خطأ') }
+  2110→    autoBackup()
+  2111→  }
+  2112→
+  2113→  const handleOpenEditBranch = (branchId: string) => {
+  2114→    const branch = branches.find(b => b.id === branchId)
+  2115→    if (!branch) return
+  2116→    const cfg = (branch as any).config || {}
+  2117→    setEditBranch({
+  2118→      id: branch.id,
+  2119→      name: branch.name,
+  2120→      rooms: cfg.rooms || 6,
+  2121→      hasMachine: cfg.hasMachine !== false,
+  2122→      extraDisabled: cfg.extraDisabled || false,
+  2123→      netDeduction: cfg.netDeduction || 0,
+  2124→      machineNoDeduction: cfg.machineNoDeduction || false,
+  2125→      cleanType: cfg.cleanliness?.type || 'select',
+  2126→      cleanValue: cfg.cleanliness?.value || 20,
+  2127→      cleanOptions: cfg.cleanliness?.options ? cfg.cleanliness.options.join(',') : '10,20',
+  2128→    })
+  2129→    setShowEditBranchModal(true)
+  2130→  }
+  2131→
+  2132→  const handleSaveEditBranch = async () => {
+  2133→    if (!editBranch) return
+  2134→    const config = {
+  2135→      rooms: editBranch.rooms,
+  2136→      hasMachine: editBranch.hasMachine,
+  2137→      extraDisabled: editBranch.extraDisabled,
+  2138→      netDeduction: editBranch.netDeduction,
+  2139→      machineNoDeduction: editBranch.machineNoDeduction,
+  2140→      cleanliness: editBranch.cleanType === 'fixed'
+  2141→        ? { type: 'fixed', value: editBranch.cleanValue }
+  2142→        : { type: 'select', options: editBranch.cleanOptions.split(',').map(Number).filter(n => !isNaN(n)) }
+  2143→    }
+  2144→    try {
+  2145→      const res = await fetch('/api/branches', {
+  2146→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  2147→        body: JSON.stringify({ id: editBranch.id, config })
+  2148→      })
+  2149→      if (res.ok) {
+  2150→        setShowEditBranchModal(false)
+  2151→        setEditBranch(null)
+  2152→        await loadBranches()
+  2153→        syncBranchConfigs()
+  2154→        logActivity('تعديل إعدادات الفرع', 'إعدادات الفروع', `تعديل إعدادات فرع ${editBranch.name}`)
+  2155→      } else {
+  2156→        alert('حدث خطأ في تعديل الفرع')
+  2157→      }
+  2158→    } catch (e) { alert('حدث خطأ') }
+  2159→    autoBackup()
+  2160→  }
+  2161→
+  2162→  const handleCreateEmployee = async () => {
+  2163→    if (!newEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
+  2164→    if (newEmp.role !== 'viewer' && !newEmp.branchId && newEmp.multiBranchIds.length === 0) return alert('الرجاء اختيار الفرع')
+  2165→    if (newEmp.hasLogin && !newEmp.password.trim()) return alert('الرجاء إدخال رمز المرور')
+  2166→    try {
+  2167→      const res = await fetch('/api/employees', {
+  2168→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  2169→        body: JSON.stringify(newEmp)
+  2170→      })
+  2171→      if (res.ok) {
+  2172→        setShowEmpModal(false)
+  2173→        setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false, startDate: '', endDate: '', multiBranchIds: [] as string[] })
+  2174→        await loadEmployees()
+  2175→        await loadBranches()
+  2176→      } else { alert('حدث خطأ') }
+  2177→    } catch (e) { alert('حدث خطأ') }
+  2178→    autoBackup()
+  2179→  }
+  2180→
+  2181→  const handleSaveEditEmployee = async () => {
+  2182→    if (!editEmp) return
+  2183→    if (!editEmp.name.trim()) return alert('الرجاء كتابة اسم الموظف')
+  2184→    if (editEmp.hasLogin && !editEmp.password?.trim()) return alert('الرجاء إدخال رمز المرور')
+  2185→    try {
+  2186→      const body: any = {
+  2187→        id: editEmp.id,
+  2188→        name: editEmp.name.trim(),
+  2189→        shift: editEmp.shift,
+  2190→        role: editEmp.role,
+  2191→        hasLogin: editEmp.hasLogin,
+  2192→        startDate: editEmp.startDate || '',
+  2193→        endDate: editEmp.endDate || '',
+  2194→        branchId: editEmp.branchId,
+  2195→        multiBranchIds: editEmp.multiBranchIds || [],
+  2196→      }
+  2197→      if (editEmp.hasLogin && editEmp.password?.trim()) {
+  2198→        body.password = editEmp.password.trim()
+  2199→      }
+  2200→      const res = await fetch('/api/employees', {
+  2201→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  2202→        body: JSON.stringify(body)
+  2203→      })
+  2204→      if (res.ok) {
+  2205→        setShowEditEmpModal(false)
+  2206→        setEditEmp(null)
+  2207→        await loadEmployees()
+  2208→      } else {
+  2209→        const err = await res.json().catch(() => ({}))
+  2210→        alert('خطأ: ' + (err.error || 'غير معروف'))
+  2211→      }
+  2212→    } catch (e: any) { alert('خطأ: ' + (e.message || 'غير معروف')) }
+  2213→    autoBackup()
+  2214→  }
+  2215→
+  2216→  const handleDeleteEmployee = async (id: string, name?: string) => {
+  2217→    const displayName = name || 'هذا الموظف'
+  2218→    if (!confirm(`⚠️ سيتم حذف "${displayName}" لكن تبقى جميع حركاته مسجلة في النظام.
+  2219→
+  2220→هل أنت متأكد؟`)) return
+  2221→    try {
+  2222→      await fetch(`/api/employees?id=${id}&keepRecords=true`, { method: 'DELETE' })
+  2223→      await loadEmployees()
+  2224→      await loadBranches()
+  2225→    } catch (e) { alert('حدث خطأ') }
+  2226→    autoBackup()
+  2227→  }
+  2228→
+  2229→  // ==================== PASSWORD MANAGEMENT ====================
+  2230→  const handleSaveEmpPassword = async (empId: string) => {
+  2231→    const pwd = empPasswords[empId]
+  2232→    if (!pwd?.trim()) return alert('الرجاء إدخال كلمة المرور')
+  2233→    try {
+  2234→      await fetch('/api/employees', {
+  2235→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  2236→        body: JSON.stringify({ id: empId, password: pwd.trim() })
+  2237→      })
+  2238→      alert('تم تحديث كلمة المرور')
+  2239→      await loadEmployees()
+  2240→    } catch (e) { alert('حدث خطأ') }
+  2241→    autoBackup()
+  2242→  }
+  2243→
+  2244→  const handleSaveAdminPassword = async () => {
+  2245→    if (!adminPassword.trim()) return alert('الرجاء إدخال كلمة المرور')
+  2246→    try {
+  2247→      await fetch('/api/admin/password', {
+  2248→        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  2249→        body: JSON.stringify({ password: adminPassword.trim() })
+  2250→      })
+  2251→      alert('تم تحديث كلمة مرور المسؤول')
+  2252→      setAdminPassword('')
+  2253→    } catch (e) { alert('حدث خطأ') }
+  2254→    autoBackup()
+  2255→  }
+  2256→
+  2257→  // ==================== DAILY CLOSING ====================
+  2258→  const isDayClosedForBranch = (date: string, branchId: string) => {
+  2259→    return closedDays.some(cd => cd.date === date && cd.branchId === branchId)
+  2260→  }
+  2261→
+  2262→  const isDayClosed = (date: string) => {
+  2263→    if (!date) return false
+  2264→    return branches.length > 0 && branches.every(b => isDayClosedForBranch(date, b.id))
+  2265→  }
+  2266→
+  2267→  const handleToggleDayClosing = async () => {
+  2268→    const allClosed = isDayClosed(adminDate)
+  2269→    if (allClosed) {
+  2270→      logActivity('إعادة فتح الإغلاق اليومي', 'الإغلاق اليومي', `إعادة فتح كل الفروع - التاريخ: ${adminDate}`)
+  2271→      for (const b of branches) {
+  2272→        await fetch('/api/closed-days', {
+  2273→          method: 'POST', headers: { 'Content-Type': 'application/json' },
+  2274→          body: JSON.stringify({ date: adminDate, branchId: b.id })
+  2275→        })
+  2276→      }
+  2277→    } else {
+  2278→      logActivity('إغلاق يومي', 'الإغلاق اليومي', `إغلاق كل الفروع - التاريخ: ${adminDate}`)
+  2279→      for (const b of branches) {
+  2280→        if (!isDayClosedForBranch(adminDate, b.id)) {
+  2281→          await fetch('/api/closed-days', {
+  2282→            method: 'POST', headers: { 'Content-Type': 'application/json' },
+  2283→            body: JSON.stringify({ date: adminDate, branchId: b.id })
+  2284→          })
+  2285→        }
+  2286→      }
+  2287→    }
+  2288→    await loadClosedDays(adminDate)
+  2289→  }
+  2290→
+  2291→  // قفل/فتح فرع واحد
+  2292→  const handleToggleBranchClose = async (branchId: string, branchName: string) => {
+  2293→    const isClosed = isDayClosedForBranch(adminDate, branchId)
+  2294→    const todayCarEntries = adminCarEntries.filter(e => e.branchId === branchId && e.date === adminDate)
+  2295→    const hasData = todayCarEntries.length > 0
+  2296→
+  2297→    if (!isClosed) {
+  2298→      // قفل الفرع
+  2299→      if (!hasData) {
+  2300→        const confirmClose = confirm(`⚠️ الفرع "${branchName}" لم يدخل بيانات اليوم!\n\nهل تريد الإغلاق مع ذلك؟`)
+  2301→        if (!confirmClose) return
+  2302→      }
+  2303→      await fetch('/api/closed-days', {
+  2304→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  2305→        body: JSON.stringify({ date: adminDate, branchId })
+  2306→      })
+  2307→      logActivity('قفل فرع', 'الإغلاق اليومي', `قفل فرع ${branchName}${!hasData ? ' - ⚠️ بدون بيانات' : ''} - التاريخ: ${adminDate}`)
+  2308→    } else {
+  2309→      // فتح الفرع
+  2310→      if (!confirm(`هل تريد إعادة فتح فرع "${branchName}"؟\nسيتمكن الموظف من تعديل البيانات`)) return
+  2311→      await fetch('/api/closed-days', {
+  2312→        method: 'POST', headers: { 'Content-Type': 'application/json' },
+  2313→        body: JSON.stringify({ date: adminDate, branchId })
+  2314→      })
+  2315→      logActivity('فتح فرع', 'الإغلاق اليومي', `إعادة فتح فرع ${branchName} - التاريخ: ${adminDate}`)
+  2316→    }
+  2317→    await loadClosedDays(adminDate)
+  2318→  }
+  2319→
+  2320→  // ==================== PDF EXPORT ====================
+  2321→  // Helper: fetch worker expenses (cleanliness + treasury) for a date+branch
+  2322→  const fetchWorkerExpData = async (date: string, branchId: string, branchName: string): Promise<{ cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }> => {
+  2323→    try {
+  2324→      const params = new URLSearchParams()
+  2325→      params.set('date', date)
+  2326→      params.set('branchId', branchId)
+  2327→      const res = await fetch(`/api/worker-expenses?${params}`)
+  2328→      if (res.ok) {
+  2329→        const data = await res.json()
+  2330→        if (data.length > 0 && data[0].jsonData) {
+  2331→          return data[0].jsonData as { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }
+  2332→        }
+  2333→      }
+  2334→    } catch (e) { console.error('fetchWorkerExpData error:', e) }
+  2335→    return {}
+  2336→  }
+  2337→
+  2338→  // Helper: render HTML in a clean iframe (no Tailwind CSS interference) and capture with html2canvas
+  2339→  const renderHtmlToCanvas = async (html: string, width: number): Promise<HTMLCanvasElement> => {
+  2340→    const html2canvasModule = await import('html2canvas')
+  2341→    const html2canvas = html2canvasModule.default
+  2342→    
+  2343→    // Create a hidden iframe with clean styles
+  2344→    const iframe = document.createElement('iframe')
+  2345→    iframe.style.position = 'fixed'
+  2346→    iframe.style.top = '-99999px'
+  2347→    iframe.style.left = '-99999px'
+  2348→    iframe.style.width = width + 'px'
+  2349→    iframe.style.height = '3000px'
+  2350→    iframe.style.border = 'none'
+  2351→    document.body.appendChild(iframe)
+  2352→    
+  2353→    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+  2354→    if (!iframeDoc) throw new Error('Could not create iframe document')
+  2355→    
+  2356→    // Write clean HTML with only our inline styles and Cairo font
+  2357→    iframeDoc.open()
+  2358→    iframeDoc.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"><style>* { margin: 0; padding: 0; box-sizing: border-box; color: #000; } body { font-family: Cairo, sans-serif; direction: rtl; background: #fff; } table { font-family: Cairo, sans-serif; } td, th { direction: rtl; unicode-bidi: isolate; }</style></head><body>' + html + '</body></html>')
+  2359→    iframeDoc.close()
+  2360→    
+  2361→    // Wait for fonts to load
+  2362→    try { await (iframeDoc as any).fonts?.ready } catch(e) {}
+  2363→    await new Promise(r => setTimeout(r, 800))
+  2364→    
+  2365→    const iframeBody = iframeDoc.body
+  2366→    const canvas = await html2canvas(iframeBody, { 
+  2367→      scale: 1.5, 
+  2368→      backgroundColor: '#ffffff', 
+  2369→      useCORS: true,
+  2370→      logging: false,
+  2371→      width: width,
+  2372→      windowWidth: width,
+  2373→      imageTimeout: 0,
+  2374→      removeContainer: true
+  2375→    })
+  2376→    
+  2377→    document.body.removeChild(iframe)
+  2378→    return canvas
+  2379→  }
+  2380→
+  2381→  const handleExportPDF = async () => {
+  2382→    setExporting(true)
+  2383→    try {
+  2384→      // Determine dates to export
+  2385→      let dates: string[] = []
+  2386→
+  2387→      if (exportRangeType === 'month') {
+  2388→        if (!exportMonth) { setExporting(false); return alert('الرجاء اختيار الشهر') }
+  2389→        const [yearStr, monthStr] = exportMonth.split('-')
+  2390→        const year = parseInt(yearStr)
+  2391→        const month = parseInt(monthStr)
+  2392→        const daysInMonth = new Date(year, month, 0).getDate()
+  2393→        for (let d = 1; d <= daysInMonth; d++) {
+  2394→          const mm = month < 10 ? '0' + month : '' + month
+  2395→          const dd = d < 10 ? '0' + d : '' + d
+  2396→          dates.push(`${year}-${mm}-${dd}`)
+  2397→        }
+  2398→      } else if (exportRangeType === 'day') {
+  2399→        if (!exportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+  2400→        dates.push(exportDay)
+  2401→      } else {
+  2402→        if (!exportFrom || !exportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+  2403→        const start = new Date(exportFrom)
+  2404→        const end = new Date(exportTo)
+  2405→        const curr = new Date(start)
+  2406→        while (curr <= end) {
+  2407→          dates.push(curr.toISOString().split('T')[0])
+  2408→          curr.setDate(curr.getDate() + 1)
+  2409→        }
+  2410→      }
+  2411→
+  2412→      if (dates.length === 0) { setExporting(false); return }
+  2413→
+  2414→      // Load jsPDF dynamically
+  2415→      const jspdfModule = await import('jspdf')
+  2416→      const jsPDF = jspdfModule.default
+  2417→
+  2418→      // Create a single PDF for all dates
+  2419→      const pdf = new jsPDF('p', 'mm', 'a4')
+  2420→      const pageWidth = pdf.internal.pageSize.getWidth()
+  2421→      let firstPage = true
+  2422→      let exportedCount = 0
+  2423→
+  2424→      for (const date of dates) {
+  2425→        // Fetch car entries for this date
+  2426→        const params = new URLSearchParams()
+  2427→        params.set('date', date)
+  2428→        const res = await fetch(`/api/car-entries?${params}`)
+  2429→        const dateEntries: CarEntry[] = res.ok ? await res.json() : []
+  2430→
+  2431→        if (dateEntries.length === 0) {
+  2432→          // Generate "no data" page
+  2433→          const noDataHtml = '<div style="width:780px;color:#000000;padding:40px;font-family:Cairo,sans-serif;text-align:center;" dir="rtl">' +
+  2434→            '<h1 style="font-size:18px;margin:0;color:#000000;">مغسلة جيت كلين</h1>' +
+  2435→            '<p style="font-size:12px;color:#000000;margin:4px 0 0 0;">التاريخ: ' + formatDateShort(date) + '</p>' +
+  2436→            '<h2 style="font-size:20px;color:#000000;margin-top:60px;">لا توجد بيانات في ' + formatDateShort(date) + '</h2>' +
+  2437→            '</div>'
+  2438→
+  2439→          const canvas = await renderHtmlToCanvas(noDataHtml, 800)
+  2440→          const imgHeight = (canvas.height * pageWidth) / canvas.width
+  2441→
+  2442→          if (!firstPage) pdf.addPage()
+  2443→          firstPage = false
+  2444→          pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
+  2445→          exportedCount++
+  2446→          continue
+  2447→        }
+  2448→
+  2449→        // Group entries by branch
+  2450→        const branchGroups: Record<string, CarEntry[]> = {}
+  2451→        dateEntries.forEach(e => {
+  2452→          if (!branchGroups[e.branchId]) branchGroups[e.branchId] = []
+  2453→          branchGroups[e.branchId].push(e)
+  2454→        })
+  2455→
+  2456→        for (const bid in branchGroups) {
+  2457→          const br = branches.find(b => b.id === bid)
+  2458→          const bName = br ? br.name : ''
+  2459→          const bEntries = branchGroups[bid]
+  2460→
+  2461→          // Fetch worker expenses (treasury + cleanliness) for this date+branch
+  2462→          const weData = await fetchWorkerExpData(date, bid, bName)
+  2463→          const savedWEMap: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }> = {}
+  2464→          savedWEMap[bName + '_' + date] = weData
+  2465→
+  2466→          const pages = buildCarReportHTML(date, bid, bName, bEntries, savedWEMap)
+  2467→
+  2468→          // Render all pages
+  2469→          for (let pi = 0; pi < pages.length; pi++) {
+  2470→            const canvas = await renderHtmlToCanvas(pages[pi], 800)
+  2471→            const imgHeight = (canvas.height * pageWidth) / canvas.width
+  2472→
+  2473→            if (!firstPage) pdf.addPage()
+  2474→            firstPage = false
+  2475→            pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
+  2476→          }
+  2477→          exportedCount++
+  2478→        }
+  2479→      }
+  2480→
+  2481→      if (exportedCount > 0) {
+  2482→        pdf.save('تقرير_مغاسل_جيت_كلين.pdf')
+  2483→        setShowExportModal(false)
+  2484→        alert('تم التصدير بنجاح! (' + exportedCount + ' صفحة)')
+  2485→      } else {
+  2486→        alert('لا توجد بيانات للتصدير في الفترة المحددة')
+  2487→      }
+  2488→    } catch (err: any) {
+  2489→      console.error('PDF Export Error:', err?.message, err?.stack)
+  2490→      alert('حدث خطأ أثناء التصدير: ' + (err?.message || ''))
+  2491→    }
+  2492→    setExporting(false)
+  2493→  }
+  2494→
+  2495→  // ==================== EMPLOYEE PDF EXPORT (WITHDRAWALS/SHORTAGES) ====================
+  2496→  const handleExportEmployeePDF = async () => {
+  2497→    setExportingEmp(true)
+  2498→    try {
+  2499→      // Load jsPDF dynamically
+  2500→      const jspdfModule = await import('jspdf')
+  2501→      const jsPDF = jspdfModule.default
+  2502→
+  2503→      // Determine dates - default to current month if no export range set
+  2504→      let dates: string[] = []
+  2505→      const now = new Date()
+  2506→      if (exportRangeType === 'month' && exportMonth) {
+  2507→        const [yearStr, monthStr] = exportMonth.split('-')
+  2508→        const year = parseInt(yearStr)
+  2509→        const month = parseInt(monthStr)
+  2510→        const daysInMonth = new Date(year, month, 0).getDate()
+  2511→        for (let d = 1; d <= daysInMonth; d++) {
+  2512→          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+  2513→        }
+  2514→      } else if (exportRangeType === 'day' && exportDay) {
+  2515→        dates.push(exportDay)
+  2516→      } else if (exportFrom && exportTo) {
+  2517→        const start = new Date(exportFrom)
+  2518→        const end = new Date(exportTo)
+  2519→        const curr = new Date(start)
+  2520→        while (curr <= end) {
+  2521→          dates.push(curr.toISOString().split('T')[0])
+  2522→          curr.setDate(curr.getDate() + 1)
+  2523→        }
+  2524→      }
+  2525→
+  2526→      // Default to current month if no range was set
+  2527→      if (dates.length === 0) {
+  2528→        const year = now.getFullYear()
+  2529→        const month = now.getMonth() + 1
+  2530→        const daysInMonth = new Date(year, month, 0).getDate()
+  2531→        for (let d = 1; d <= daysInMonth; d++) {
+  2532→          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+  2533→        }
+  2534→      }
+  2535→
+  2536→      if (dates.length === 0) { setExportingEmp(false); return }
+  2537→
+  2538→      // Fetch all records for all dates
+  2539→      const allRecordsRes = await fetch('/api/records')
+  2540→      const allRecordsData: FinancialRecord[] = allRecordsRes.ok ? await allRecordsRes.json() : []
+  2541→
+  2542→      // Build period label
+  2543→      const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+  2544→      let periodLabel = ''
+  2545→      if (exportRangeType === 'month' && exportMonth) {
+  2546→        const [y, m] = exportMonth.split('-')
+  2547→        periodLabel = arabicMonths[parseInt(m) - 1] + ' ' + y
+  2548→      } else if (exportRangeType === 'day' && exportDay) {
+  2549→        periodLabel = formatDateShort(exportDay)
+  2550→      } else if (exportFrom && exportTo) {
+  2551→        periodLabel = formatDateShort(exportFrom) + ' إلى ' + formatDateShort(exportTo)
+  2552→      } else {
+  2553→        periodLabel = arabicMonths[now.getMonth()] + ' ' + now.getFullYear()
+  2554→      }
+  2555→
+  2556→      // Filter records to only those within the date range
+  2557→      const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
+  2558→
+  2559→      // Fetch fresh employees (including multi-branch)
+  2560→      const empsRes = await fetch('/api/employees')
+  2561→      const freshEmployees: Employee[] = empsRes.ok ? await empsRes.json() : []
+  2562→
+  2563→      // Build the report HTML pages
+  2564→      const reportPages = buildEmployeeReportHTML(
+  2565→        periodLabel,
+  2566→        freshEmployees,
+  2567→        filteredRecords,
+  2568→        branches,
+  2569→        (r: FinancialRecord) => dates.includes(r.date)
+  2570→      )
+  2571→
+  2572→      // Create PDF with proper pages
+  2573→      const pdf = new jsPDF('p', 'mm', 'a4')
+  2574→      const pageWidth = pdf.internal.pageSize.getWidth()
+  2575→
+  2576→      for (let i = 0; i < reportPages.length; i++) {
+  2577→        const canvas = await renderHtmlToCanvas(reportPages[i], 800)
+  2578→        const imgHeight = (canvas.height * pageWidth) / canvas.width
+  2579→        if (i > 0) pdf.addPage()
+  2580→        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
+  2581→      }
+  2582→
+  2583→      pdf.save('تقرير_سحوبات_وعجوزات_الموظفين.pdf')
+  2584→      setShowExportModal(false)
+  2585→      alert('تم تصدير تقرير السحوبات والعجوزات بنجاح!')
+  2586→    } catch (err: any) {
+  2587→      console.error('Emp PDF Error:', err?.message, err?.stack)
+  2588→      alert('حدث خطأ أثناء تصدير تقرير الموظفين: ' + (err?.message || ''))
+  2589→    }
+  2590→    setExportingEmp(false)
+  2591→  }
+  2592→
+  2593→  // ==================== QUICK EMPLOYEE MONTHLY REPORT (from dropdown) ====================
+  2594→  const handleQuickEmployeeReport = async () => {
+  2595→    setExporting(true)
+  2596→    setShowEmpReportModal(false)
+  2597→    try {
+  2598→      let dates: string[] = []
+  2599→      let periodLabel = ''
+  2600→
+  2601→      if (empReportRange === 'month') {
+  2602→        if (!empReportMonth) { setExporting(false); return alert('الرجاء اختيار الشهر') }
+  2603→        const [yStr, mStr] = empReportMonth.split('-')
+  2604→        const year = parseInt(yStr)
+  2605→        const month = parseInt(mStr)
+  2606→        const daysInMonth = new Date(year, month, 0).getDate()
+  2607→        for (let d = 1; d <= daysInMonth; d++) {
+  2608→          dates.push(year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0'))
+  2609→        }
+  2610→        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+  2611→        periodLabel = arabicMonths[month - 1] + ' ' + year
+  2612→      } else if (empReportRange === 'day') {
+  2613→        if (!empReportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+  2614→        dates.push(empReportDay)
+  2615→        periodLabel = formatDateShort(empReportDay)
+  2616→      } else {
+  2617→        if (!empReportFrom || !empReportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+  2618→        const start = new Date(empReportFrom)
+  2619→        const end = new Date(empReportTo)
+  2620→        const curr = new Date(start)
+  2621→        while (curr <= end) {
+  2622→          dates.push(curr.toISOString().split('T')[0])
+  2623→          curr.setDate(curr.getDate() + 1)
+  2624→        }
+  2625→        periodLabel = formatDateShort(empReportFrom) + ' إلى ' + formatDateShort(empReportTo)
+  2626→      }
+  2627→
+  2628→      if (dates.length === 0) { setExporting(false); return }
+  2629→
+  2630→      const allRecordsRes = await fetch('/api/records')
+  2631→      const allRecordsData: FinancialRecord[] = allRecordsRes.ok ? await allRecordsRes.json() : []
+  2632→      const filteredRecords = allRecordsData.filter(r => dates.includes(r.date))
+  2633→
+  2634→      // Fetch fresh employees (including multi-branch)
+  2635→      const empsRes = await fetch('/api/employees')
+  2636→      const freshEmployees: Employee[] = empsRes.ok ? await empsRes.json() : []
+  2637→
+  2638→      const reportPages = buildEmployeeReportHTML(
+  2639→        periodLabel,
+  2640→        freshEmployees,
+  2641→        filteredRecords,
+  2642→        branches,
+  2643→        (r: FinancialRecord) => dates.includes(r.date)
+  2644→      )
+  2645→
+  2646→      const jspdfModule = await import('jspdf')
+  2647→      const jsPDF = jspdfModule.default
+  2648→      const pdf = new jsPDF('p', 'mm', 'a4')
+  2649→      const pageWidth = pdf.internal.pageSize.getWidth()
+  2650→
+  2651→      for (let i = 0; i < reportPages.length; i++) {
+  2652→        const canvas = await renderHtmlToCanvas(reportPages[i], 800)
+  2653→        const imgHeight = (canvas.height * pageWidth) / canvas.width
+  2654→        if (i > 0) pdf.addPage()
+  2655→        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
+  2656→      }
+  2657→
+  2658→      pdf.save('تقرير_مصاريف_الموظفين_' + periodLabel + '.pdf')
+  2659→      alert('تم تصدير تقرير مصاريف الموظفين بنجاح!')
+  2660→    } catch (err: any) {
+  2661→      console.error('Quick Emp Report Error:', err?.message, err?.stack)
+  2662→      alert('حدث خطأ أثناء التصدير: ' + (err?.message || ''))
+  2663→    }
+  2664→    setExporting(false)
+  2665→  }
+  2666→
+  2667→  // ==================== BRANCH EXPENSES PDF EXPORT ====================
+  2668→  const handleExportExpensesPDF = async () => {
+  2669→    setExporting(true)
+  2670→    try {
+  2671→      if (!expReportBranchId) { setExporting(false); return alert('الرجاء اختيار الفرع') }
+  2672→
+  2673→      const branch = branches.find(b => b.id === expReportBranchId)
+  2674→      const branchName = branch ? branch.name : ''
+  2675→
+  2676→      // Calculate dates
+  2677→      const dates: string[] = []
+  2678→      let periodLabel = ''
+  2679→
+  2680→      if (expReportPeriod === 'day') {
+  2681→        if (!expReportDay) { setExporting(false); return alert('الرجاء اختيار اليوم') }
+  2682→        dates.push(expReportDay)
+  2683→        periodLabel = formatDateShort(expReportDay)
+  2684→      } else if (expReportPeriod === 'range') {
+  2685→        if (!expReportFrom || !expReportTo) { setExporting(false); return alert('الرجاء تحديد الفترة') }
+  2686→        const start = new Date(expReportFrom)
+  2687→        const end = new Date(expReportTo)
+  2688→        const cur = new Date(start)
+  2689→        while (cur <= end) {
+  2690→          dates.push(cur.toISOString().split('T')[0])
+  2691→          cur.setDate(cur.getDate() + 1)
+  2692→        }
+  2693→        periodLabel = formatDateShort(expReportFrom) + ' إلى ' + formatDateShort(expReportTo)
+  2694→      } else {
+  2695→        const [y, m] = expReportMonth.split('-').map(Number)
+  2696→        const daysInMonth = new Date(y, m, 0).getDate()
+  2697→        for (let d = 1; d <= daysInMonth; d++) {
+  2698→          dates.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`)
+  2699→        }
+  2700→        const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+  2701→        periodLabel = monthNames[m - 1] + ' ' + y
+  2702→      }
+  2703→
+  2704→      // Fetch worker expenses for all dates
+  2705→      const allExpenses: { date: string; name: string; amount: number }[] = []
+  2706→      const allRecords: { date: string; empName: string; type: string; amount: number }[] = []
+  2707→
+  2708→      for (const date of dates) {
+  2709→        // Worker expenses (treasury)
+  2710→        const weRes = await fetch(`/api/worker-expenses?date=${date}&branchId=${expReportBranchId}`, { cache: 'no-store' })
+  2711→        if (weRes.ok) {
+  2712→          const weData = await weRes.json()
+  2713→          for (const item of weData) {
+  2714→            const treas = item.jsonData?.treasury || {}
+  2715→            for (const [key, val] of Object.entries(treas)) {
+  2716→              if (key.startsWith('مصروف_') && val && typeof val === 'object' && 'expense' in val) {
+  2717→                allExpenses.push({ date, name: key.replace('مصروف_', ''), amount: (val as any).expense || 0 })
+  2718→              }
+  2719→            }
+  2720→          }
+  2721→        }
+  2722→        // Financial records (withdrawals/shortages)
+  2723→        const recRes = await fetch(`/api/records?date=${date}&branchId=${expReportBranchId}`, { cache: 'no-store' })
+  2724→        if (recRes.ok) {
+  2725→          const recData = await recRes.json()
+  2726→          for (const r of recData) {
+  2727→            allRecords.push({ date, empName: r.employee?.name || '', type: r.type, amount: r.amount })
+  2728→          }
+  2729→        }
+  2730→      }
+  2731→
+  2732→      const totalExpAmount = allExpenses.reduce((s, e) => s + e.amount, 0)
+  2733→      const totalRecAmount = allRecords.reduce((s, r) => s + r.amount, 0)
+  2734→
+  2735→      // Build PDF HTML pages
+  2736→      const pages: string[] = []
+  2737→
+  2738→      // Page 1: Expenses summary
+  2739→      let rowsHtml = ''
+  2740→      let rowNum = 0
+  2741→      let prevDate = ''
+  2742→      const grouped: Record<string, { name: string; amount: number }[]> = {}
+  2743→      allExpenses.forEach(e => {
+  2744→        if (!grouped[e.date]) grouped[e.date] = []
+  2745→        grouped[e.date].push(e)
+  2746→      })
+  2747→
+  2748→      for (const date of dates) {
+  2749→        const dayExps = grouped[date] || []
+  2750→        if (dayExps.length === 0) continue
+  2751→        if (date !== prevDate) {
+  2752→          const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
+  2753→          rowsHtml += '<tr style="color:#000000;">' +
+  2754→            '<td colspan="2" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
+  2755→            '<td style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + dayTotal + ' د.ل</td>' +
+  2756→            '</tr>'
+  2757→          dayExps.forEach(exp => {
+  2758→            rowNum++
+  2759→            rowsHtml += '<tr style="">' +
+  2760→              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#000000;">' + (rowNum) + '</td>' +
+  2761→              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + exp.name + '</td>' +
+  2762→              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + exp.amount + ' د.ل</td>' +
+  2763→              '</tr>'
+  2764→          })
+  2765→          prevDate = date
+  2766→        }
+  2767→      }
+  2768→
+  2769→      pages.push(
+  2770→        '<div style="width:780px;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+  2771→        '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
+  2772→        '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
+  2773→        '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير مصروفات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
+  2774→        '</div>' +
+  2775→        '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">📋 المصروفات</h2>' +
+  2776→        (rowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
+  2777→        '<tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">م</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">البيان</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
+  2778→        rowsHtml +
+  2779→        '<tr style="color:#000000;"><td colspan="2" style="padding:10px 12px;border:1px solid #991b1b;font-size:13px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:10px 12px;border:1px solid #991b1b;font-size:15px;font-weight:bold;text-align:center;">' + totalExpAmount + ' د.ل</td></tr>' +
+  2780→        '</table>' : '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد مصروفات في هذه الفترة</p>') +
+  2781→        '</div>'
+  2782→      )
+  2783→
+  2784→      // Page 2: Withdrawals & Shortages
+  2785→      let recRowsHtml = ''
+  2786→      const groupedRec: Record<string, { empName: string; type: string; amount: number }[]> = {}
+  2787→      allRecords.forEach(r => {
+  2788→        if (!groupedRec[r.date]) groupedRec[r.date] = []
+  2789→        groupedRec[r.date].push(r)
+  2790→      })
+  2791→      const totalWithdrawals = allRecords.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+  2792→      const totalShortages = allRecords.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+  2793→
+  2794→      for (const date of dates) {
+  2795→        const dayRecs = groupedRec[date] || []
+  2796→        if (dayRecs.length === 0) continue
+  2797→        recRowsHtml += '<tr style="color:#000000;">' +
+  2798→          '<td colspan="3" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
+  2799→          '</tr>'
+  2800→        dayRecs.forEach(rec => {
+  2801→          const isWithdrawal = rec.type === 'withdrawal'
+  2802→          recRowsHtml += '<tr style="">' +
+  2803→            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + rec.empName + '</td>' +
+  2804→            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#000000;background:' + (isWithdrawal ? '#d97706' : '#dc2626') + ';">' + (isWithdrawal ? '💰 سحب' : '⚠️ عجز') + '</td>' +
+  2805→            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + rec.amount + ' د.ل</td>' +
+  2806→            '</tr>'
+  2807→        })
+  2808→      }
+  2809→
+  2810→      pages.push(
+  2811→        '<div style="width:780px;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
+  2812→        '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
+  2813→        '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
+  2814→        '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير سحوبات وعجوزات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
+  2815→        '</div>' +
+  2816→        '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">💰 السحوبات والعجوزات</h2>' +
+  2817→        (recRowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
+  2818→        '<tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">الموظف</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">النوع</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
+  2819→        recRowsHtml +
+  2820→        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b45309;font-size:13px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b45309;font-size:15px;font-weight:bold;text-align:center;">' + totalWithdrawals + ' د.ل</td></tr>' +
+  2821→        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b91c1c;font-size:13px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b91c1c;font-size:15px;font-weight:bold;text-align:center;">' + totalShortages + ' د.ل</td></tr>' +
+  2822→        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #020617;font-size:13px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:10px 12px;border:1px solid #020617;font-size:17px;font-weight:bold;text-align:center;">' + totalRecAmount + ' د.ل</td></tr>' +
+  2823→        '</table>' : '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>') +
+  2824→        '</div>'
+  2825→      )
+  2826→
+  2827→      // Generate PDF
+  2828→      const jspdfModule = await import('jspdf')
+  2829→      const jsPDF = jspdfModule.default
+  2830→      const pdf = new jsPDF('p', 'mm', 'a4')
+  2831→      const pageWidth = pdf.internal.pageSize.getWidth()
+  2832→
+  2833→      for (let i = 0; i < pages.length; i++) {
+  2834→        const canvas = await renderHtmlToCanvas(pages[i], 800)
+  2835→        const imgHeight = (canvas.height * pageWidth) / canvas.width
+  2836→        if (i > 0) pdf.addPage()
+  2837→        pdf.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pageWidth, imgHeight)
+  2838→      }
+  2839→
+  2840→      pdf.save('تقرير_مصروفات_' + branchName + '_' + periodLabel + '.pdf')
+  2841→      setShowExpReportModal(false)
+  2842→    } catch (err: any) {
+  2843→      console.error('Expenses Report Error:', err?.message)
+  2844→      alert('حدث خطأ أثناء التصدير')
+  2845→    }
+  2846→    setExporting(false)
+  2847→  }
+  2848→
+  2849→  // ==================== CAR ENTRY PDF EXPORT (Employee Screen) ====================
+  2850→  const handleExportCarEntryPDF = async () => {
+  2851→    setExportingEmp(true)
+  2852→    try {
+  2853→      const jspdfModule = await import('jspdf')
+  2854→      const jsPDF = jspdfModule.default
+  2855→
+  2856→      // Determine branch and entries
+  2857→      let branchId = ''
+  2858→      let branchName = ''
+  2859→      let date = empDate
+  2860→
+  2861→      if (isAdminMode) {
+  2862→        if (!adminSelectedBranch) { setExportingEmp(false); return alert('الرجاء اختيار الفرع أولاً') }
+  2863→        branchId = adminSelectedBranch
+  2864→        const branch = branches.find(b => b.id === branchId)
+  2865→        branchName = branch ? branch.name : ''
+  2866→      } else {
+  2867→        if (!user) { setExportingEmp(false); return }
+  2868→        branchId = user.branchId
+  2869→        const branch = branches.find(b => b.id === branchId)
+  2870→        branchName = branch ? branch.name : ''
+  2871→      }
+  2872→
+  2873→      if (!date) { setExportingEmp(false); return alert('الرجاء تحديد التاريخ') }
+  2874→
+  2875→      // Use already loaded car entries from state instead of re-fetching
+  2876→      const entries = carEntries.filter(e => {
+  2877→        if (e.date !== date) return false
+  2878→        if (isAdminMode) return e.branchId === branchId
+  2879→        return true
+  2880→      })
+  2881→
+  2882→      if (entries.length === 0) {
+  2883→        alert('لا توجد تسجيلات في هذا التاريخ للتصدير')
+  2884→        setExportingEmp(false)
+
+[showing lines 885-2884 of 5793; use offset=2885 with limit to continue reading]
