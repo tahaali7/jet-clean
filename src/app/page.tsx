@@ -1683,41 +1683,26 @@ export default function JetCleanApp() {
       branchId = user!.branchId!
     }
 
-    // البحث عن تسجيل موجود - نبحث في قاعدة البيانات مباشرة لضمان الدقة
-    let existing: CarEntry | undefined
-    try {
-      const res = await fetch(`/api/car-entries?date=${date}&branchId=${branchId}`)
-      if (res.ok) {
-        const allEntries: CarEntry[] = await res.json()
-        existing = allEntries.find(e => e.empId === empId && e.room === selectedRoom && e.date === date)
-      }
-    } catch {}
-
     setSaving(true)
     try {
-      if (existing) {
-        const res = await fetch('/api/car-entries', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: existing.id, date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved
-          })
+      // استخدم endpoint upsert: يبحث عن المدخل الموجود ويعدّله أو ينشئ جديد
+      const res = await fetch('/api/car-entries/upsert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date, branchId, empId, empName, room: selectedRoom,
+          totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
         })
-        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as any).error || 'فشل التعديل') }
-        logActivity('تعديل تسجيل سيارات', 'تسجيل السيارات', `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`, branchId)
-      } else {
-        const res = await fetch('/api/car-entries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date, branchId, empId, empName, room: selectedRoom,
-            totalCars, totalAmount, extraCars, extraAmount, priceCounts, customPrices: customPricesSaved, entryTime
-          })
-        })
-        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as any).error || 'فشل الحفظ') }
-        logActivity('إدخال تسجيل سيارات', 'تسجيل السيارات', `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`, branchId)
-      }
+      })
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error((err as any).error || 'فشل الحفظ') }
+      const result = await res.json()
+      const isUpdate = result.action === 'updated'
+      logActivity(
+        isUpdate ? 'تعديل تسجيل سيارات' : 'إدخال تسجيل سيارات',
+        'تسجيل السيارات',
+        `${selectedRoom} - ${totalCars} سيارة - ${totalAmount} د.ل`,
+        branchId
+      )
 
       if (isAdminMode) {
         await loadCarEntries(date, adminSelectedBranch!)
