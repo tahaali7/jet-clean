@@ -23,9 +23,6 @@ export async function GET(req: NextRequest) {
 
     const records = await db.record.findMany({
       where,
-      include: {
-        employee: { select: { name: true } }
-      },
       orderBy: { date: 'desc' }
     })
     return NextResponse.json(records)
