@@ -10,8 +10,16 @@ export async function GET(req: NextRequest) {
 
     const where: Record<string, unknown> = {}
     if (empId) where.empId = empId
-    if (date) where.date = date
     if (branchId) where.branchId = branchId
+    // إذا التاريخ بالشكل "YYYY-MM" → بحث بالشهر (startsWith)
+    // إذا التاريخ بالشكل "YYYY-MM-DD" → بحث باليوم
+    if (date) {
+      if (date.length === 7) {
+        where.date = { startsWith: date }
+      } else {
+        where.date = date
+      }
+    }
 
     const records = await db.record.findMany({
       where,

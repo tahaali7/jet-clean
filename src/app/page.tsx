@@ -1552,7 +1552,10 @@ export default function JetCleanApp() {
         try { await loadBranches() } catch(e) { console.error(e) }
         try { await loadEmployees() } catch(e) { console.error(e) }
         if (adminDate) {
+          const currentMonth = adminDate.substring(0, 7)
           try { await loadRecords({ date: adminDate }) } catch(e) { console.error(e) }
+          // تحميل سجلات الشهر للسحوبات والعجوزات
+          try { await loadRecords({ date: currentMonth }, true) } catch(e) { console.error(e) }
           try { await loadAllCarEntries(adminDate) } catch(e) { console.error(e) }
           try { await loadClosedDays(adminDate) } catch(e) { console.error(e) }
           try { await loadAdminNotifs() } catch(e) { console.error(e) }
