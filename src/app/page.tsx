@@ -3107,6 +3107,16 @@ export default function JetCleanApp() {
         )
       }
     }
+    // إزالة التكرارات: نفس الغرفة + نفس الموظف → نحتفظ بالأحدث فقط
+    const seen = new Map<string, CarEntry>()
+    displayEntries.forEach(e => {
+      const key = e.empId + '|' + e.room + '|' + e.date
+      const existing = seen.get(key)
+      if (!existing || (e.createdAt && existing.createdAt && e.createdAt > existing.createdAt)) {
+        seen.set(key, e)
+      }
+    })
+    displayEntries = Array.from(seen.values())
     // Sort entries by room order (غرفة 1, غرفة 2, ..., مكينة الغسيل)
     if (branchName) {
       const roomOrder = getRoomsForBranch(branchName)
