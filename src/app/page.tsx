@@ -2078,7 +2078,6 @@ export default function JetCleanApp() {
         setNewBranchCleanValue(20)
         setNewBranchCleanOptions('10,20')
         await loadBranches()
-        syncBranchConfigs()
       } else {
         const data = await res.json()
         alert(data.error || 'حدث خطأ')
@@ -2110,7 +2109,6 @@ export default function JetCleanApp() {
       })
       if (res.ok) {
         await loadBranches()
-        syncBranchConfigs()
         logActivity('تعديل الإكسترا', 'إعدادات الفروع', `${!isCurrentlyDisabled ? 'إيقاف' : 'تفعيل'} الإكسترا لفرع ${branchName}`)
       } else {
         alert('حدث خطأ في تعديل الإكسترا')
@@ -2159,7 +2157,6 @@ export default function JetCleanApp() {
         setShowEditBranchModal(false)
         setEditBranch(null)
         await loadBranches()
-        syncBranchConfigs()
         logActivity('تعديل إعدادات الفرع', 'إعدادات الفروع', `تعديل إعدادات فرع ${editBranch.name}`)
       } else {
         alert('حدث خطأ في تعديل الفرع')
