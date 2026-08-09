@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>جيت كلين - نظام التصكيرة (نسخة تجريبية)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+  
+  .header { background: linear-gradient(135deg, #0e7490, #06b6d4); padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  .header .logo { width: 48px; height: 48px; background: white; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .header h1 { font-size: 20px; font-weight: 800; color: white; }
+  .header .badge { background: #f59e0b; color: #000; font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 700; }
+  
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+  
+  .section { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .section-title { font-size: 16px; font-weight: 700; color: #06b6d4; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  
+  .steps { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px; }
+  .step { background: #334155; border: 2px solid #475569; border-radius: 10px; padding: 8px 16px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
+  .step.active { border-color: #06b6d4; background: #0e7490; color: white; }
+  .step.done { border-color: #10b981; background: #065f46; color: #10b981; }
+  .step .num { background: #475569; color: white; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; margin-left: 6px; }
+  .step.active .num { background: #06b6d4; }
+  .step.done .num { background: #10b981; }
+  
+  select { width: 100%; background: #0f172a; border: 1px solid #475569; border-radius: 10px; padding: 12px 16px; color: white; font-size: 14px; font-family: inherit; cursor: pointer; outline: none; appearance: none; }
+  select:focus { border-color: #06b6d4; }
+  
+  .date-row { display: flex; gap: 12px; margin-top: 12px; }
+  .date-row input { flex: 1; background: #0f172a; border: 1px solid #475569; border-radius: 10px; padding: 12px 16px; color: white; font-size: 14px; font-family: inherit; outline: none; }
+  .date-row input:focus { border-color: #06b6d4; }
+  
+  .btn { padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; border: none; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .btn-primary { background: #06b6d4; color: white; }
+  .btn-primary:hover { background: #0891b2; }
+  .btn-success { background: #10b981; color: white; }
+  .btn-success:hover { background: #059669; }
+  .btn-outline { background: transparent; border: 1px solid #475569; color: #94a3b8; }
+  .btn-outline:hover { border-color: #06b6d4; color: #06b6d4; }
+  
+  .day-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .day-card.selected { border-color: #06b6d4; background: #0c2d3f; }
+  .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .day-date { font-weight: 700; font-size: 14px; color: #06b6d4; }
+  .day-status { font-size: 11px; padding: 2px 8px; border-radius: 6px; }
+  .day-status.ok { background: #065f46; color: #10b981; }
+  .day-status.warning { background: #78350f; color: #f59e0b; }
+  .day-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .day-item { display: flex; justify-content: space-between; font-size: 12px; }
+  .day-item .label { color: #94a3b8; }
+  .day-item .value { font-weight: 700; }
+  .day-item .value.positive { color: #10b981; }
+  .day-item .value.negative { color: #ef4444; }
+  
+  .summary-bar { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .summary-item { text-align: center; }
+  .summary-item .label { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+  .summary-item .value { font-size: 20px; font-weight: 800; }
+  .summary-item .value.green { color: #10b981; }
+  .summary-item .value.red { color: #ef4444; }
+  .summary-item .value.yellow { color: #f59e0b; }
+  .summary-item .value.cyan { color: #06b6d4; }
+  
+  .alert { padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .alert-info { background: #0c2d3f; border: 1px solid #0e7490; color: #06b6d4; }
+  .alert-success { background: #052e16; border: 1px solid #166534; color: #10b981; }
+  
+  table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  th { background: #334155; padding: 10px 12px; font-size: 12px; font-weight: 700; text-align: right; }
+  td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #1e293b; }
+  .badge-covered { background: #065f46; color: #10b981; font-size: 10px; padding: 2px 8px; border-radius: 6px; }
+  .badge-pending { background: #78350f; color: #f59e0b; font-size: 10px; padding: 2px 8px; border-radius: 6px; }
+  
+  .option-card { background: #0f172a; border: 2px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 10px; cursor: pointer; }
+  .option-card.selected { border-color: #06b6d4; background: #0c2d3f; }
+  .option-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .option-desc { font-size: 12px; color: #94a3b8; }
+  .option-amount { font-size: 18px; font-weight: 800; color: #06b6d4; margin-top: 8px; }
+  
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: #0f172a; padding: 4px; border-radius: 10px; }
+  .tab { flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 700; border-radius: 8px; cursor: pointer; color: #94a3b8; }
+  .tab.active { background: #06b6d4; color: white; }
+  
+  .transfer-arrow { text-align: center; font-size: 24px; padding: 8px; color: #06b6d4; }
+  .transfer-box { background: #0f172a; border: 2px dashed #06b6d4; border-radius: 12px; padding: 16px; text-align: center; }
+  .transfer-box .branch-name { font-size: 18px; font-weight: 800; color: #06b6d4; }
+  .transfer-box .amount { font-size: 24px; font-weight: 800; color: #f59e0b; margin-top: 4px; }
+  
+  .footer { text-align: center; padding: 20px; color: #475569; font-size: 11px; }
+  
+  @media (max-width: 640px) {
+    .container { padding: 12px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .day-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">&#x1F697;</div>
+  <div>
+    <h1>جيت كلين - نظام التصكيرة</h1>
+    <span class="badge">نسخة تجريبية</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="steps">
+    <div class="step active" id="step1"><span class="num">1</span> اختر الفرع</div>
+    <div class="step" id="step2"><span class="num">2</span> اختر الفترة</div>
+    <div class="step" id="step3"><span class="num">3</span> مراجعة الأيام</div>
+    <div class="step" id="step4"><span class="num">4</span> التغطية</div>
+    <div class="step" id="step5"><span class="num">5</span> النتيجة</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="section1" class="section">
+    <div class="section-title">&#x1F3E2; اختر الفرع</div>
+    <select id="branchSelect">
+      <option value="">-- اختر الفرع --</option>
+      <option value="abunawas">أبو نواس</option>
+      <option value="mansoura">المنصورة</option>
+      <option value="zliten">زليتن</option>
+    </select>
+    <div style="margin-top: 16px; text-align: left;">
+      <button class="btn btn-primary" onclick="goToStep2()">التالي &#x2190;</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="section2" class="section" style="display:none;">
+    <div class="section-title">&#x1F4C5; اختر فترة التصكيرة</div>
+    <div class="alert alert-info">&#x2139; حدد الأيام الي تبي تسلم حساباتها للشركة</div>
+    <div class="date-row">
+      <div>
+        <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">من تاريخ</label>
+        <input type="date" id="fromDate" value="2026-08-04">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">إلى تاريخ</label>
+        <input type="date" id="toDate" value="2026-08-06">
+      </div>
+    </div>
+    <div style="margin-top: 16px; display: flex; justify-content: space-between;">
+      <button class="btn btn-outline" onclick="goToStep1()">&#x2192; السابق</button>
+      <button class="btn btn-primary" onclick="goToStep3()">تحليل الأيام &#x2190;</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="section3" class="section" style="display:none;">
+    <div class="section-title">&#x1F4CA; مراجعة الأيام - أبو نواس</div>
+    
+    <div class="summary-bar">
+      <div class="summary-grid">
+        <div class="summary-item"><div class="label">إجمالي الكاش</div><div class="value cyan">2,400</div></div>
+        <div class="summary-item"><div class="label">المصروفات</div><div class="value yellow">-450</div></div>
+        <div class="summary-item"><div class="label">الكاش المتاح</div><div class="value green">1,950</div></div>
+        <div class="summary-item"><div class="label">السحوبات</div><div class="value red">-1,000</div></div>
+        <div class="summary-item"><div class="label">العجوزات + السلف</div><div class="value red">-230</div></div>
+        <div class="summary-item"><div class="label">الفائض</div><div class="value green">+720</div></div>
+      </div>
+    </div>
+
+    <div id="daysList">
+      <div class="day-card selected">
+        <div class="day-header"><div class="day-date">&#x1F4C5; 04/08/2026</div><span class="day-status ok">كاش كافي</span></div>
+        <div class="day-grid">
+          <div class="day-item"><span class="label">الكاش:</span><span class="value">1,000</span></div>
+          <div class="day-item"><span class="label">المصروفات:</span><span class="value">-200</span></div>
+          <div class="day-item"><span class="label">السحوبات:</span><span class="value negative">-300</span></div>
+          <div class="day-item"><span class="label">السلف:</span><span class="value negative">-80</span></div>
+          <div class="day-item"><span class="label">المتوفر:</span><span class="value positive">800</span></div>
+          <div class="day-item"><span style="font-size:12px;color:#10b981">&#x2705; في التصكيرة</span></div>
+        </div>
+      </div>
+
+      <div class="day-card selected">
+        <div class="day-header"><div class="day-date">&#x1F4C5; 05/08/2026</div><span class="day-status ok">كاش كافي</span></div>
+        <div class="day-grid">
+          <div class="day-item"><span class="label">الكاش:</span><span class="value">800</span></div>
+          <div class="day-item"><span class="label">المصروفات:</span><span class="value">-150</span></div>
+          <div class="day-item"><span class="label">السحوبات:</span><span class="value negative">-200</span></div>
+          <div class="day-item"><span class="label">السلف:</span><span class="value negative">-50</span></div>
+          <div class="day-item"><span class="label">المتوفر:</span><span class="value positive">650</span></div>
+          <div class="day-item"><span style="font-size:12px;color:#10b981">&#x2705; في التصكيرة</span></div>
+        </div>
+      </div>
+
+      <div class="day-card selected">
+        <div class="day-header"><div class="day-date">&#x1F4C5; 06/08/2026</div><span class="day-status warning">عجز</span></div>
+        <div class="day-grid">
+          <div class="day-item"><span class="label">الكاش:</span><span class="value">600</span></div>
+          <div class="day-item"><span class="label">المصروفات:</span><span class="value">-100</span></div>
+          <div class="day-item"><span class="label">السحوبات:</span><span class="value negative">-500</span></div>
+          <div class="day-item"><span class="label">العجز:</span><span class="value negative">-100</span></div>
+          <div class="day-item"><span class="label">المتوفر:</span><span class="value positive">500</span></div>
+          <div class="day-item"><span style="font-size:12px;color:#10b981">&#x2705; في التصكيرة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px;">&#x1F4CB; السحوبات والديون المراد تغطيتها</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+        <tbody>
+          <tr><td>04/08</td><td>سحب</td><td>سحب أحمد</td><td style="font-weight:700;">300</td><td><span class="badge-pending">معلّق</span></td></tr>
+          <tr><td>05/08</td><td>سحب</td><td>سحب خالد</td><td style="font-weight:700;">200</td><td><span class="badge-pending">معلّق</span></td></tr>
+          <tr><td>06/08</td><td>سحب</td><td>سحب أحمد كبير</td><td style="font-weight:700;">500</td><td><span class="badge-pending">معلّق</span></td></tr>
+          <tr><td>06/08</td><td>عجز</td><td>عجز في الكاش</td><td style="font-weight:700;">100</td><td><span class="badge-pending">معلّق</span></td></tr>
+          <tr style="background:#1a1a2e;"><td>04/08</td><td>سلفة عامل غسيل</td><td>محمد (غرفة 1)</td><td style="font-weight:700;">80</td><td><span class="badge-pending">معلّق</span></td></tr>
+          <tr style="background:#1a1a2e;"><td>05/08</td><td>سلفة عامل غسيل</td><td>علي</td><td style="font-weight:700;">50</td><td><span class="badge-pending">معلّق</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; justify-content: space-between;">
+      <button class="btn btn-outline" onclick="goToStep2()">&#x2192; السابق</button>
+      <button class="btn btn-primary" onclick="goToStep4()">تغطية السحوبات &#x2190;</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div id="section4" class="section" style="display:none;">
+    <div class="section-title">&#x1F4B0; كيف تبي تغطي السحوبات والديون؟</div>
+    
+    <div class="summary-bar" style="margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div><div style="font-size:12px;color:#94a3b8;">إجمالي المراد تغطيته</div><div style="font-size:28px;font-weight:800;color:#ef4444;">1,230 د.ل</div></div>
+        <div><div style="font-size:12px;color:#94a3b8;">الكاش المتاح</div><div style="font-size:28px;font-weight:800;color:#10b981;">1,950 د.ل</div></div>
+        <div><div style="font-size:12px;color:#94a3b8;">الفائض</div><div style="font-size:28px;font-weight:800;color:#10b981;">+720 د.ل</div></div>
+      </div>
+    </div>
+
+    <div class="alert alert-success">&#x2705; الكاش المتاح يكفي لتغطية جميع السحوبات والديون - لا حاجة لنقل بين الفروع</div>
+
+    <div class="option-card selected" onclick="selectOption(this)">
+      <div class="option-title">&#x2705; تغطية كاملة من كاش أيام التصكيرة</div>
+      <div class="option-desc">تغطية جميع السحوبات (1,000) + العجوزات (100) + السلف (130) = 1,230 من كاش أبو نواس (1,950 متاح)</div>
+      <div class="option-amount">1,230 د.ل من 1,950 د.ل متاح</div>
+      <div style="margin-top:8px; font-size:12px; color:#10b981;">الفائض المتبقي: 720 د.ل</div>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; justify-content: space-between;">
+      <button class="btn btn-outline" onclick="goToStep3()">&#x2192; السابق</button>
+      <button class="btn btn-success" onclick="goToStep5()">&#x2705; نفّذ التصكيرة</button>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div id="section5" class="section" style="display:none;">
+    <div class="section-title">&#x2705; تمت التغطية بنجاح!</div>
+    
+    <div class="alert alert-success">&#x1F389; تمت تغطية جميع السحوبات والديون وتصكيرة الأيام بنجاح</div>
+
+    <div class="summary-bar">
+      <div style="text-align:center; margin-bottom:16px;">
+        <div style="font-size:14px; color:#94a3b8;">ملخص التغطية</div>
+      </div>
+      <div class="transfer-box" style="margin-bottom:12px;">
+        <div style="font-size:12px; color:#94a3b8;">المصدر</div>
+        <div class="branch-name">أبو نواس - كاش أيام التصكيرة</div>
+        <div class="amount">1,230 د.ل</div>
+      </div>
+      <div class="transfer-arrow">&#x2B07;</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;">
+        <div style="background:#0f172a; padding:12px; border-radius:10px; text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">سحوبات</div>
+          <div style="font-size:18px;font-weight:800;color:#ef4444;">1,000</div>
+        </div>
+        <div style="background:#0f172a; padding:12px; border-radius:10px; text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">عجوزات</div>
+          <div style="font-size:18px;font-weight:800;color:#f59e0b;">100</div>
+        </div>
+        <div style="background:#0f172a; padding:12px; border-radius:10px; text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">سلف عمال</div>
+          <div style="font-size:18px;font-weight:800;color:#06b6d4;">130</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">&#x1F4DD; سجلات التغطية</div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>المصدر</th><th>المبلغ</th><th>النوع</th><th>الملاحظة</th></tr></thead>
+        <tbody>
+          <tr><td>كاش أبو نواس</td><td style="font-weight:700;">300</td><td>سحب</td><td>سحب أحمد - يوم 04/08</td></tr>
+          <tr><td>كاش أبو نواس</td><td style="font-weight:700;">200</td><td>سحب</td><td>سحب خالد - يوم 05/08</td></tr>
+          <tr><td>كاش أبو نواس</td><td style="font-weight:700;">500</td><td>سحب</td><td>سحب أحمد كبير - يوم 06/08</td></tr>
+          <tr><td>كاش أبو نواس</td><td style="font-weight:700;">100</td><td>عجز</td><td>عجز في الكاش - يوم 06/08</td></tr>
+          <tr style="background:#1a1a2e;"><td>كاش أبو نواس</td><td style="font-weight:700;">80</td><td>سلفة عامل</td><td>محمد (غرفة 1) - يوم 04/08</td></tr>
+          <tr style="background:#1a1a2e;"><td>كاش أبو نواس</td><td style="font-weight:700;">50</td><td>سلفة عامل</td><td>علي - يوم 05/08</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title" style="margin-top:20px;">&#x1F4CA; الحالة بعد التغطية</div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('tabRecords', this)">السحوبات</div>
+      <div class="tab" onclick="showTab('tabDebts', this)">السلف</div>
+      <div class="tab" onclick="showTab('tabTreasury', this)">الخزينة</div>
+    </div>
+
+    <div id="tabRecords">
+      <table>
+        <thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+        <tbody>
+          <tr><td>04/08</td><td>سحب أحمد</td><td>300</td><td><span class="badge-covered">&#x2705; مُغطّى</span></td></tr>
+          <tr><td>05/08</td><td>سحب خالد</td><td>200</td><td><span class="badge-covered">&#x2705; مُغطّى</span></td></tr>
+          <tr><td>06/08</td><td>سحب أحمد كبير</td><td>500</td><td><span class="badge-covered">&#x2705; مُغطّى</span></td></tr>
+          <tr><td>06/08</td><td>عجز في الكاش</td><td>100</td><td><span class="badge-covered">&#x2705; مُغطّى</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tabDebts" style="display:none;">
+      <table>
+        <thead><tr><th>التاريخ</th><th>العامل</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+        <tbody>
+          <tr><td>04/08</td><td>محمد (غرفة 1)</td><td>80</td><td><span class="badge-covered">&#x2705; مُغطّى</span></td></tr>
+          <tr><td>05/08</td><td>علي</td><td>50</td><td><span class="badge-covered">&#x2705; مُغطّى</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="tabTreasury" style="display:none;">
+      <table>
+        <thead><tr><th>التاريخ</th><th>الكاش</th><th>في التصكيرة</th></tr></thead>
+        <tbody>
+          <tr><td>04/08/2026</td><td>1,000</td><td><span class="badge-covered">&#x2705; نعم</span></td></tr>
+          <tr><td>05/08/2026</td><td>800</td><td><span class="badge-covered">&#x2705; نعم</span></td></tr>
+          <tr><td>06/08/2026</td><td>600</td><td><span class="badge-covered">&#x2705; نعم</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-title" style="margin-top:20px;">&#x1F4C4; معاينة تقرير الشركة</div>
+    <div class="alert alert-info">&#x2139; التقرير النهائي يُسلّم للشركة - السحوبات مُغطّاة ولا تظهر</div>
+    <div style="background:#0f172a; border:1px solid #334155; border-radius:12px; padding:16px;">
+      <div style="font-size:14px; font-weight:700; color:#06b6d4; margin-bottom:12px;">تقرير أبو نواس (04-06 أغسطس 2026)</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div style="background:#1e293b; padding:12px; border-radius:8px;">
+          <div style="font-size:11px;color:#94a3b8;">يوم 04/08</div>
+          <div style="font-size:14px;font-weight:700;">كاش 1,000 - مصروفات 200 = <span style="color:#10b981;">800</span></div>
+        </div>
+        <div style="background:#1e293b; padding:12px; border-radius:8px;">
+          <div style="font-size:11px;color:#94a3b8;">يوم 05/08</div>
+          <div style="font-size:14px;font-weight:700;">كاش 800 - مصروفات 150 = <span style="color:#10b981;">650</span></div>
+        </div>
+        <div style="background:#1e293b; padding:12px; border-radius:8px; grid-column: span 2;">
+          <div style="font-size:11px;color:#94a3b8;">يوم 06/08</div>
+          <div style="font-size:14px;font-weight:700;">كاش 600 - مصروفات 100 = <span style="color:#10b981;">500</span></div>
+        </div>
+      </div>
+      <div style="margin-top:12px; padding:10px; background:#065f46; border-radius:8px; font-size:12px; color:#10b981; text-align:center;">
+        &#x2705; السحوبات (1,000) + العجوزات (100) + السلف (130) = 1,230 مُغطّاة بالكامل
+      </div>
+    </div>
+
+    <div style="margin-top:20px; text-align:center;">
+      <button class="btn btn-outline" onclick="resetDemo()">&#x1F504; إعادة تجريبية</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>&#x1F697; جيت كلين - نظام التصكيرة (نسخة تجريبية)</div>
+    <div style="margin-top:4px;">هذه نسخة تجريبية للعرض فقط - البيانات وهمية</div>
+  </div>
+
+</div>
+
+<script>
+  function goToStep2() {
+    if (!document.getElementById('branchSelect').value) { alert('اختر الفرع أولاً'); return; }
+    document.getElementById('section1').style.display='none';
+    document.getElementById('section2').style.display='block';
+    document.getElementById('step1').className='step done';
+    document.getElementById('step2').className='step active';
+  }
+  function goToStep1() {
+    document.getElementById('section2').style.display='none';
+    document.getElementById('section1').style.display='block';
+    document.getElementById('step2').className='step';
+    document.getElementById('step1').className='step active';
+  }
+  function goToStep3() {
+    document.getElementById('section2').style.display='none';
+    document.getElementById('section3').style.display='block';
+    document.getElementById('step2').className='step done';
+    document.getElementById('step3').className='step active';
+  }
+  function goToStep4() {
+    document.getElementById('section3').style.display='none';
+    document.getElementById('section4').style.display='block';
+    document.getElementById('step3').className='step done';
+    document.getElementById('step4').className='step active';
+  }
+  function goToStep5() {
+    document.getElementById('section4').style.display='none';
+    document.getElementById('section5').style.display='block';
+    document.getElementById('step4').className='step done';
+    document.getElementById('step5').className='step active';
+    window.scrollTo(0,0);
+  }
+  function selectOption(el) {
+    document.querySelectorAll('.option-card').forEach(c=>c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  function showTab(id, el) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    ['tabRecords','tabDebts','tabTreasury'].forEach(t=>{
+      document.getElementById(t).style.display = t===id ? 'block' : 'none';
+    });
+  }
+  function resetDemo() {
+    ['section2','section3','section4','section5'].forEach(s=>document.getElementById(s).style.display='none');
+    document.getElementById('section1').style.display='block';
+    document.querySelectorAll('.step').forEach(s=>s.className='step');
+    document.getElementById('step1').className='step active';
+    document.getElementById('branchSelect').value='';
+    window.scrollTo(0,0);
+  }
+</script>
+
+</body>
+</html>
