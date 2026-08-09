@@ -1,26 +1,24 @@
 ---
-Task ID: 4
+Task ID: 1
 Agent: Main Agent
-Task: حماية التطبيق - نظام JWT + Middleware + صلاحيات الأدوار
+Task: أخذ باك أب كامل + إنشاء نسخة تجريبية + تنفيذ ميزة التصكيرة
 
 Work Log:
-- أخذ باك اب كامل للتطبيق (كود + ملفات) في download/pre-security-backup/
-- تثبيت مكتبة jose لـ JWT tokens
-- إنشاء src/lib/auth.ts: نظام توكنات JWT كامل (إنشاء، تحقق، cookie management)
-- إنشاء src/middleware.ts: حماية كل مسارات /api/ بالتحقق من الجلسة + صلاحيات الأدوار
-- تحديث src/app/api/auth/login/route.ts: إرجاع JWT token في HttpOnly cookie
-- إضافة GET endpoint للتحقق من الجلسة + DELETE endpoint لتسجيل الخروج
-- تحديث الواجهة (page.tsx): logout ينظف الـ cookie عبر API + فحص صلاحية الجلسة
-- إضافة credentials: 'include' لكل الـ fetch calls الحساسة (backup, restore, admin)
-- إضافة JWT_SECRET في .env
-- بناء إنتاجي ناجح (next build)
+- أخذ باك أب كامل للكود (tar.gz 61MB + ملفات فردية) في download/backup-before-coverage/
+- أخذ باك أب للداتا بيز SQLite + ملفات الإعدادات
+- إنشاء نسخة تجريبية منفصلة في /home/z/my-project-test/
+- تثبيت node_modules + SQLite schema + seed بيانات تجريبية
+- تحديث Prisma Schema: إضافة حقول جديدة (type, workerName, room, coverageStatus لـ WorkerExpense + Record + Treasury) + جدول CoverageRecord جديد
+- إنشاء API /api/coverage (GET للتحليل + POST للتنفيذ)
+- إضافة إذن الوصول في auth.ts
+- اختبار تحليل التصكيرة: ✅
+- اختبار تنفيذ التصكيرة (تغطية بالكاش): ✅
+- اختبار النقل بين الفروع: ✅
 
 Stage Summary:
-- ✅ كل APIs محمية الآن عبر Middleware (عدا /api/auth/login)
-- ✅ صلاحيات حسب الدور: admin يصل لكل شيء، employee يصل لتسجيل السيارات، viewer يعرض فقط
-- ✅ JWT Token في HttpOnly Cookie آمنة
-- ✅ انتهاء صلاحية تلقائي بعد 24 ساعة
-- ✅ تسجيل الخروج ينظف الـ cookie
-- ✅ فحص صلاحية الجلسة عند فتح التطبيق
-- ✅ الـ API endpoints الإدارية (backup, restore, maintenance, admin/password) محمية للمسؤول فقط
-- ✅ بناء إنتاجي ناجح بدون أخطاء
+- الباك أب الكامل محفوظ في: /home/z/my-project/download/backup-before-coverage/
+- النسخة التجريبية في: /home/z/my-project-test/
+- Schema محدث بالحقول الجديدة + جدول CoverageRecord
+- API /api/coverage يعمل (تحليل + تنفيذ + نقل بين فروع)
+- كل الاختبارات الثلاثة ناجحة
+- الداتا الأصلية في التطبيق الحقيقي لم تتأثر إطلاقاً
