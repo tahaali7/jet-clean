@@ -3905,18 +3905,16 @@ export default function JetCleanApp() {
             const bankTreasury = savedBankWE.treasury || {}
             const bankBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
             const bankCardSale = parseInt(String(bankTreasury['بيع_البطاقة']?.expense)) || 0
-            const bankCardReplace = Math.floor(bankCardSale / 2)
             const canEditBank = user?.role !== 'viewer' && !isBranchLocked
             return (
               <div className="bg-gradient-to-l from-blue-600/10 to-indigo-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl mt-4">
                 <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">💳 البطاقة المصرفية</h3>
                 <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                  <div className="grid grid-cols-3 gap-0 px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+                  <div className="grid grid-cols-2 gap-0 px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
                     <span className="text-blue-300 text-xs font-bold">البيان</span>
-                    <span className="text-center text-emerald-400 text-xs font-bold">بيع البطاقة</span>
-                    <span className="text-center text-amber-300 text-xs font-bold">بدل البطاقة (تلقائي)</span>
+                    <span className="text-center text-emerald-400 text-xs font-bold">بيع البطاقة المصرفية</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-0 items-center px-3 py-3">
+                  <div className="grid grid-cols-2 gap-0 items-center px-3 py-3">
                     <span className="text-slate-200 text-xs font-semibold">💳 القيمة</span>
                     {canEditBank ? (
                       <div className="text-center">
@@ -3934,19 +3932,6 @@ export default function JetCleanApp() {
                     ) : (
                       <span className="text-center text-emerald-400 text-sm font-bold">{bankCardSale}</span>
                     )}
-                    <div className="text-center">
-                      <input
-                        type="number"
-                        value={bankCardReplace || 0}
-                        readOnly
-                        className="bg-slate-900/70 border border-amber-500/30 text-amber-300 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-0 items-center px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderTop: '1px solid rgba(51,65,85,0.5)' }}>
-                    <span className="text-slate-400 text-xs">المعادلة</span>
-                    <span className="text-slate-500 text-[10px] text-center" colSpan={1}>القيمة المدخلة</span>
-                    <span className="text-slate-500 text-[10px] text-center" colSpan={1}>القيمة ÷ 2 (تلقائي)</span>
                   </div>
                 </div>
               </div>
