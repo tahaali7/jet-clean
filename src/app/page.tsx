@@ -2732,7 +2732,8 @@ export default function JetCleanApp() {
         if (recRes.ok) {
           const recData = await recRes.json()
           for (const r of recData) {
-            allRecords.push({ date, empName: r.employee?.name || '', type: r.type, amount: r.amount })
+            const empName = r.employee?.name || employees.find(e => e.id === r.empId)?.name || ''
+            allRecords.push({ date, empName, type: r.type, amount: r.amount })
           }
         }
       }
