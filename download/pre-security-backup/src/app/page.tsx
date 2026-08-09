@@ -1145,7 +1145,6 @@ export default function JetCleanApp() {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ empId: loginEmpId, password: loginPassword })
       })
@@ -1239,9 +1238,8 @@ export default function JetCleanApp() {
     setScreen('admin')
   }
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (!confirm('هل تريد تسجيل الخروج؟')) return
-    try { await fetch('/api/auth/login', { method: 'DELETE', credentials: 'include' }).catch(() => {}) } catch {}
     setUser(null)
     setIsAdminMode(false)
     setAdminSelectedBranch(null)
@@ -1271,14 +1269,14 @@ export default function JetCleanApp() {
 
   // نسخ احتياطي تلقائي صامت
   const autoBackup = () => {
-    try { fetch('/api/backup', { method: 'POST', credentials: 'include' }) } catch (_) {}
+    try { fetch('/api/backup', { method: 'POST' }) } catch (_) {}
   }
 
   // نسخ احتياطي يدوي مع تحميل الملف
   const handleDownloadBackup = async () => {
     try {
       setBackupLoading(true)
-      const res = await fetch('/api/backup', { method: 'POST', credentials: 'include' })
+      const res = await fetch('/api/backup', { method: 'POST' })
       if (!res.ok) throw new Error('فشل إنشاء النسخة')
       const result = await res.json()
       // fetch the backup data
@@ -1340,7 +1338,6 @@ export default function JetCleanApp() {
         }
         const res = await fetch('/api/restore', {
           method: 'POST',
-          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ uploadData: text })
         })
@@ -1454,7 +1451,7 @@ export default function JetCleanApp() {
     if (!confirm(newState ? '⚠️ سيتم إيقاف الموقع للموظفين!\nسيظهر لهم رسالة "الموقع تحت الصيانة"\n\nهل تريد المتابعة؟' : '✅ سيتم إعادة فتح الموقع للموظفين\n\nهل تريد المتابعة؟')) return
     try {
       await fetch('/api/maintenance', {
-        method: 'PUT', credentials: 'include',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: newState })
       })
@@ -1497,7 +1494,6 @@ export default function JetCleanApp() {
 
       const res = await fetch('/api/restore', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: backups[idx].id })
       })
@@ -1519,23 +1515,6 @@ export default function JetCleanApp() {
   }
 
   // ==================== EFFECTS ====================
-  // فحص صلاحية الجلسة عند فتح التطبيق
-  useEffect(() => {
-    if (screen === 'login') return
-    ;(async () => {
-      try {
-        const res = await fetch('/api/auth/login', { credentials: 'include' })
-        if (res.status === 401) {
-          // الـ token منتهي أو غير موجود
-          setUser(null)
-          setIsAdminMode(false)
-          setAdminSelectedBranch(null)
-          setScreen('login')
-        }
-      } catch {}
-    })()
-  }, [])
-
   // Login screen: load branches + employees for dropdown
   useEffect(() => {
     if (screen === 'login') {
@@ -2274,7 +2253,7 @@ export default function JetCleanApp() {
     if (!adminPassword.trim()) return alert('الرجاء إدخال كلمة المرور')
     try {
       await fetch('/api/admin/password', {
-        method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: adminPassword.trim() })
       })
       alert('تم تحديث كلمة مرور المسؤول')

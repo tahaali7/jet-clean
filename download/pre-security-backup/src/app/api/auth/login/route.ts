@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { createToken, createAuthCookie, clearAuthCookie } from '@/lib/auth'
 
 // Retry helper for connection issues
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 800): Promise<T> {
@@ -38,16 +37,9 @@ export async function POST(req: NextRequest) {
         console.error('Admin DB error:', dbErr?.message)
         // Fallback: allow login with hardcoded password if DB fails
         if (password === '7777') {
-          const token = await createToken({ id: 'admin', name: 'طه علي', role: 'admin' })
-          const response = createAuthCookie(token)
-          const loginData = { success: true, user: { id: 'admin', name: 'طه علي', role: 'admin' as const } }
-          // نحتاج نرجع الـ response مع الـ cookie + البيانات
-          return new NextResponse(JSON.stringify(loginData), {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Set-Cookie': response.headers.get('Set-Cookie') || ''
-            }
+          return NextResponse.json({
+            success: true,
+            user: { id: 'admin', name: 'طه علي', role: 'admin' as const }
           })
         }
         return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
@@ -55,17 +47,9 @@ export async function POST(req: NextRequest) {
       if (!admin || admin.password !== password) {
         return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
       }
-
-      // إنشاء token وحفظه في cookie
-      const token = await createToken({ id: 'admin', name: admin.name, role: 'admin' })
-      const response = createAuthCookie(token)
-      const loginData = { success: true, user: { id: 'admin', name: admin.name, role: 'admin' as const } }
-      return new NextResponse(JSON.stringify(loginData), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': response.headers.get('Set-Cookie') || ''
-        }
+      return NextResponse.json({
+        success: true,
+        user: { id: 'admin', name: admin.name, role: 'admin' as const }
       })
     }
 
@@ -92,16 +76,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
     }
 
-    // إنشاء token وحفظه في cookie
-    const token = await createToken({
-      id: employee.id,
-      name: employee.name,
-      role: (employee.role || 'employee') as 'employee' | 'viewer',
-      branchId: employee.branchId || undefined,
-      shift: employee.shift
-    })
-    const response = createAuthCookie(token)
-    const loginData = {
+    return NextResponse.json({
       success: true,
       user: {
         id: employee.id,
@@ -111,51 +86,9 @@ export async function POST(req: NextRequest) {
         shift: employee.shift,
         password: employee.password
       }
-    }
-    return new NextResponse(JSON.stringify(loginData), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Set-Cookie': response.headers.get('Set-Cookie') || ''
-      }
     })
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json({ success: false, error: 'حدث خطأ في الخادم - حاول مرة أخرى' }, { status: 500 })
   }
-}
-
-// تسجيل الخروج
-export async function DELETE() {
-  const response = clearAuthCookie()
-  return response
-}
-
-// التحقق من الجلسة الحالية
-export async function GET(req: NextRequest) {
-  const { cookies } = req
-  const token = cookies.get('auth-token')?.value
-  const authHeader = req.headers.get('authorization')
-  const tokenValue = token || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null)
-
-  if (!tokenValue) {
-    return NextResponse.json({ authenticated: false }, { status: 401 })
-  }
-
-  const { verifyToken } = await import('@/lib/auth')
-  const payload = await verifyToken(tokenValue)
-
-  if (!payload) {
-    return NextResponse.json({ authenticated: false }, { status: 401 })
-  }
-
-  return NextResponse.json({
-    authenticated: true,
-    user: {
-      id: payload.id,
-      name: payload.name,
-      role: payload.role,
-      branchId: payload.branchId
-    }
-  })
 }
