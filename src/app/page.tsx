@@ -3870,9 +3870,10 @@ export default function JetCleanApp() {
                                     delete t[entry.key]
                                     wData.treasury = t
                                     updated[expWKey2] = wData
+                                    // حفظ البيانات المحدثة (بدون القيمة المحذوفة)
+                                    void saveWorkerExpData(expBranchId2, empDate, wData)
                                     return updated
                                   })
-                                  saveWorkerExpData(expBranchId2, empDate, { ...((workerExpData[expWKey2] || {}) as any), treasury: { ...((workerExpData[expWKey2] || {}) as any).treasury || {} } })
                                 } else {
                                   handleDeleteRecord(entry.key, empDate)
                                 }
