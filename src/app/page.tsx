@@ -3894,6 +3894,7 @@ export default function JetCleanApp() {
             const bankBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
             const bankCardSale = parseInt(String(bankTreasury['بيع_البطاقة']?.expense)) || 0
             const canEditBank = user?.role !== 'viewer' && !isBranchLocked
+            if (bankCardSale === 0) return null
             return (
               <div className="bg-gradient-to-l from-blue-600/10 to-indigo-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl mt-4">
                 <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">💳 البطاقة المصرفية</h3>
