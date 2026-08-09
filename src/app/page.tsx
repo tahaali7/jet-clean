@@ -298,7 +298,6 @@ const TREASURY_ITEMS = [
   { key: 'المبيعات', label: 'المبيعات' },
   { key: 'ملغي', label: 'ملغي' },
   { key: 'مصاريف_العمال', label: 'مصاريف العمال' },
-  { key: 'بدل_البطاقة', label: 'بدل البطاقة المصرفية' },
   { key: 'بيع_البطاقة', label: 'بيع البطاقة المصرفية' },
   { key: 'كوبونات', label: 'كوبونات', branchOnly: 'بن غرسه' },
   { key: 'فائض', label: 'فائض' },
@@ -514,9 +513,7 @@ function buildWorkerExpensesAndTreasury(
 
   const treasSaved = savedWE.treasury || {}
   const pdfTreasuryItems = getTreasuryItems(branchName)
-  const pdfBankCardSale = parseInt(String(treasSaved['بيع_البطاقة']?.expense)) || 0
-  const pdfBankCardReplace = Math.floor(pdfBankCardSale / 2)
-  const pdfWorkerExpInTreasury = finalTotalAfterExpenses - pdfBankCardReplace
+  const pdfWorkerExpInTreasury = finalTotalAfterExpenses
 
   const tPad = tPadMap[sl]
   const tCellPad = tPad + 'border:1px solid #555;vertical-align:middle;'
@@ -538,10 +535,6 @@ function buildWorkerExpensesAndTreasury(
     let tExpense = rowS.expense || 0
     let isAuto = false
 
-    if (item.key === 'بدل_البطاقة') {
-      tExpense = pdfBankCardReplace
-      isAuto = true
-    }
     if (item.key === 'مصاريف_العمال') {
       tExpense = pdfWorkerExpInTreasury
       isAuto = true
@@ -3642,9 +3635,7 @@ export default function JetCleanApp() {
             // Treasury calculations
             const treasSaved = savedWE.treasury || {}
             const treasuryItems = getTreasuryItems(branchName)
-            const bankCardSale = parseInt(String(treasSaved['بيع_البطاقة']?.expense)) || 0
-            const bankCardReplaceAuto = Math.floor(bankCardSale / 2)
-            const workerExpInTreasury = workerExpTotal - bankCardReplaceAuto
+            const workerExpInTreasury = workerExpTotal
 
             let runningBalance = 0
             const treasuryRows = treasuryItems.map((item, idx) => {
@@ -3652,7 +3643,6 @@ export default function JetCleanApp() {
               let income = rowSaved.income || 0
               let expense = rowSaved.expense || 0
               let isAuto = false
-              if (item.key === 'بدل_البطاقة') { expense = bankCardReplaceAuto; isAuto = true }
               if (item.key === 'مصاريف_العمال') { expense = workerExpInTreasury; isAuto = true }
               if (item.key === 'تم_التحويل') { expense = Math.max(0, runningBalance); isAuto = true }
               runningBalance = runningBalance + income - expense
@@ -3736,9 +3726,7 @@ export default function JetCleanApp() {
                                 {row.isAuto && <span className="text-amber-400 text-[10px] ml-1">(تلقائي)</span>}
                               </span>
                               {/* Income */}
-                              {row.isAuto && row.key === 'بدل_البطاقة' ? (
-                                <div className="text-center" />
-                              ) : row.key === 'بيع_البطاقة' ? (
+                              {row.key === 'بيع_البطاقة' ? (
                                 <div className="text-center" />
                               ) : (
                                 <div className="text-center">
