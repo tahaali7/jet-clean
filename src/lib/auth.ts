@@ -98,13 +98,13 @@ export type Permission = 'admin' | 'employee' | 'viewer' | 'any-authenticated'
 // الأدوار المطلوبة للوصول
 export const API_PERMISSIONS: Record<string, Record<string, Permission[]>> = {
   '/api/branches': {
-    GET: ['admin', 'viewer', 'employee'],
+    GET: ['admin', 'viewer', 'employee', 'public'],
     POST: ['admin'],
     PUT: ['admin'],
     DELETE: ['admin']
   },
   '/api/employees': {
-    GET: ['admin', 'viewer'],
+    GET: ['admin', 'viewer', 'public'],
     POST: ['admin'],
     PUT: ['admin', 'employee'], // الموظف يعدّل كلمة مروره فقط
     DELETE: ['admin']

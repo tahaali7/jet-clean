@@ -20,6 +20,19 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
+  const method = req.method.toUpperCase()
+  const cleanPath = pathname.split('?')[0]
+
+  // إيجاد أقرب تطابق في صلاحيات الـ API
+  const matchedPath = findMatchingPermission(cleanPath)
+  if (matchedPath && API_PERMISSIONS[matchedPath]) {
+    const perms = API_PERMISSIONS[matchedPath][method]
+    // لو المسار يسمح بالوصول العام (public) → نسمح بدون token
+    if (perms && perms.includes('public' as any)) {
+      return NextResponse.next()
+    }
+  }
+
   // استخراج الـ token
   const token = req.cookies.get('auth-token')?.value ||
     (req.headers.get('authorization')?.startsWith('Bearer ') ? req.headers.get('authorization')!.substring(7) : null)
@@ -42,11 +55,6 @@ export async function middleware(req: NextRequest) {
   }
 
   // التحقق من صلاحية الدور للمسار المطلوب
-  const method = req.method.toUpperCase()
-  const cleanPath = pathname.split('?')[0]
-
-  // إيجاد أقرب تطابق في صلاحيات الـ API
-  const matchedPath = findMatchingPermission(cleanPath)
   if (matchedPath && API_PERMISSIONS[matchedPath]) {
     const perms = API_PERMISSIONS[matchedPath][method]
     if (perms && !perms.includes(payload.role as any) && !perms.includes('any-authenticated')) {
