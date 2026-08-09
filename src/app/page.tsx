@@ -1521,9 +1521,13 @@ export default function JetCleanApp() {
   // ==================== EFFECTS ====================
   // فحص صلاحية الجلسة عند فتح التطبيق
   useEffect(() => {
-    if (screen === 'login') return
     ;(async () => {
       try {
+        // تحميل الفروع والموظفين للقائمة دائماً (حتى لو مستخدم مسجل الدخول)
+        try { await loadBranches() } catch(e) { console.error(e) }
+        try { await loadEmployees() } catch(e) { console.error(e) }
+
+        if (screen === 'login') return
         const res = await fetch('/api/auth/login', { credentials: 'include' })
         if (res.status === 401) {
           // الـ token منتهي أو غير موجود
