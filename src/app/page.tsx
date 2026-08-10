@@ -3384,9 +3384,39 @@ export default function JetCleanApp() {
             {/* غرفة عادية - إدخال سيارات */}
             {selectedRoom && !selectedRoom.startsWith('__') && (
               <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700">
-                <h3 className="text-lg font-bold text-cyan-400 mb-4">
-                  {ROOM_ICONS[selectedRoom] || '🏠'} {selectedRoom}
-                </h3>
+                {(() => {
+                  const prices = getPricesForRoom(selectedRoom)
+                  let liveTotalCars = 0
+                  let liveTotalAmount = 0
+                  prices.forEach(p => {
+                    const c = priceInputs[p] || 0
+                    liveTotalCars += c
+                    liveTotalAmount += p * c
+                  })
+                  Object.values(customPricesData).forEach(item => {
+                    liveTotalCars += item.count
+                    liveTotalAmount += item.price * item.count
+                  })
+                  const liveNet = getNetAmount(liveTotalAmount, branchName, selectedRoom)
+                  const hasInput = liveTotalCars > 0
+                  return (
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-cyan-400">
+                        {ROOM_ICONS[selectedRoom] || '🏠'} {selectedRoom}
+                      </h3>
+                      {hasInput && (
+                        <div className="flex items-center gap-3 text-xs font-bold">
+                          <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg">
+                            {liveTotalCars} سيارة = {liveTotalAmount} د.ل
+                          </span>
+                          <span className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 px-3 py-1.5 rounded-lg">
+                            صافي: {liveNet} د.ل
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
                 {renderPriceGrid(branchName)}
                 <div className="flex gap-3">
                   <button
