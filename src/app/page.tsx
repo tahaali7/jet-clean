@@ -4009,14 +4009,31 @@ export default function JetCleanApp() {
                     .filter(r => r.date === empDate && r.branchId === bankBranchId2)
                     .map(r => r.amount)
                   const totalDailyMovements = todayExpEntries.reduce((s, v) => s + v, 0) + todayRecords2.reduce((s, v) => s + v, 0)
-                  // حساب تم التحويل بنفس طريقة الخزينة (runningBalance عند صف تم_التحويل)
+                  // حساب تم التحويل بنفس طريقة الخزينة بالضبط
                   const treasuryItemsForCalc = getTreasuryItems(branchName)
+                  // حساب مصاريف العمال (صافي الغرف + النظافة) بنفس طريقة الخزينة
+                  const bankRoomNetMap: Record<string, number> = {}
+                  const bankBranchEntries = carEntries.filter(e => {
+                    const sb = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+                    return (e.branchId === sb || e.empId === 'admin_' + sb) && e.date === empDate
+                  })
+                  bankBranchEntries.forEach(e => {
+                    const net = getNetAmount(e.totalAmount, branchName, e.room)
+                    bankRoomNetMap[e.room] = (bankRoomNetMap[e.room] || 0) + net
+                  })
+                  let bankWorkerExpTotal = Object.values(bankRoomNetMap).reduce((s, v) => s + v, 0)
+                  const bankClCfg = BRANCH_CLEANLINESS[branchName]
+                  if (bankClCfg) {
+                    const bankCl = bankClCfg.type === 'fixed' ? (bankClCfg.value || 0) : (savedBankWE.cleanliness || 0)
+                    bankWorkerExpTotal += bankCl
+                  }
                   let runBal = 0
                   let transferAmount = 0
                   for (const tItem of treasuryItemsForCalc) {
                     const rowS = treasSaved[tItem.key] || {}
                     let tIncome = rowS.income || 0
                     let tExpense = rowS.expense || 0
+                    if (tItem.key === 'مصاريف_العمال') { tExpense = bankWorkerExpTotal }
                     if (tItem.key === 'تم_التحويل') { transferAmount = Math.max(0, runBal); tExpense = transferAmount }
                     runBal = runBal + tIncome - tExpense
                   }
