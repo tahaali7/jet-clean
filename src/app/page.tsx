@@ -4020,7 +4020,18 @@ export default function JetCleanApp() {
                     }
                     return total
                   })()
-                  const transferAmount = parseInt(String(treasSaved['تم_التحويل']?.expense)) || 0
+                  // حساب تم التحويل بنفس طريقة الخزينة (runningBalance عند صف تم_التحويل)
+                  const treasuryItemsForCalc = getTreasuryItems(branchName)
+                  let runBal = 0
+                  let transferAmount = 0
+                  for (const tItem of treasuryItemsForCalc) {
+                    const rowS = treasSaved[tItem.key] || {}
+                    let tIncome = rowS.income || 0
+                    let tExpense = rowS.expense || 0
+                    if (tItem.key === 'مصاريف_العمال') { tExpense = workerExpTotal2 }
+                    if (tItem.key === 'تم_التحويل') { transferAmount = Math.max(0, runBal); tExpense = transferAmount }
+                    runBal = runBal + tIncome - tExpense
+                  }
                   const totalWithCash = workerExpTotal2 + cashRemaining
                   const surplus = totalWithCash - transferAmount
                   return (
