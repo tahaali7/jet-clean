@@ -428,13 +428,34 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   // Treasury page - uses same global sizeLevel
   const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
   const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, sl) : ''
-  pages.push(
-    '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-    buildHeader(sl) +
-    overflowHtml +
-    treasuryContent +
-    '</div>'
-  )
+
+  // Split overflow rooms and treasury onto separate pages to avoid A4 overflow clipping
+  if (overflowHtml) {
+    // Page: overflow rooms only
+    pages.push(
+      '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+      buildHeader(sl) +
+      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
+      overflowHtml +
+      '</div>' +
+      '</div>'
+    )
+    // Page: treasury only (separate page)
+    pages.push(
+      '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+      buildHeader(sl) +
+      treasuryContent +
+      '</div>'
+    )
+  } else {
+    // No overflow rooms - treasury is the only content on this page
+    pages.push(
+      '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+      buildHeader(sl) +
+      treasuryContent +
+      '</div>'
+    )
+  }
 
   return pages
 }
