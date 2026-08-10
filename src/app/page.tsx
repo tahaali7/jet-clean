@@ -3937,25 +3937,28 @@ export default function JetCleanApp() {
             )
           })()}
 
-          {/* البطاقة المصرفية - تظهر للموظف لمراجعة وتعديل قيمتها */}
+          {/* البطاقة المصرفية / الكاش - تظهر للموظف لمراجعة وتعديل قيمتها */}
           {branchName && empDate && (() => {
             const bankWKey = branchName + '_' + empDate
             const savedBankWE = workerExpData[bankWKey] || {}
             const bankTreasury = savedBankWE.treasury || {}
             const bankBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
             const bankCardSale = parseInt(String(bankTreasury['بيع_البطاقة']?.expense)) || 0
+            const cashRemaining = parseInt(String(bankTreasury['الكاش_المتبقي']?.expense)) || 0
             const canEditBank = user?.role !== 'viewer' && !isBranchLocked
-            if (bankCardSale === 0) return null
+            if (bankCardSale === 0 && cashRemaining === 0) return null
+            const isAdminView = isAdminMode || user?.role === 'admin' || user?.role === 'viewer'
             return (
               <div className="bg-gradient-to-l from-blue-600/10 to-indigo-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl mt-4">
-                <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">💳 البطاقة المصرفية</h3>
+                <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">💳 البطاقة المصرفية / الكاش</h3>
                 <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
                   <div className="grid grid-cols-2 gap-0 px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
                     <span className="text-blue-300 text-xs font-bold">البيان</span>
-                    <span className="text-center text-emerald-400 text-xs font-bold">بيع البطاقة المصرفية</span>
+                    <span className="text-center text-emerald-400 text-xs font-bold">القيمة</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-0 items-center px-3 py-3">
-                    <span className="text-slate-200 text-xs font-semibold">💳 القيمة</span>
+                  {/* البطاقة */}
+                  <div className="grid grid-cols-2 gap-0 items-center px-3 py-3" style={{ borderBottom: '1px solid rgba(51,65,85,0.3)' }}>
+                    <span className="text-slate-200 text-xs font-semibold">💳 البطاقة</span>
                     {canEditBank ? (
                       <div className="text-center">
                         <input
@@ -3973,7 +3976,84 @@ export default function JetCleanApp() {
                       <span className="text-center text-emerald-400 text-sm font-bold">{bankCardSale}</span>
                     )}
                   </div>
+                  {/* الكاش المتبقي */}
+                  <div className="grid grid-cols-2 gap-0 items-center px-3 py-3">
+                    <span className="text-slate-200 text-xs font-semibold">💵 الكاش المتبقي</span>
+                    {canEditBank ? (
+                      <div className="text-center">
+                        <input
+                          type="number"
+                          value={cashRemaining || ''}
+                          placeholder="0"
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 0
+                            handleTreasuryFieldChange(bankWKey, branchName, bankBranchId, empDate, 'الكاش_المتبقي', 'expense', val)
+                          }}
+                          className="bg-slate-900 border border-emerald-400/30 text-emerald-400 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-center text-emerald-400 text-sm font-bold">{cashRemaining}</span>
+                    )}
+                  </div>
                 </div>
+                {/* حساب الفائض / العجز - للمسؤول فقط */}
+                {isAdminView && (() => {
+                  const treasSaved = bankTreasury
+                  const workerExpTotal2 = (() => {
+                    const roomNetMap2: Record<string, number> = {}
+                    const branchEntries2 = (isAdminMode || user?.role === 'viewer')
+                      ? carEntries.filter(e => {
+                        const sb = user?.role === 'viewer' ? (adminSelectedBranch || user?.branchId) : adminSelectedBranch
+                        return (e.branchId === sb || e.empId === 'admin_' + sb) && e.date === empDate
+                      })
+                      : carEntries.filter(e => (e.empId === user?.id || e.empId === 'admin_' + user?.branchId) && e.date === empDate)
+                    branchEntries2.forEach(e => {
+                      const net = getNetAmount(e.totalAmount, branchName, e.room)
+                      roomNetMap2[e.room] = (roomNetMap2[e.room] || 0) + net
+                    })
+                    let total = Object.values(roomNetMap2).reduce((s, v) => s + v, 0)
+                    const clCfg = BRANCH_CLEANLINESS[branchName]
+                    if (clCfg) {
+                      const cl = clCfg.type === 'fixed' ? (clCfg.value || 0) : (savedBankWE.cleanliness || 0)
+                      total += cl
+                    }
+                    return total
+                  })()
+                  const transferAmount = parseInt(String(treasSaved['تم_التحويل']?.expense)) || 0
+                  const totalWithCash = workerExpTotal2 + cashRemaining
+                  const surplus = totalWithCash - transferAmount
+                  return (
+                    <div className="mt-3 bg-slate-900/60 border border-slate-700 rounded-xl p-3 space-y-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400">إجمالي المصروفات</span>
+                        <span className="text-amber-400 font-bold">{workerExpTotal2} د.ل</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400">+ الكاش المتبقي</span>
+                        <span className="text-emerald-400 font-bold">{cashRemaining} د.ل</span>
+                      </div>
+                      <div className="border-t border-slate-700 my-1" />
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-300 font-semibold">المجموع</span>
+                        <span className="text-white font-bold">{totalWithCash} د.ل</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400">- تم التحويل</span>
+                        <span className="text-red-400 font-bold">{transferAmount} د.ل</span>
+                      </div>
+                      <div className="border-t border-slate-700 my-1" />
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-slate-300 font-bold">
+                          {surplus >= 0 ? '✅ الفائض' : '❌ العجز'}
+                        </span>
+                        <span className={`font-black ${surplus >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {Math.abs(surplus)} د.ل
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )
           })()}
