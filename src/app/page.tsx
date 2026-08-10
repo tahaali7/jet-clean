@@ -4000,26 +4000,15 @@ export default function JetCleanApp() {
                 {/* حساب الفائض / العجز - للمسؤول فقط */}
                 {isAdminView && (() => {
                   const treasSaved = bankTreasury
-                  const workerExpTotal2 = (() => {
-                    const roomNetMap2: Record<string, number> = {}
-                    const branchEntries2 = (isAdminMode || user?.role === 'viewer')
-                      ? carEntries.filter(e => {
-                        const sb = user?.role === 'viewer' ? (adminSelectedBranch || user?.branchId) : adminSelectedBranch
-                        return (e.branchId === sb || e.empId === 'admin_' + sb) && e.date === empDate
-                      })
-                      : carEntries.filter(e => (e.empId === user?.id || e.empId === 'admin_' + user?.branchId) && e.date === empDate)
-                    branchEntries2.forEach(e => {
-                      const net = getNetAmount(e.totalAmount, branchName, e.room)
-                      roomNetMap2[e.room] = (roomNetMap2[e.room] || 0) + net
-                    })
-                    let total = Object.values(roomNetMap2).reduce((s, v) => s + v, 0)
-                    const clCfg = BRANCH_CLEANLINESS[branchName]
-                    if (clCfg) {
-                      const cl = clCfg.type === 'fixed' ? (clCfg.value || 0) : (savedBankWE.cleanliness || 0)
-                      total += cl
-                    }
-                    return total
-                  })()
+                  // إجمالي المصروفات = إجمالي حركات اليوم (مصروفات + سحوبات + عجوزات)
+                  const bankBranchId2 = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+                  const todayExpEntries = Object.keys(treasSaved)
+                    .filter(k => k.startsWith('مصروف_'))
+                    .map(k => treasSaved[k].expense || 0)
+                  const todayRecords2 = records
+                    .filter(r => r.date === empDate && r.branchId === bankBranchId2)
+                    .map(r => r.amount)
+                  const totalDailyMovements = todayExpEntries.reduce((s, v) => s + v, 0) + todayRecords2.reduce((s, v) => s + v, 0)
                   // حساب تم التحويل بنفس طريقة الخزينة (runningBalance عند صف تم_التحويل)
                   const treasuryItemsForCalc = getTreasuryItems(branchName)
                   let runBal = 0
@@ -4028,17 +4017,16 @@ export default function JetCleanApp() {
                     const rowS = treasSaved[tItem.key] || {}
                     let tIncome = rowS.income || 0
                     let tExpense = rowS.expense || 0
-                    if (tItem.key === 'مصاريف_العمال') { tExpense = workerExpTotal2 }
                     if (tItem.key === 'تم_التحويل') { transferAmount = Math.max(0, runBal); tExpense = transferAmount }
                     runBal = runBal + tIncome - tExpense
                   }
-                  const totalWithCash = workerExpTotal2 + cashRemaining
+                  const totalWithCash = totalDailyMovements + cashRemaining
                   const surplus = totalWithCash - transferAmount
                   return (
                     <div className="mt-3 bg-slate-900/60 border border-slate-700 rounded-xl p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400">إجمالي المصروفات</span>
-                        <span className="text-amber-400 font-bold">{workerExpTotal2} د.ل</span>
+                        <span className="text-slate-400">إجمالي حركات اليوم</span>
+                        <span className="text-amber-400 font-bold">{totalDailyMovements} د.ل</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-400">+ الكاش المتبقي</span>
