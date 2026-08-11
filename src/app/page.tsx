@@ -429,24 +429,36 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
   const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, sl) : ''
 
-  // Split overflow rooms and treasury onto separate pages to avoid A4 overflow clipping
+  // Split overflow rooms and treasury onto pages
   if (overflowHtml) {
-    // Page: overflow rooms only
-    pages.push(
-      '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
-      buildHeader(sl) +
-      '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
-      overflowHtml +
-      '</div>' +
-      '</div>'
-    )
-    // Page: treasury only (separate page)
-    pages.push(
-      '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-      buildHeader(sl) +
-      treasuryContent +
-      '</div>'
-    )
+    if (overflowRoomCount <= 3) {
+      // غرف زائدة قليلة (3 أو أقل) → ندمجها مع الخزينة في صفحة واحدة
+      pages.push(
+        '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+        buildHeader(sl) +
+        overflowHtml +
+        '<div style="margin-top:16px;">' +
+        treasuryContent +
+        '</div>' +
+        '</div>'
+      )
+    } else {
+      // غرف زائدة كثيرة → صفحة منفصلة للغرف + صفحة منفصلة للخزينة
+      pages.push(
+        '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+        buildHeader(sl) +
+        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
+        overflowHtml +
+        '</div>' +
+        '</div>'
+      )
+      pages.push(
+        '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+        buildHeader(sl) +
+        treasuryContent +
+        '</div>'
+      )
+    }
   } else {
     // No overflow rooms - treasury is the only content on this page
     pages.push(
