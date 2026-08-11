@@ -3439,20 +3439,35 @@ export default function JetCleanApp() {
                           const total = parseInt(quickTotalAmount) || 0
                           if (total <= 0) return
                           const prices = getPricesForRoom(selectedRoom)
-                          // توزيع المبلغ من أكبر سعر لأصغر (خوارزمية الجشع)
+                          const sortedAsc = [...prices].sort((a, b) => a - b)
                           let remaining = total
                           const newPriceInputs: Record<number, number> = {}
-                          const sortedPrices = [...prices].sort((a, b) => b - a)
-                          for (const price of sortedPrices) {
-                            if (remaining >= price) {
-                              const count = Math.floor(remaining / price)
-                              newPriceInputs[price] = count
-                              remaining -= count * price
+                          // توزيع بتنوع: جولة تلو الأخرى (كل سعر يأخذ 1 كحد أقصى لكل جولة)
+                          let changed = true
+                          while (remaining > 0 && changed) {
+                            changed = false
+                            for (const price of sortedAsc) {
+                              if (remaining >= price) {
+                                newPriceInputs[price] = (newPriceInputs[price] || 0) + 1
+                                remaining -= price
+                                changed = true
+                              }
+                            }
+                          }
+                          // إذا الكسر أقل من 10، نشيل أصغر الأسعار ونضيفها للكسر
+                          if (remaining > 0 && remaining < 10) {
+                            for (const price of sortedAsc) {
+                              if (remaining >= 10) break
+                              if ((newPriceInputs[price] || 0) > 0) {
+                                newPriceInputs[price]--
+                                remaining += price
+                                if (newPriceInputs[price] === 0) delete newPriceInputs[price]
+                              }
                             }
                           }
                           setPriceInputs(newPriceInputs)
-                          // الكسر يُضاف كتسعيرة مخصصة
-                          if (remaining > 0) {
+                          // الكسر يُضاف كتسعيرة مخصصة فقط إذا كان 10 أو أكبر
+                          if (remaining >= 10) {
                             const customKey = 'quick_' + Date.now()
                             setCustomPricesData(prev => ({
                               ...prev,
