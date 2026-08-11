@@ -860,6 +860,7 @@ export default function JetCleanApp() {
   const [customPriceInput, setCustomPriceInput] = useState('')
   const [customCountInput, setCustomCountInput] = useState('')
   const [saving, setSaving] = useState(false)
+  const [quickTotalAmount, setQuickTotalAmount] = useState('')
   const [quickBankCardSale, setQuickBankCardSale] = useState('')
   const [quickCoupons, setQuickCoupons] = useState('')
   const [quickExpName, setQuickExpName] = useState('')
@@ -3417,6 +3418,57 @@ export default function JetCleanApp() {
                     </div>
                   )
                 })()}
+                {/* تسجيل بالمبلغ الإجمالي - للمسؤول فقط - لا يظهر إذا الاكسترا فعالة */}
+                {(isAdminMode || user?.role === 'admin' || user?.role === 'viewer') && !isExtraEnabledForBranch(branchName) && (
+                  <div className="mb-4 bg-gradient-to-l from-amber-600/10 to-orange-600/10 border border-amber-500/30 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-amber-400 text-xs font-bold">💰 تسجيل بالمبلغ الإجمالي</span>
+                    </div>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="number"
+                        min="0"
+                        value={quickTotalAmount}
+                        placeholder="أدخل المبلغ الإجمالي"
+                        onChange={e => setQuickTotalAmount(e.target.value)}
+                        className="flex-1 bg-slate-900 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-2 text-sm font-bold text-center outline-none focus:border-amber-400"
+                        onFocus={e => (e.target as HTMLInputElement).select()}
+                      />
+                      <button
+                        onClick={() => {
+                          const total = parseInt(quickTotalAmount) || 0
+                          if (total <= 0) return
+                          const prices = getPricesForRoom(selectedRoom)
+                          // توزيع المبلغ من أكبر سعر لأصغر (خوارزمية الجشع)
+                          let remaining = total
+                          const newPriceInputs: Record<number, number> = {}
+                          const sortedPrices = [...prices].sort((a, b) => b - a)
+                          for (const price of sortedPrices) {
+                            if (remaining >= price) {
+                              const count = Math.floor(remaining / price)
+                              newPriceInputs[price] = count
+                              remaining -= count * price
+                            }
+                          }
+                          setPriceInputs(newPriceInputs)
+                          // الكسر يُضاف كتسعيرة مخصصة
+                          if (remaining > 0) {
+                            const customKey = 'quick_' + Date.now()
+                            setCustomPricesData(prev => ({
+                              ...prev,
+                              [customKey]: { price: remaining, count: 1 }
+                            }))
+                          }
+                          setQuickTotalAmount('')
+                        }}
+                        disabled={!quickTotalAmount || parseInt(quickTotalAmount) <= 0}
+                        className="bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition"
+                      >
+                        🔄 توزيع تلقائي
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {renderPriceGrid(branchName)}
                 <div className="flex gap-3">
                   <button
@@ -3427,7 +3479,7 @@ export default function JetCleanApp() {
                     {isBranchLocked ? '🔒 الفرع مقفل' : saving ? '⏳ جاري الحفظ...' : '💾 حفظ التسجيل'}
                   </button>
                   <button
-                    onClick={() => { setPriceInputs({}); setCustomPricesData({}) }}
+                    onClick={() => { setPriceInputs({}); setCustomPricesData({}); setQuickTotalAmount('') }}
                     disabled={isBranchLocked}
                     className={`font-bold py-3 px-6 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
                   >
