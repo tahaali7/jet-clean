@@ -453,7 +453,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
         '</div>'
       )
       pages.push(
-        '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
         buildHeader(sl) +
         treasuryContent +
         '</div>'
@@ -462,7 +462,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   } else {
     // No overflow rooms - treasury is the only content on this page
     pages.push(
-      '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+      '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
       buildHeader(sl) +
       treasuryContent +
       '</div>'
