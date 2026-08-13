@@ -431,8 +431,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Split overflow rooms and treasury onto pages
   if (overflowHtml) {
-    if (overflowRoomCount <= 3) {
-      // غرف زائدة قليلة (3 أو أقل) → ندمجها مع الخزينة في صفحة واحدة
+    if (overflowRoomCount <= 3 && totalFullPages > 0) {
+      // غرف زائدة قليلة مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
       pages.push(
         '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
         buildHeader(sl) +
@@ -443,7 +443,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
         '</div>'
       )
     } else {
-      // غرف زائدة كثيرة → صفحة منفصلة للغرف + صفحة منفصلة للخزينة
+      // إما غرف زائدة كثيرة أو لا توجد صفحات غرف كاملة (مثل المنصوره 3 غرف)
+      // → صفحة منفصلة للغرف + صفحة منفصلة للخزينة
       pages.push(
         '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
         buildHeader(sl) +
