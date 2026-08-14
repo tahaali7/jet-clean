@@ -42,6 +42,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ backups })
     }
 
+    if (mode === 'backup-data' && searchParams.get('id')) {
+      const id = searchParams.get('id')!
+      const backup = await db.backupFile.findUnique({ where: { id } })
+      if (!backup) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+      const parsed = JSON.parse(backup.data)
+      const bData = parsed.data || parsed
+      return NextResponse.json({
+        id: backup.id,
+        label: backup.label,
+        counts: {
+          branches: (bData.branches || []).length,
+          employees: (bData.employees || []).length,
+          carEntries: (bData.carEntries || []).length,
+          workerExpenses: (bData.workerExpenses || []).length,
+          treasuries: (bData.treasuries || []).length,
+          records: (bData.records || []).length,
+          closedDays: (bData.closedDays || []).length
+        }
+      })
+    }
+
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
