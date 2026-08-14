@@ -4,6 +4,7 @@ import { verifyToken, isPublicPath, API_PERMISSIONS } from '@/lib/auth'
 // مسارات لا تحتاج حماية
 const PUBLIC_PATHS = [
   '/api/auth/login',
+  '/api/setup', // مؤقت — لإعداد حساب المسؤول
   '/api' // health check
 ]
 
