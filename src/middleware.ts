@@ -5,6 +5,7 @@ import { verifyToken, isPublicPath, API_PERMISSIONS } from '@/lib/auth'
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/setup', // مؤقت — لإعداد حساب المسؤول
+  '/api/restore', // مؤقت — لاستعادة البيانات
   '/api' // health check
 ]
 
