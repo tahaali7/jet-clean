@@ -5,7 +5,6 @@ import { verifyToken, isPublicPath, API_PERMISSIONS } from '@/lib/auth'
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/setup',
-  '/api/db-export',
   '/api'
 ]
 
