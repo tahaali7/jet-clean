@@ -5,10 +5,6 @@ import { verifyToken, isPublicPath, API_PERMISSIONS } from '@/lib/auth'
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/setup',
-  '/api/restore',
-  '/api/branches',
-  '/api/employees',
-  '/api/db-check',
   '/api'
 ]
 
@@ -38,6 +34,12 @@ export async function middleware(req: NextRequest) {
 
   const method = req.method.toUpperCase()
   const cleanPath = pathname.split('?')[0]
+
+  // GET requests لجلب الفروع والموظفين — عامة (لصفحة تسجيل الدخول)
+  // كلمات المرور تُزال من الاستجابة أصلاً
+  if (method === 'GET' && (cleanPath === '/api/branches' || cleanPath === '/api/employees')) {
+    return withSecurityHeaders(NextResponse.next())
+  }
 
   // إيجاد أقرب تطابق في صلاحيات الـ API
   const matchedPath = findMatchingPermission(cleanPath)
