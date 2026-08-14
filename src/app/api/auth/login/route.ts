@@ -36,20 +36,6 @@ export async function POST(req: NextRequest) {
         )
       } catch (dbErr: any) {
         console.error('Admin DB error:', dbErr?.message)
-        // Fallback: allow login with hardcoded password if DB fails
-        if (password === '7777') {
-          const token = await createToken({ id: 'admin', name: 'طه علي', role: 'admin' })
-          const response = createAuthCookie(token)
-          const loginData = { success: true, user: { id: 'admin', name: 'طه علي', role: 'admin' as const } }
-          // نحتاج نرجع الـ response مع الـ cookie + البيانات
-          return new NextResponse(JSON.stringify(loginData), {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-              'Set-Cookie': response.headers.get('Set-Cookie') || ''
-            }
-          })
-        }
         return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
       }
       if (!admin || admin.password !== password) {
@@ -108,8 +94,7 @@ export async function POST(req: NextRequest) {
         name: employee.name,
         role: (employee.role || 'employee') as 'employee' | 'viewer',
         branchId: employee.branchId,
-        shift: employee.shift,
-        password: employee.password
+        shift: employee.shift
       }
     }
     return new NextResponse(JSON.stringify(loginData), {

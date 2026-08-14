@@ -47,7 +47,7 @@ model Employee {
 model AdminAccount {
   id       String @id @default("admin")
   name     String @default("طه علي")
-  password String @default("19970880528")
+  password String @default("")
 }
 
 model CarEntry {

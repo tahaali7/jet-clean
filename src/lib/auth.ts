@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from 'next/server'
 const getSecret = () => {
   const secret = process.env.JWT_SECRET
   if (!secret) {
-    console.warn('⚠️ JWT_SECRET غير محدد في متغيرات البيئة - يستخدم مفتاح افتراضي')
+    throw new Error('❌ JWT_SECRET غير محدد في متغيرات البيئة')
   }
-  return new TextEncoder().encode(secret || 'car-wash-app-secret-key-2024-change-in-production')
+  return new TextEncoder().encode(secret)
 }
 
 export interface SessionUser {
@@ -98,15 +98,15 @@ export type Permission = 'admin' | 'employee' | 'viewer' | 'any-authenticated'
 // الأدوار المطلوبة للوصول
 export const API_PERMISSIONS: Record<string, Record<string, Permission[]>> = {
   '/api/branches': {
-    GET: ['admin', 'viewer', 'employee', 'public'],
+    GET: ['admin', 'viewer', 'employee'],
     POST: ['admin'],
     PUT: ['admin'],
     DELETE: ['admin']
   },
   '/api/employees': {
-    GET: ['admin', 'viewer', 'public'],
+    GET: ['admin', 'viewer'],
     POST: ['admin'],
-    PUT: ['admin', 'employee'], // الموظف يعدّل كلمة مروره فقط
+    PUT: ['admin', 'employee'],
     DELETE: ['admin']
   },
   '/api/car-entries': {
