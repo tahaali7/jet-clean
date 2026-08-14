@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       // إنشاء token وحفظه في cookie
       const token = await createToken({ id: 'admin', name: admin.name, role: 'admin' })
       const response = createAuthCookie(token)
-      const loginData = { success: true, user: { id: 'admin', name: admin.name, role: 'admin' as const } }
+      const loginData = { success: true, user: { id: 'admin', name: admin.name, role: 'admin' as const }, token }
       return new NextResponse(JSON.stringify(loginData), {
         status: 200,
         headers: {
@@ -119,7 +119,8 @@ export async function POST(req: NextRequest) {
         role: (employee.role || 'employee') as 'employee' | 'viewer',
         branchId: employee.branchId,
         shift: employee.shift
-      }
+      },
+      token
     }
     return new NextResponse(JSON.stringify(loginData), {
       status: 200,
