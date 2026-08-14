@@ -103,9 +103,9 @@ function findMatchingPermission(path: string): string | null {
   return null
 }
 
-// تحديد المسارات اللي يطبق عليها الـ middleware (كل المسارات)
+// تحديد المسارات اللي يطبق عليها الـ middleware
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)'
+    '/api/((?!_next/static|_next/image|favicon.ico).*)'
   ]
 }
