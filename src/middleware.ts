@@ -7,17 +7,28 @@ const PUBLIC_PATHS = [
   '/api' // health check
 ]
 
+// دالة مساعدة: إضافة Security Headers لأي response
+function withSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  return response
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // نحمي فقط مسارات /api/ (ما عدا العامة)
   if (!pathname.startsWith('/api/')) {
-    return NextResponse.next()
+    // الصفحات — نرجع مع Security Headers
+    return withSecurityHeaders(NextResponse.next())
   }
 
   // التحقق هل المسار عام
   if (PUBLIC_PATHS.some(p => pathname === p)) {
-    return NextResponse.next()
+    return withSecurityHeaders(NextResponse.next())
   }
 
   const method = req.method.toUpperCase()
@@ -29,7 +40,7 @@ export async function middleware(req: NextRequest) {
     const perms = API_PERMISSIONS[matchedPath][method]
     // لو المسار يسمح بالوصول العام (public) → نسمح بدون token
     if (perms && perms.includes('public' as any)) {
-      return NextResponse.next()
+      return withSecurityHeaders(NextResponse.next())
     }
   }
 
@@ -39,29 +50,29 @@ export async function middleware(req: NextRequest) {
 
   // لو ما فيه token → رفض
   if (!token) {
-    return NextResponse.json(
+    return withSecurityHeaders(NextResponse.json(
       { error: 'يرجى تسجيل الدخول أولاً', code: 'NO_TOKEN' },
       { status: 401 }
-    )
+    ))
   }
 
   // التحقق من صحة الـ token
   const payload = await verifyToken(token)
   if (!payload) {
-    return NextResponse.json(
+    return withSecurityHeaders(NextResponse.json(
       { error: 'انتهت صلاحية الجلسة - يرجى تسجيل الدخول مجدداً', code: 'TOKEN_EXPIRED' },
       { status: 401 }
-    )
+    ))
   }
 
   // التحقق من صلاحية الدور للمسار المطلوب
   if (matchedPath && API_PERMISSIONS[matchedPath]) {
     const perms = API_PERMISSIONS[matchedPath][method]
     if (perms && !perms.includes(payload.role as any) && !perms.includes('any-authenticated')) {
-      return NextResponse.json(
+      return withSecurityHeaders(NextResponse.json(
         { error: 'ليس لديك صلاحية للقيام بهذه العملية', code: 'FORBIDDEN' },
         { status: 403 }
-      )
+      ))
     }
   }
 
@@ -72,9 +83,9 @@ export async function middleware(req: NextRequest) {
   requestHeaders.set('x-user-role', payload.role)
   requestHeaders.set('x-user-branch', payload.branchId || '')
 
-  return NextResponse.next({
+  return withSecurityHeaders(NextResponse.next({
     request: { headers: requestHeaders }
-  })
+  }))
 }
 
 // إيجاد أقرب تطابق للمسار في جدول الصلاحيات
@@ -92,9 +103,9 @@ function findMatchingPermission(path: string): string | null {
   return null
 }
 
-// تحديد المسارات اللي يطبق عليها الـ middleware
+// تحديد المسارات اللي يطبق عليها الـ middleware (كل المسارات)
 export const config = {
   matcher: [
-    '/api/((?!_next/static|_next/image|favicon.ico).*)'
+    '/((?!_next/static|_next/image|favicon.ico).*)'
   ]
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +11,12 @@ export async function GET(req: NextRequest) {
       include: { branch: true },
       orderBy: { name: 'asc' }
     })
-    return NextResponse.json(employees)
+    // إزالة كلمات المرور من الاستجابة
+    const sanitized = employees.map((e: any) => {
+      const { password, ...safe } = e
+      return safe
+    })
+    return NextResponse.json(sanitized)
   } catch (error) {
     console.error('Get employees error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
@@ -25,13 +31,14 @@ export async function POST(req: NextRequest) {
     if (hasLogin && !password?.trim()) return NextResponse.json({ error: 'الرجاء إدخال رمز المرور' }, { status: 400 })
 
     const id = name.trim().replace(/\s+/g, '_') + '_' + (branchId || 'viewer') + '_' + Date.now()
+    const hashedPassword = hasLogin && password?.trim() ? await bcrypt.hash(password.trim(), 12) : ''
     const employee = await db.employee.create({
       data: {
         id,
         name: name.trim(),
         branchId: branchId || null,
         shift: role === 'viewer' ? 'مشاهد' : (shift || 'الفترة الصباحية'),
-        password: hasLogin ? password.trim() : '',
+        password: hashedPassword,
         role: role || 'employee',
         hasLogin: !!hasLogin,
         startDate: startDate || '',
@@ -39,7 +46,9 @@ export async function POST(req: NextRequest) {
         multiBranchIds: Array.isArray(multiBranchIds) ? JSON.stringify(multiBranchIds) : '[]',
       }
     })
-    return NextResponse.json(employee)
+    // إزالة كلمة المرور من الاستجابة
+    const { password: _, ...safeEmployee } = employee as any
+    return NextResponse.json(safeEmployee)
   } catch (error) {
     console.error('Create employee error:', error)
     const errMsg = error instanceof Error ? error.message : String(error)
@@ -56,7 +65,9 @@ export async function PUT(req: NextRequest) {
     if (shift !== undefined && shift !== null) data.shift = String(shift)
     if (role !== undefined && role !== null) data.role = String(role)
     if (hasLogin !== undefined && hasLogin !== null) data.hasLogin = hasLogin === true
-    if (password !== undefined && password !== null && String(password).trim() !== '') data.password = String(password).trim()
+    if (password !== undefined && password !== null && String(password).trim() !== '') {
+      data.password = await bcrypt.hash(String(password).trim(), 12)
+    }
     if (branchId !== undefined && branchId !== null) data.branchId = branchId
     if (startDate !== undefined && startDate !== null) data.startDate = String(startDate)
     if (endDate !== undefined && endDate !== null) data.endDate = String(endDate)
@@ -68,7 +79,9 @@ export async function PUT(req: NextRequest) {
       where: { id },
       data
     })
-    return NextResponse.json(employee)
+    // إزالة كلمة المرور من الاستجابة
+    const { password: _, ...safeEmployee } = employee as any
+    return NextResponse.json(safeEmployee)
   } catch (error: any) {
     console.error('Update employee error:', error)
     return NextResponse.json({ error: 'حدث خطأ: ' + (error?.message || '') }, { status: 500 })

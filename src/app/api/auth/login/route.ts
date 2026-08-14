@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { createToken, createAuthCookie, clearAuthCookie } from '@/lib/auth'
+import bcrypt from 'bcryptjs'
 
 // Retry helper for connection issues
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 800): Promise<T> {
@@ -38,7 +39,20 @@ export async function POST(req: NextRequest) {
         console.error('Admin DB error:', dbErr?.message)
         return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
       }
-      if (!admin || admin.password !== password) {
+      if (!admin) {
+        return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
+      }
+      // الدعم المؤقت: مقارنة نصية للكلمات القديمة + bcrypt للجديدة
+      let passwordValid = false
+      if (admin.password.startsWith('$2a$') || admin.password.startsWith('$2b$')) {
+        passwordValid = await bcrypt.compare(password, admin.password)
+      } else if (admin.password === password) {
+        // كلمة مرور نصية قديمة — هاشها فوراً وحدّث
+        const hashed = await bcrypt.hash(password, 12)
+        await db.adminAccount.update({ where: { id: 'admin' }, data: { password: hashed } })
+        passwordValid = true
+      }
+      if (!passwordValid) {
         return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
       }
 
@@ -74,7 +88,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'الموظف غير موجود' }, { status: 404 })
     }
 
-    if (employee.password !== password) {
+    // الدعم المؤقت: مقارنة نصية للكلمات القديمة + bcrypt للجديدة
+    let passwordValid = false
+    if (employee.password.startsWith('$2a$') || employee.password.startsWith('$2b$')) {
+      passwordValid = await bcrypt.compare(password, employee.password)
+    } else if (employee.password === password) {
+      // كلمة مرور نصية قديمة — هاشها فوراً وحدّث
+      const hashed = await bcrypt.hash(password, 12)
+      await db.employee.update({ where: { id: employee.id }, data: { password: hashed } })
+      passwordValid = true
+    }
+    if (!passwordValid) {
       return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
     }
 

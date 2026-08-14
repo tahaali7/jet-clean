@@ -7,7 +7,15 @@ export async function GET() {
       include: { employees: true },
       orderBy: { name: 'asc' }
     })
-    return NextResponse.json(branches)
+    // إزالة كلمات المرور من الموظفين في الاستجابة
+    const sanitized = branches.map(b => ({
+      ...b,
+      employees: b.employees.map((e: any) => {
+        const { password, ...safe } = e
+        return safe
+      })
+    }))
+    return NextResponse.json(sanitized)
   } catch (error) {
     console.error('Get branches error:', error)
     return NextResponse.json({ error: 'حدث خطأ' }, { status: 500 })
