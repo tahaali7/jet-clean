@@ -4,9 +4,12 @@ import { verifyToken, isPublicPath, API_PERMISSIONS } from '@/lib/auth'
 // مسارات لا تحتاج حماية
 const PUBLIC_PATHS = [
   '/api/auth/login',
-  '/api/setup', // مؤقت — لإعداد حساب المسؤول
-  '/api/restore', // مؤقت — لاستعادة البيانات
-  '/api' // health check
+  '/api/setup',
+  '/api/restore',
+  '/api/branches',
+  '/api/employees',
+  '/api/db-check',
+  '/api'
 ]
 
 // دالة مساعدة: إضافة Security Headers لأي response
