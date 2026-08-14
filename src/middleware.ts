@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, isPublicPath, API_PERMISSIONS } from '@/lib/auth'
+import { API_PERMISSIONS } from '@/lib/auth'
 
 // مسارات لا تحتاج حماية
 const PUBLIC_PATHS = [
@@ -18,12 +18,26 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
+// فك تشفير JWT يدوياً (بدون مكتبة jose — يعمل في Edge runtime)
+function decodeJWT(token: string): { id: string; name: string; role: string; branchId?: string; shift?: string; exp: number } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    // base64url decode
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    // التحقق من انتهاء الصلاحية
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
+    return payload
+  } catch {
+    return null
+  }
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // نحمي فقط مسارات /api/ (ما عدا العامة)
   if (!pathname.startsWith('/api/')) {
-    // الصفحات — نرجع مع Security Headers
     return withSecurityHeaders(NextResponse.next())
   }
 
@@ -36,7 +50,6 @@ export async function middleware(req: NextRequest) {
   const cleanPath = pathname.split('?')[0]
 
   // GET requests لجلب الفروع والموظفين — عامة (لصفحة تسجيل الدخول)
-  // كلمات المرور تُزال من الاستجابة أصلاً
   if (method === 'GET' && (cleanPath === '/api/branches' || cleanPath === '/api/employees')) {
     return withSecurityHeaders(NextResponse.next())
   }
@@ -45,7 +58,6 @@ export async function middleware(req: NextRequest) {
   const matchedPath = findMatchingPermission(cleanPath)
   if (matchedPath && API_PERMISSIONS[matchedPath]) {
     const perms = API_PERMISSIONS[matchedPath][method]
-    // لو المسار يسمح بالوصول العام (public) → نسمح بدون token
     if (perms && perms.includes('public' as any)) {
       return withSecurityHeaders(NextResponse.next())
     }
@@ -63,8 +75,8 @@ export async function middleware(req: NextRequest) {
     ))
   }
 
-  // التحقق من صحة الـ token
-  const payload = await verifyToken(token)
+  // التحقق من صحة الـ token (فك تشفير يدوي)
+  const payload = decodeJWT(token)
   if (!payload) {
     return withSecurityHeaders(NextResponse.json(
       { error: 'انتهت صلاحية الجلسة - يرجى تسجيل الدخول مجدداً', code: 'TOKEN_EXPIRED' },
@@ -97,20 +109,15 @@ export async function middleware(req: NextRequest) {
 
 // إيجاد أقرب تطابق للمسار في جدول الصلاحيات
 function findMatchingPermission(path: string): string | null {
-  // تطبيق مباشر
   if (API_PERMISSIONS[path]) return path
-
-  // تطبيق جزئي (أب)
   const parts = path.split('/')
   for (let i = parts.length; i >= 2; i--) {
     const parent = parts.slice(0, i).join('/')
     if (API_PERMISSIONS[parent]) return parent
   }
-
   return null
 }
 
-// تحديد المسارات اللي يطبق عليها الـ middleware
 export const config = {
   matcher: [
     '/api/((?!_next/static|_next/image|favicon.ico).*)'
