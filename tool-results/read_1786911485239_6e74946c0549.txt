@@ -1,0 +1,2002 @@
+  3520→            {/* البيانات الإضافية */}
+  3521→            {selectedRoom === '__extra__' && (() => {
+  3522→              const qBranchId = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+  3523→              return (
+  3524→              <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/30">
+  3525→                <h3 className="text-lg font-bold text-amber-400 mb-4">💳 {branchName === 'بن غرسه' ? 'البطاقة المصرفية / الكوبونات' : 'البطاقة المصرفية'}</h3>
+  3526→                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  3527→                  <div>
+  3528→                    <label className="block text-xs text-slate-400 mb-1">💳 بيع البطاقة المصرفية</label>
+  3529→                    <input
+  3530→                      type="number"
+  3531→                      value={quickBankCardSale}
+  3532→                      onChange={e => setQuickBankCardSale(e.target.value)}
+  3533→                      placeholder="0"
+  3534→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+  3535→                    />
+  3536→                  </div>
+  3537→                  {branchName === 'بن غرسه' && (
+  3538→                    <div>
+  3539→                      <label className="block text-xs text-slate-400 mb-1">🎫 كوبونات</label>
+  3540→                      <input
+  3541→                        type="number"
+  3542→                        value={quickCoupons}
+  3543→                        onChange={e => setQuickCoupons(e.target.value)}
+  3544→                        placeholder="0"
+  3545→                        className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+  3546→                      />
+  3547→                    </div>
+  3548→                  )}
+  3549→                </div>
+  3550→                <button
+  3551→                  onClick={() => { handleQuickTreasurySave(qBranchId, branchName, empDate); setSelectedRoom('') }}
+  3552→                  disabled={isBranchLocked}
+  3553→                  className={`mt-3 w-full font-semibold py-3 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 text-white'}`}
+  3554→                >
+  3555→                  {isBranchLocked ? '🔒 الفرع مقفل' : '💾 حفظ البيانات'}
+  3556→                </button>
+  3557→              </div>
+  3558→              )
+  3559→            })()}
+  3560→
+  3561→            {/* إدخال مصروفات */}
+  3562→            {selectedRoom === '__expenses__' && (() => {
+  3563→              const qBranchId2 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+  3564→              return (
+  3565→              <div className="bg-slate-800 p-5 rounded-2xl border border-rose-500/30">
+  3566→                <h3 className="text-lg font-bold text-rose-400 mb-4">📋 إدخال مصروفات</h3>
+  3567→                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+  3568→                  <input
+  3569→                    type="text"
+  3570→                    value={quickExpName}
+  3571→                    onChange={e => setQuickExpName(e.target.value)}
+  3572→                    placeholder="اسم المصروف (مثلاً: صيانة)"
+  3573→                    className="sm:col-span-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+  3574→                  />
+  3575→                  <div className="flex gap-2">
+  3576→                    <input
+  3577→                      type="number"
+  3578→                      value={quickExpAmount}
+  3579→                      onChange={e => setQuickExpAmount(e.target.value)}
+  3580→                      placeholder="المبلغ"
+  3581→                      className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+  3582→                    />
+  3583→                    <button
+  3584→                      onClick={handleAddQuickExpense}
+  3585→                      disabled={isBranchLocked}
+  3586→                      className={`text-white font-bold px-4 py-2 rounded-lg transition text-sm ${isBranchLocked ? 'bg-slate-700 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500'}`}
+  3587→                    >
+  3588→                      ➕
+  3589→                    </button>
+  3590→                  </div>
+  3591→                </div>
+  3592→                {quickExpenses.length > 0 && (
+  3593→                  <div className="space-y-2 mb-3">
+  3594→                    {quickExpenses.map((exp, idx) => (
+  3595→                      <div key={idx} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
+  3596→                        <span className="text-slate-300 text-sm">{exp.name}</span>
+  3597→                        <div className="flex items-center gap-2">
+  3598→                          <span className="text-rose-400 font-bold text-sm">{exp.amount} د.ل</span>
+  3599→                          <button onClick={() => handleRemoveQuickExpense(idx)} className="text-slate-500 hover:text-rose-400 text-xs">✕</button>
+  3600→                        </div>
+  3601→                      </div>
+  3602→                    ))}
+  3603→                    <button
+  3604→                      onClick={() => { handleSaveQuickExpenses(qBranchId2, branchName, empDate); setSelectedRoom('') }}
+  3605→                      disabled={isBranchLocked}
+  3606→                      className={`w-full font-semibold py-3 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white'}`}
+  3607→                    >
+  3608→                      {isBranchLocked ? '🔒 الفرع مقفل' : `💾 حفظ المصروفات (${quickExpenses.reduce((s, e) => s + e.amount, 0)} د.ل)`}
+  3609→                    </button>
+  3610→                  </div>
+  3611→                )}
+  3612→              </div>
+  3613→              )
+  3614→            })()}
+  3615→
+  3616→            {/* سحب أو عجز لموظف */}
+  3617→            {selectedRoom === '__withdrawal__' && (() => {
+  3618→              const qBranchId3 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
+  3619→              const isViewerOnly = user?.role === 'viewer'
+  3620→              const isEmployee = !isAdminMode && !isViewerOnly
+  3621→              const branchEmps = employees.filter(e => {
+  3622→                if (e.deleted) return false
+  3623→                if (e.branchId === qBranchId3) return true
+  3624→                try { const ids: string[] = JSON.parse(e.multiBranchIds || '[]'); return ids.includes(qBranchId3) } catch { return false }
+  3625→              })
+  3626→              return (
+  3627→              <div className="bg-slate-800 p-5 rounded-2xl border border-amber-500/30">
+  3628→                <h3 className="text-lg font-bold text-amber-400 mb-4">💰 {!isEmployee ? 'سحب أو عجز لموظف' : 'سحب لموظف'}</h3>
+  3629→                <div className="space-y-3">
+  3630→                  {/* اختيار الموظف */}
+  3631→                  <div>
+  3632→                    <label className="block text-xs text-slate-400 mb-1">👤 الموظف</label>
+  3633→                    <select
+  3634→                      value={qEmpId}
+  3635→                      onChange={e => setQEmpId(e.target.value)}
+  3636→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+  3637→                    >
+  3638→                      <option value="">-- اختر الموظف --</option>
+  3639→                      {branchEmps.map(emp => (
+  3640→                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+  3641→                      ))}
+  3642→                    </select>
+  3643→                  </div>
+  3644→
+  3645→                  {/* اختيار النوع */}
+  3646→                  {!isEmployee && (
+  3647→                  <div>
+  3648→                    <label className="block text-xs text-slate-400 mb-1">📝 النوع</label>
+  3649→                    <div className="grid grid-cols-2 gap-2">
+  3650→                      <button
+  3651→                        onClick={() => setQRecordType('withdrawal')}
+  3652→                        className={qRecordType === 'withdrawal'
+  3653→                          ? 'bg-amber-600 text-white font-bold py-2.5 rounded-lg transition text-sm border-2 border-amber-400'
+  3654→                          : 'bg-slate-900 text-slate-400 font-bold py-2.5 rounded-lg transition text-sm border-2 border-slate-600 hover:border-amber-500/50'}
+  3655→                      >
+  3656→                        💸 سحب
+  3657→                      </button>
+  3658→                      <button
+  3659→                        onClick={() => setQRecordType('shortage')}
+  3660→                        className={qRecordType === 'shortage'
+  3661→                          ? 'bg-rose-600 text-white font-bold py-2.5 rounded-lg transition text-sm border-2 border-rose-400'
+  3662→                          : 'bg-slate-900 text-slate-400 font-bold py-2.5 rounded-lg transition text-sm border-2 border-slate-600 hover:border-rose-500/50'}
+  3663→                      >
+  3664→                        📉 عجز
+  3665→                      </button>
+  3666→                    </div>
+  3667→                  </div>
+  3668→                  )}
+  3669→
+  3670→                  {/* المبلغ */}
+  3671→                  <div>
+  3672→                    <label className="block text-xs text-slate-400 mb-1">💵 المبلغ</label>
+  3673→                    <input
+  3674→                      type="number"
+  3675→                      value={qRecordAmount}
+  3676→                      onChange={e => setQRecordAmount(e.target.value)}
+  3677→                      placeholder="أدخل المبلغ"
+  3678→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+  3679→                    />
+  3680→                  </div>
+  3681→
+  3682→                  {/* ملاحظة */}
+  3683→                  <div>
+  3684→                    <label className="block text-xs text-slate-400 mb-1">📝 ملاحظة (اختياري)</label>
+  3685→                    <input
+  3686→                      type="text"
+  3687→                      value={qRecordNote}
+  3688→                      onChange={e => setQRecordNote(e.target.value)}
+  3689→                      placeholder="ملاحظة..."
+  3690→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-amber-500"
+  3691→                    />
+  3692→                  </div>
+  3693→
+  3694→                  <button
+  3695→                    onClick={() => handleSaveQuickRecord(qBranchId3, empDate)}
+  3696→                    disabled={saving || !qEmpId || !qRecordAmount || isBranchLocked}
+  3697→                    className={`w-full font-semibold py-3 rounded-xl transition text-sm ${isBranchLocked ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 disabled:text-slate-500 text-white'}`}
+  3698→                  >
+  3699→                    {isBranchLocked ? '🔒 الفرع مقفل' : saving ? '⏳ جاري الحفظ...' : isEmployee ? '💸 تسجيل سحب' : (qRecordType === 'withdrawal' ? '💸 تسجيل سحب' : '📉 تسجيل عجز')}
+  3700→                  </button>
+  3701→                </div>
+  3702→              </div>
+  3703→              )
+  3704→            })()}
+  3705→          </div>
+  3706→          )}
+  3707→
+  3708→          {displayEntries.length === 0 && (
+  3709→            <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center">
+  3710→              <div className="text-4xl mb-3">📋</div>
+  3711→              <p className="text-slate-400">
+  3712→                {!branchId ? 'اختر الفرع لعرض البيانات' : 'لا توجد تسجيلات لهذا اليوم بعد'}
+  3713→              </p>
+  3714→              <p className="text-slate-500 text-sm mt-1">اختر غرفة وسجل عدد السيارات</p>
+  3715→            </div>
+  3716→          )}
+  3717→
+  3718→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  3719→            {displayEntries.map(entry => renderEntryCard(entry, branchName))}
+  3720→          </div>
+  3721→
+  3722→          {displayEntries.length > 0 && (
+  3723→            <div className="bg-slate-800 border-2 border-cyan-500/30 rounded-2xl p-5 shadow-xl">
+  3724→              <h3 className="text-sm font-bold text-cyan-400 mb-3">📊 الإجمالي الكلي</h3>
+  3725→              <div className="grid grid-cols-3 gap-3 text-center">
+  3726→                <div className="bg-slate-900/60 rounded-xl p-3">
+  3727→                  <p className="text-xs text-slate-400">السيارات</p>
+  3728→                  <p className="text-lg font-black text-white">{grandTotalCars} سيارة</p>
+  3729→                </div>
+  3730→                <div className="bg-slate-900/60 rounded-xl p-3">
+  3731→                  <p className="text-xs text-slate-400">المبيعات</p>
+  3732→                  <p className="text-lg font-black text-emerald-400">{grandTotalAmount} د.ل</p>
+  3733→                </div>
+  3734→                <div className="bg-slate-900/60 rounded-xl p-3">
+  3735→                  <p className="text-xs text-slate-400">الصافي</p>
+  3736→                  <p className="text-lg font-black text-cyan-400">{grandTotalNet} د.ل</p>
+  3737→                </div>
+  3738→              </div>
+  3739→            </div>
+  3740→          )}
+  3741→
+  3742→          {/* Worker Expenses + Treasury */}
+  3743→          {displayEntries.length > 0 && branchName && (() => {
+  3744→            const wKey = branchName + '_' + empDate
+  3745→            const savedWE = workerExpData[wKey] || {}
+  3746→            const cleannessConfig = BRANCH_CLEANLINESS[branchName]
+  3747→            if (!cleannessConfig) return null
+  3748→
+  3749→            // Calculate room net map
+  3750→            const roomNetMap: Record<string, number> = {}
+  3751→            displayEntries.forEach(e => {
+  3752→              const net = getNetAmount(e.totalAmount, branchName, e.room)
+  3753→              roomNetMap[e.room] = (roomNetMap[e.room] || 0) + net
+  3754→            })
+  3755→
+  3756→            const availableRooms = getRoomsForBranch(branchName)
+  3757→            let totalRoomsNet = 0
+  3758→            availableRooms.forEach(r => { if (roomNetMap[r]) totalRoomsNet += roomNetMap[r] })
+  3759→            if (totalRoomsNet === 0 && !Object.keys(roomNetMap).length) return null
+  3760→
+  3761→            let selectedCleanliness = savedWE.cleanliness || 0
+  3762→            if (cleannessConfig.type === 'fixed') selectedCleanliness = cleannessConfig.value || 0
+  3763→
+  3764→            const workerExpTotal = totalRoomsNet + selectedCleanliness
+  3765→
+  3766→            // Treasury calculations
+  3767→            const treasSaved = savedWE.treasury || {}
+  3768→            const treasuryItems = getTreasuryItems(branchName)
+  3769→            const workerExpInTreasury = workerExpTotal
+  3770→
+  3771→            let runningBalance = 0
+  3772→            const treasuryRows = treasuryItems.map((item, idx) => {
+  3773→              const rowSaved = treasSaved[item.key] || {}
+  3774→              let income = rowSaved.income || 0
+  3775→              let expense = rowSaved.expense || 0
+  3776→              let isAuto = false
+  3777→              if (item.key === 'مصاريف_العمال') { expense = workerExpInTreasury; isAuto = true }
+  3778→              if (item.key === 'تم_التحويل') { expense = Math.max(0, runningBalance); isAuto = true }
+  3779→              runningBalance = runningBalance + income - expense
+  3780→              const balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171'
+  3781→              const rowBg = idx % 2 === 0 ? 'rgba(15,23,42,0.4)' : 'rgba(15,23,42,0.2)'
+  3782→              return { ...item, income, expense, isAuto, balance: runningBalance, balColor, rowBg }
+  3783→            })
+  3784→
+  3785→            const currentBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+  3786→
+  3787→            return (
+  3788→              <div className="bg-gradient-to-l from-emerald-600/10 to-cyan-600/10 border border-emerald-500/30 rounded-2xl p-5 shadow-xl mt-4">
+  3789→                <div className="border-t border-amber-500/30 pt-4">
+  3790→                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  3791→                    {/* مصاريف العمال */}
+  3792→                    <div>
+  3793→                      <h3 className="text-base font-bold text-amber-400 mb-3 flex items-center gap-2">🧹 مصاريف العمال</h3>
+  3794→                      <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+  3795→                        {availableRooms.map((room, idx) => {
+  3796→                          const net = roomNetMap[room]
+  3797→                          if (net === undefined || net === 0) return null
+  3798→                          const icon = ROOM_ICONS[room] || '🏠'
+  3799→                          const bgColor = idx % 2 === 0 ? 'background:rgba(15,23,42,0.4)' : 'background:rgba(15,23,42,0.2)'
+  3800→                          return (
+  3801→                            <div key={room} className="flex justify-between items-center px-4 py-2.5" style={{ background: bgColor.split('(')[1]?.slice(0,-1) ? bgColor : undefined, borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+  3802→                              <div className="flex items-center gap-2">
+  3803→                                <span className="text-lg">{icon}</span>
+  3804→                                <span className="text-slate-200 text-sm font-semibold">{room}</span>
+  3805→                              </div>
+  3806→                              <span className="text-cyan-400 text-base font-black">{net} د.ل</span>
+  3807→                            </div>
+  3808→                          )
+  3809→                        })}
+  3810→                        <div className="border-t border-amber-500/20" />
+  3811→                        {/* Cleanliness */}
+  3812→                        <div className="flex justify-between items-center px-4 py-2.5" style={{ background: 'rgba(245,158,11,0.05)' }}>
+  3813→                          <div className="flex items-center gap-2">
+  3814→                            <span className="text-lg">🧹</span>
+  3815→                            <span className="text-amber-300 text-sm font-semibold">النظافة</span>
+  3816→                          </div>
+  3817→                          {cleannessConfig.type === 'fixed' ? (
+  3818→                            <span className="text-amber-400 text-base font-bold">{cleannessConfig.value} د.ل</span>
+  3819→                          ) : (
+  3820→                            <select
+  3821→                              value={selectedCleanliness}
+  3822→                              onChange={e => handleCleanlinessChange(wKey, parseInt(e.target.value) || 0, currentBranchId, empDate)}
+  3823→                              className="bg-slate-900 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm font-bold outline-none"
+  3824→                            >
+  3825→                              <option value={0}>-- اختر --</option>
+  3826→                              {cleannessConfig.options?.map(opt => (
+  3827→                                <option key={opt} value={opt}>{opt} د.ل</option>
+  3828→                              ))}
+  3829→                            </select>
+  3830→                          )}
+  3831→                        </div>
+  3832→                        <div className="border-t-2 border-emerald-500/30" />
+  3833→                        {/* Grand total */}
+  3834→                        <div className="flex justify-between items-center px-4 py-3" style={{ background: 'rgba(16,185,129,0.1)' }}>
+  3835→                          <span className="text-emerald-300 text-sm font-bold">الإجمالي</span>
+  3836→                          <span className="text-emerald-400 text-xl font-black">{workerExpTotal} د.ل</span>
+  3837→                        </div>
+  3838→                      </div>
+  3839→                    </div>
+  3840→
+  3841→                    {/* الخزينة */}
+  3842→                    {(isAdminMode || user?.role === 'viewer') && (
+  3843→                      <div>
+  3844→                        <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">🏦 الخزينة</h3>
+  3845→                        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+  3846→                          {/* Header */}
+  3847→                          <div className="grid grid-cols-4 gap-0 px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+  3848→                            <span className="text-blue-300 text-xs font-bold">البيان</span>
+  3849→                            <span className="text-emerald-400 text-xs font-bold text-center">دخل</span>
+  3850→                            <span className="text-red-300 text-xs font-bold text-center">خرج</span>
+  3851→                            <span className="text-amber-300 text-xs font-bold text-center">الرصيد</span>
+  3852→                          </div>
+  3853→                          {treasuryRows.map(row => (
+  3854→                            <div key={row.key} className="grid grid-cols-4 gap-0 items-center px-3 py-2" style={{ background: row.rowBg, borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+  3855→                              <span className="text-slate-200 text-xs font-semibold">
+  3856→                                {row.label}
+  3857→                                {row.isAuto && <span className="text-amber-400 text-[10px] ml-1">(تلقائي)</span>}
+  3858→                              </span>
+  3859→                              {/* Income */}
+  3860→                              {row.key === 'بيع_البطاقة' ? (
+  3861→                                <div className="text-center" />
+  3862→                              ) : (
+  3863→                                <div className="text-center">
+  3864→                                  <input
+  3865→                                    type="number"
+  3866→                                    value={row.income || ''}
+  3867→                                    placeholder="0"
+  3868→                                    readOnly={user?.role === 'viewer'}
+  3869→                                    onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'income', parseInt(e.target.value) || 0)}
+  3870→                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (user?.role === 'viewer' ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-blue-400/30 text-emerald-400')}
+  3871→                                  />
+  3872→                                </div>
+  3873→                              )}
+  3874→                              {/* Expense */}
+  3875→                              {row.isAuto ? (
+  3876→                                <div className="text-center">
+  3877→                                  <input
+  3878→                                    type="number"
+  3879→                                    value={row.expense || 0}
+  3880→                                    readOnly
+  3881→                                    className="bg-slate-900/70 border border-amber-500/30 text-amber-300 rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none"
+  3882→                                  />
+  3883→                                </div>
+  3884→                              ) : (
+  3885→                                <div className="text-center">
+  3886→                                  <input
+  3887→                                    type="number"
+  3888→                                    value={row.expense || ''}
+  3889→                                    placeholder="0"
+  3890→                                    readOnly={user?.role === 'viewer'}
+  3891→                                    onChange={e => handleTreasuryFieldChange(wKey, branchName, currentBranchId, empDate, row.key, 'expense', parseInt(e.target.value) || 0)}
+  3892→                                    className={"bg-slate-900 border rounded-md px-2 py-1 text-xs font-bold w-16 text-center outline-none " + (user?.role === 'viewer' ? 'border-slate-600 text-slate-400 opacity-70 cursor-not-allowed' : 'border-red-400/30 text-red-300')}
+  3893→                                  />
+  3894→                                </div>
+  3895→                              )}
+  3896→                              {/* Balance */}
+  3897→                              <span className="text-center text-xs font-black" style={{ color: row.balColor }}>{row.balance}</span>
+  3898→                            </div>
+  3899→                          ))}
+  3900→
+  3901→                        </div>
+  3902→                      </div>
+  3903→                    )}
+  3904→                  </div>
+  3905→
+  3906→                </div>
+  3907→              </div>
+  3908→            )
+  3909→          })()}
+  3910→
+  3911→          {/* حركات اليوم - مستقلة عن قسم مصاريف العمال وتظهر لكل الأدوار */}
+  3912→          {branchName && empDate && (() => {
+  3913→            const expWKey2 = branchName + '_' + empDate
+  3914→            const savedWE2 = workerExpData[expWKey2] || {}
+  3915→            const treasury2 = savedWE2.treasury || {}
+  3916→            const expBranchId2 = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+  3917→            const expenseEntries = Object.keys(treasury2)
+  3918→              .filter(k => k.startsWith('مصروف_'))
+  3919→              .map(k => ({ key: k, name: k.replace('مصروف_', ''), amount: treasury2[k].expense || 0, type: 'expense' as const }))
+  3920→
+  3921→            const todayRecords = records
+  3922→              .filter(r => r.date === empDate && r.branchId === expBranchId2)
+  3923→              .map(r => ({
+  3924→                key: r.id,
+  3925→                name: (r.type === 'withdrawal' ? '💸 سحب: ' : '📉 عجز: ') + (employees.find(e => e.id === r.empId)?.name || ''),
+  3926→                amount: r.amount,
+  3927→                type: r.type as 'withdrawal' | 'shortage'
+  3928→              }))
+  3929→
+  3930→            const allEntries = [...expenseEntries, ...todayRecords]
+  3931→            if (allEntries.length === 0) return null
+  3932→            const totalExp = allEntries.reduce((s, e) => s + e.amount, 0)
+  3933→            const canEdit2 = user?.role !== 'viewer' && !isBranchLocked
+  3934→            return (
+  3935→              <div className="bg-gradient-to-l from-rose-600/10 to-orange-600/10 border border-rose-500/30 rounded-2xl p-5 shadow-xl mt-4">
+  3936→                <h3 className="text-base font-bold text-rose-400 mb-3 flex items-center gap-2">📋 حركات اليوم</h3>
+  3937→                <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+  3938→                  <div className="flex justify-between items-center px-4 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+  3939→                    <span className="text-slate-300 text-xs font-bold">البيان</span>
+  3940→                    <span className="text-rose-400 text-xs font-bold">المبلغ</span>
+  3941→                  </div>
+  3942→                  <div className="px-3 py-2">
+  3943→                    <div className="space-y-1.5">
+  3944→                      {allEntries.map(entry => (
+  3945→                        <div key={entry.key} className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
+  3946→                          {entry.type === 'expense' ? (
+  3947→                            canEdit2 ? (
+  3948→                              <input
+  3949→                                type="text"
+  3950→                                defaultValue={entry.name}
+  3951→                                onBlur={e => {
+  3952→                                  const newName = e.target.value.trim()
+  3953→                                  if (newName && newName !== entry.name) handleExpenseRename(expWKey2, expBranchId2, empDate, entry.key, newName)
+  3954→                                  else e.target.value = entry.name
+  3955→                                }}
+  3956→                                onKeyDown={e => {
+  3957→                                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+  3958→                                }}
+  3959→                                className="bg-slate-800 border border-slate-600 text-slate-200 rounded-md px-2 py-1 text-xs font-semibold flex-1 outline-none focus:border-cyan-400/50"
+  3960→                              />
+  3961→                            ) : (
+  3962→                              <span className="text-slate-300 text-sm flex-1">{entry.name}</span>
+  3963→                            )
+  3964→                          ) : (
+  3965→                            <span className={"text-sm flex-1 " + (entry.type === 'withdrawal' ? 'text-amber-300' : 'text-rose-300')}>{entry.name}</span>
+  3966→                          )}
+  3967→                          {canEdit2 ? (
+  3968→                            <input
+  3969→                              type="number"
+  3970→                              value={entry.amount || ''}
+  3971→                              placeholder="0"
+  3972→                              onChange={e => {
+  3973→                                const val = parseInt(e.target.value) || 0
+  3974→                                if (entry.type === 'expense') {
+  3975→                                  handleTreasuryFieldChange(expWKey2, branchName, expBranchId2, empDate, entry.key, 'expense', val)
+  3976→                                } else {
+  3977→                                  handleEditRecord(entry.key, val, empDate)
+  3978→                                }
+  3979→                              }}
+  3980→                              className="bg-slate-800 border border-red-400/30 text-red-300 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
+  3981→                            />
+  3982→                          ) : (
+  3983→                            <span className="text-rose-400 text-sm font-bold">{entry.amount} د.ل</span>
+  3984→                          )}
+  3985→                          {canEdit2 && (
+  3986→                            <button
+  3987→                              onClick={() => {
+  3988→                                if (entry.type === 'expense') {
+  3989→                                  setWorkerExpData(prev => {
+  3990→                                    const updated = { ...prev }
+  3991→                                    const wData = { ...(updated[expWKey2] || {}) }
+  3992→                                    const t = { ...(wData.treasury || {}) }
+  3993→                                    delete t[entry.key]
+  3994→                                    wData.treasury = t
+  3995→                                    updated[expWKey2] = wData
+  3996→                                    // حفظ البيانات المحدثة (بدون القيمة المحذوفة)
+  3997→                                    void saveWorkerExpData(expBranchId2, empDate, wData)
+  3998→                                    return updated
+  3999→                                  })
+  4000→                                } else {
+  4001→                                  handleDeleteRecord(entry.key, empDate)
+  4002→                                }
+  4003→                              }}
+  4004→                              className="text-slate-500 hover:text-rose-400 text-xs"
+  4005→                            >✕</button>
+  4006→                          )}
+  4007→                        </div>
+  4008→                      ))}
+  4009→                    </div>
+  4010→                  </div>
+  4011→                  <div className="flex justify-end items-center px-4 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderTop: '1px solid rgba(51,65,85,0.5)' }}>
+  4012→                    <span className="text-slate-300 text-xs font-bold">الإجمالي</span>
+  4013→                    <span className="text-rose-400 text-sm font-black mr-2">{totalExp} د.ل</span>
+  4014→                  </div>
+  4015→                </div>
+  4016→              </div>
+  4017→            )
+  4018→          })()}
+  4019→
+  4020→          {/* البطاقة المصرفية / الكاش - تظهر للموظف لمراجعة وتعديل قيمتها */}
+  4021→          {branchName && empDate && (() => {
+  4022→            const bankWKey = branchName + '_' + empDate
+  4023→            const savedBankWE = workerExpData[bankWKey] || {}
+  4024→            const bankTreasury = savedBankWE.treasury || {}
+  4025→            const bankBranchId = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+  4026→            const bankCardSale = parseInt(String(bankTreasury['بيع_البطاقة']?.expense)) || 0
+  4027→            const cashRemaining = parseInt(String(bankTreasury['الكاش_المتبقي']?.expense)) || 0
+  4028→            const canEditBank = user?.role !== 'viewer' && !isBranchLocked
+  4029→            if (bankCardSale === 0 && cashRemaining === 0) return null
+  4030→            const isAdminView = isAdminMode || user?.role === 'admin' || user?.role === 'viewer'
+  4031→            return (
+  4032→              <div className="bg-gradient-to-l from-blue-600/10 to-indigo-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl mt-4">
+  4033→                <h3 className="text-base font-bold text-blue-400 mb-3 flex items-center gap-2">💳 البطاقة المصرفية / الكاش</h3>
+  4034→                <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+  4035→                  <div className="grid grid-cols-2 gap-0 px-3 py-2" style={{ background: 'rgba(30,41,59,0.8)', borderBottom: '1px solid rgba(51,65,85,0.5)' }}>
+  4036→                    <span className="text-blue-300 text-xs font-bold">البيان</span>
+  4037→                    <span className="text-center text-emerald-400 text-xs font-bold">القيمة</span>
+  4038→                  </div>
+  4039→                  {/* البطاقة */}
+  4040→                  <div className="grid grid-cols-2 gap-0 items-center px-3 py-3" style={{ borderBottom: '1px solid rgba(51,65,85,0.3)' }}>
+  4041→                    <span className="text-slate-200 text-xs font-semibold">💳 البطاقة</span>
+  4042→                    {canEditBank ? (
+  4043→                      <div className="text-center">
+  4044→                        <input
+  4045→                          type="number"
+  4046→                          value={bankCardSale || ''}
+  4047→                          placeholder="0"
+  4048→                          onChange={e => {
+  4049→                            const val = parseInt(e.target.value) || 0
+  4050→                            handleTreasuryFieldChange(bankWKey, branchName, bankBranchId, empDate, 'بيع_البطاقة', 'expense', val)
+  4051→                          }}
+  4052→                          className="bg-slate-900 border border-emerald-400/30 text-emerald-400 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
+  4053→                        />
+  4054→                      </div>
+  4055→                    ) : (
+  4056→                      <span className="text-center text-emerald-400 text-sm font-bold">{bankCardSale}</span>
+  4057→                    )}
+  4058→                  </div>
+  4059→                  {/* الكاش المتبقي */}
+  4060→                  <div className="grid grid-cols-2 gap-0 items-center px-3 py-3">
+  4061→                    <span className="text-slate-200 text-xs font-semibold">💵 الكاش المتبقي</span>
+  4062→                    {canEditBank ? (
+  4063→                      <div className="text-center">
+  4064→                        <input
+  4065→                          type="number"
+  4066→                          value={cashRemaining || ''}
+  4067→                          placeholder="0"
+  4068→                          onChange={e => {
+  4069→                            const val = parseInt(e.target.value) || 0
+  4070→                            handleTreasuryFieldChange(bankWKey, branchName, bankBranchId, empDate, 'الكاش_المتبقي', 'expense', val)
+  4071→                          }}
+  4072→                          className="bg-slate-900 border border-emerald-400/30 text-emerald-400 rounded-md px-2 py-1 text-xs font-bold w-20 text-center outline-none"
+  4073→                        />
+  4074→                      </div>
+  4075→                    ) : (
+  4076→                      <span className="text-center text-emerald-400 text-sm font-bold">{cashRemaining}</span>
+  4077→                    )}
+  4078→                  </div>
+  4079→                </div>
+  4080→                {/* حساب الفائض / العجز - للمسؤول فقط */}
+  4081→                {isAdminView && (() => {
+  4082→                  const treasSaved = bankTreasury
+  4083→                  // إجمالي المصروفات = إجمالي حركات اليوم (مصروفات + سحوبات + عجوزات)
+  4084→                  const bankBranchId2 = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+  4085→                  const todayExpEntries = Object.keys(treasSaved)
+  4086→                    .filter(k => k.startsWith('مصروف_'))
+  4087→                    .map(k => treasSaved[k].expense || 0)
+  4088→                  const todayRecords2 = records
+  4089→                    .filter(r => r.date === empDate && r.branchId === bankBranchId2)
+  4090→                    .map(r => r.amount)
+  4091→                  const totalDailyMovements = todayExpEntries.reduce((s, v) => s + v, 0) + todayRecords2.reduce((s, v) => s + v, 0)
+  4092→                  // حساب تم التحويل بنفس طريقة الخزينة بالضبط
+  4093→                  const treasuryItemsForCalc = getTreasuryItems(branchName)
+  4094→                  // حساب مصاريف العمال (صافي الغرف + النظافة) بنفس طريقة الخزينة
+  4095→                  const bankRoomNetMap: Record<string, number> = {}
+  4096→                  const bankBranchEntries = carEntries.filter(e => {
+  4097→                    const sb = isAdminMode ? adminSelectedBranch : (user?.branchId || '')
+  4098→                    return (e.branchId === sb || e.empId === 'admin_' + sb) && e.date === empDate
+  4099→                  })
+  4100→                  bankBranchEntries.forEach(e => {
+  4101→                    const net = getNetAmount(e.totalAmount, branchName, e.room)
+  4102→                    bankRoomNetMap[e.room] = (bankRoomNetMap[e.room] || 0) + net
+  4103→                  })
+  4104→                  let bankWorkerExpTotal = Object.values(bankRoomNetMap).reduce((s, v) => s + v, 0)
+  4105→                  const bankClCfg = BRANCH_CLEANLINESS[branchName]
+  4106→                  if (bankClCfg) {
+  4107→                    const bankCl = bankClCfg.type === 'fixed' ? (bankClCfg.value || 0) : (savedBankWE.cleanliness || 0)
+  4108→                    bankWorkerExpTotal += bankCl
+  4109→                  }
+  4110→                  let runBal = 0
+  4111→                  let transferAmount = 0
+  4112→                  for (const tItem of treasuryItemsForCalc) {
+  4113→                    const rowS = treasSaved[tItem.key] || {}
+  4114→                    let tIncome = rowS.income || 0
+  4115→                    let tExpense = rowS.expense || 0
+  4116→                    if (tItem.key === 'مصاريف_العمال') { tExpense = bankWorkerExpTotal }
+  4117→                    if (tItem.key === 'تم_التحويل') { transferAmount = Math.max(0, runBal); tExpense = transferAmount }
+  4118→                    runBal = runBal + tIncome - tExpense
+  4119→                  }
+  4120→                  const totalWithCash = totalDailyMovements + cashRemaining
+  4121→                  const surplus = totalWithCash - transferAmount
+  4122→                  return (
+  4123→                    <div className="mt-3 bg-slate-900/60 border border-slate-700 rounded-xl p-3 space-y-2">
+  4124→                      <div className="flex justify-between items-center text-xs">
+  4125→                        <span className="text-slate-400">إجمالي حركات اليوم</span>
+  4126→                        <span className="text-amber-400 font-bold">{totalDailyMovements} د.ل</span>
+  4127→                      </div>
+  4128→                      <div className="flex justify-between items-center text-xs">
+  4129→                        <span className="text-slate-400">+ الكاش المتبقي</span>
+  4130→                        <span className="text-emerald-400 font-bold">{cashRemaining} د.ل</span>
+  4131→                      </div>
+  4132→                      <div className="border-t border-slate-700 my-1" />
+  4133→                      <div className="flex justify-between items-center text-xs">
+  4134→                        <span className="text-slate-300 font-semibold">المجموع</span>
+  4135→                        <span className="text-white font-bold">{totalWithCash} د.ل</span>
+  4136→                      </div>
+  4137→                      <div className="flex justify-between items-center text-xs">
+  4138→                        <span className="text-slate-400">- تم التحويل</span>
+  4139→                        <span className="text-red-400 font-bold">{transferAmount} د.ل</span>
+  4140→                      </div>
+  4141→                      <div className="border-t border-slate-700 my-1" />
+  4142→                      <div className="flex justify-between items-center text-sm">
+  4143→                        <span className="text-slate-300 font-bold">
+  4144→                          {surplus >= 0 ? '✅ الفائض' : '❌ العجز'}
+  4145→                        </span>
+  4146→                        <span className={`font-black ${surplus >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+  4147→                          {Math.abs(surplus)} د.ل
+  4148→                        </span>
+  4149→                      </div>
+  4150→                    </div>
+  4151→                  )
+  4152→                })()}
+  4153→              </div>
+  4154→            )
+  4155→          })()}
+  4156→
+  4157→        </main>
+  4158→      </div>
+  4159→    )
+  4160→  }
+  4161→
+  4162→  // ==================== ADMIN MANAGEMENT SCREEN ====================
+  4163→  const renderAdminScreen = () => {
+  4164→    const dayClosed = isDayClosed(adminDate)
+  4165→
+  4166→    // حساب الإجماليات للشهر الحالي - جميع الفروع أو الفرع المحدد
+  4167→    const currentMonth = adminDate.substring(0, 7)
+  4168→    let grandWithdrawals = 0
+  4169→    let grandShortages = 0
+  4170→    const selectedBranchId = adminSelectedBranch || user?.branchId
+  4171→    if (records && records.length > 0) {
+  4172→      records.forEach(r => {
+  4173→        if (r.date && r.date.startsWith(currentMonth)) {
+  4174→          if (!selectedBranchId || r.branchId === selectedBranchId) {
+  4175→            const amt = Number(r.amount) || 0
+  4176→            if (r.type === 'withdrawal') grandWithdrawals += amt
+  4177→            if (r.type === 'shortage') grandShortages += amt
+  4178→          }
+  4179→        }
+  4180→      })
+  4181→    }
+  4182→
+  4183→    return (
+  4184→      <div className="min-h-screen bg-slate-900">
+  4185→        <header className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 sticky top-0 z-50">
+  4186→          {/* الشريط العلوي - صف واحد */}
+  4187→          <div className="px-4 py-2.5 flex items-center justify-between">
+  4188→            <div className="flex items-center gap-2.5">
+  4189→              <img src="/logo.png" alt="logo" className="w-8 h-8 rounded-lg" />
+  4190→              <h1 className="text-sm font-bold text-cyan-400">جيت كلين</h1>
+  4191→              {maintenanceMode && <span className="text-[9px] bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded-full border border-rose-500/20 animate-pulse">🔧 صيانة</span>}
+  4192→            </div>
+  4193→            <div className="flex items-center gap-1.5">
+  4194→              <button onClick={switchToCarEntry} className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-emerald-500/20">
+  4195→                🚗 الغرف
+  4196→              </button>
+  4197→              {user?.role !== 'viewer' && <>
+  4198→              <div className="relative">
+  4199→                <button onClick={(e) => { e.stopPropagation(); setShowAdminDropdown(!showAdminDropdown) }} className="bg-slate-700/80 hover:bg-slate-600 text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-slate-600/50">
+  4200→                  ⚙️ أدوات
+  4201→                </button>
+  4202→                {showAdminDropdown && (
+  4203→                  <div className="absolute top-full mt-2 left-0 z-50 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl py-1 w-[220px]" onClick={e => e.stopPropagation()}>
+  4204→                    {/* مجموعة الإدارة */}
+  4205→                    <div className="px-3 pt-2 pb-1">
+  4206→                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">إدارة</span>
+  4207→                    </div>
+  4208→                    <button onClick={() => { setShowAdminDropdown(false); setShowBranchModal(true) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4209→                      <span>➕</span> إضافة فرع
+  4210→                    </button>
+  4211→                    <button onClick={() => { setShowAdminDropdown(false); setShowMultiBranchPicker(false); setShowEmpModal(true) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4212→                      <span>👤</span> إضافة موظف
+  4213→                    </button>
+  4214→                    <button onClick={() => { setShowAdminDropdown(false); setShowPasswordsModal(true); setAdminPassword(''); const pwdMap: Record<string,string> = {}; employees.filter(e => e.hasLogin).forEach(e => { pwdMap[e.id] = e.password || '' }); setEmpPasswords(pwdMap) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4215→                      <span>🔑</span> كلمات السر
+  4216→                    </button>
+  4217→                    <button onClick={() => { setShowAdminDropdown(false); handleRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-amber-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
+  4218→                      <span>{restoreLoading ? '⏳' : '📥'}</span> استعادة من النسخ المحفوظة
+  4219→                    </button>
+  4220→                    <button onClick={() => { setShowAdminDropdown(false); handleUploadRestore() }} disabled={restoreLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-cyan-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
+  4221→                      <span>{restoreLoading ? '⏳' : '📤'}</span> استعادة من ملف
+  4222→                    </button>
+  4223→                    <button onClick={() => { setShowAdminDropdown(false); handleDownloadBackup() }} disabled={backupLoading} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-emerald-300 text-xs flex items-center gap-2 transition disabled:opacity-50">
+  4224→                      <span>{backupLoading ? '⏳' : '💾'}</span> تحميل نسخة احتياطية
+  4225→                    </button>
+  4226→
+  4227→                    {/* فاصل */}
+  4228→                    <div className="border-t border-slate-700 my-1"></div>
+  4229→
+  4230→                    {/* مجموعة التقارير */}
+  4231→                    <div className="px-3 pt-1 pb-1">
+  4232→                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">تقارير</span>
+  4233→                    </div>
+  4234→                    <button onClick={() => { setShowAdminDropdown(false); setShowEmpReportModal(true) }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4235→                      <span>📄</span> تقرير الموظفين
+  4236→                    </button>
+  4237→                    <button onClick={() => { setShowAdminDropdown(false); setShowExpReportModal(true); setExpReportBranchId('') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4238→                      <span>📋</span> تقرير المصروفات
+  4239→                    </button>
+  4240→
+  4241→                    {/* فاصل */}
+  4242→                    <div className="border-t border-slate-700 my-1"></div>
+  4243→
+  4244→                    {/* مجموعة الأدوات */}
+  4245→                    <div className="px-3 pt-1 pb-1">
+  4246→                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">أدوات</span>
+  4247→                    </div>
+  4248→                    <button onClick={() => { setShowAdminDropdown(false); setShowNotifModal(true); setNotifMessage(''); setNotifBranchIds([]); setNotifTargetAll(true); setNotifType('normal') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4249→                      <span>📢</span> إرسال تنبيه
+  4250→                    </button>
+  4251→                    <button onClick={() => { setShowAdminDropdown(false); setShowNotifHistory(true); loadAdminNotifs() }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4252→                      <span>📜</span> سجل التنبيهات
+  4253→                    </button>
+  4254→                    <button onClick={() => { setShowAdminDropdown(false); setShowActivityLog(true); loadActivityLogs(1); setActivityFilterBranch(''); setActivityFilterCategory('') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
+  4255→                      <span>📊</span> سجل النشاطات
+  4256→                    </button>
+  4257→                    <button onClick={() => { setShowAdminDropdown(false); toggleMaintenance() }} className={`w-full text-right px-4 py-2 hover:bg-slate-700 text-xs flex items-center gap-2 transition ${maintenanceMode ? 'text-rose-400' : 'text-emerald-400'}`}>
+  4258→                      <span>{maintenanceMode ? '🔧' : '⚙️'}</span> {maintenanceMode ? 'إيقاف الصيانة' : 'تشغيل الصيانة'}
+  4259→                    </button>
+  4260→                  </div>
+  4261→                )}
+  4262→              </div>
+  4263→              </>}
+  4264→              <button onClick={handleLogout} className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold px-2.5 py-1.5 rounded-lg transition text-xs flex items-center gap-1 border border-rose-500/20">
+  4265→                🚪
+  4266→              </button>
+  4267→            </div>
+  4268→          </div>
+  4269→        </header>
+  4270→
+  4271→        <main className="max-w-5xl mx-auto p-4 pb-24 space-y-4">
+  4272→
+  4273→          {/* إشعارات الإضافة التلقائية */}
+  4274→          {notifications.length > 0 && (
+  4275→            <div className="space-y-2">
+  4276→              {notifications.slice(0, 3).map(n => (
+  4277→                <div key={n.id} className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-xl px-4 py-3 flex justify-between items-center text-sm animate-[fadeIn_0.3s_ease-in]">
+  4278→                  <span>🔔 {n.message}</span>
+  4279→                  <span className="text-xs text-emerald-400/60">{n.time}</span>
+  4280→                </div>
+  4281→              ))}
+  4282→              {notifications.length > 3 && (
+  4283→                <div className="text-center text-xs text-slate-500">+{notifications.length - 3} إشعارات أخرى</div>
+  4284→              )}
+  4285→              <button onClick={() => setNotifications([])} className="text-xs text-slate-500 hover:text-slate-400 transition">إخفاء الكل</button>
+  4286→            </div>
+  4287→          )}
+  4288→
+  4289→          {/* شريط حالة الموظفين السريع */}
+  4290→          {(() => {
+  4291→            const todayStr = adminDate
+  4292→            const loginEmps = employees.filter(e => !e.deleted && e.hasLogin && e.branchId && branches.some(b => b.id === e.branchId))
+  4293→            const onlineCount = loginEmps.filter(e => adminCarEntries.some(ce => ce.empId === e.id && ce.date === todayStr)).length
+  4294→            const offlineCount = loginEmps.length - onlineCount
+  4295→            if (loginEmps.length === 0) return null
+  4296→            return (
+  4297→              <div className="flex items-center justify-center gap-4 bg-slate-800/60 rounded-2xl border border-slate-700/40 px-6 py-3">
+  4298→                <div className="flex items-center gap-2">
+  4299→                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+  4300→                  <span className="text-sm font-bold text-emerald-400">{onlineCount}</span>
+  4301→                  <span className="text-xs text-slate-400">أونلاين</span>
+  4302→                </div>
+  4303→                <div className="w-px h-5 bg-slate-700"></div>
+  4304→                <div className="flex items-center gap-2">
+  4305→                  <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+  4306→                  <span className="text-sm font-bold text-slate-400">{offlineCount}</span>
+  4307→                  <span className="text-xs text-slate-400">أوفلاين</span>
+  4308→                </div>
+  4309→                <div className="w-px h-5 bg-slate-700"></div>
+  4310→                <div className="flex items-center gap-2">
+  4311→                  <span className="text-xs text-slate-500">الإجمالي</span>
+  4312→                  <span className="text-sm font-bold text-slate-300">{loginEmps.length}</span>
+  4313→                  <span className="text-xs text-slate-500">موظف</span>
+  4314→                </div>
+  4315→              </div>
+  4316→            )
+  4317→          })()}
+  4318→
+  4319→          {/* الموظفون النشطون اليوم */}
+  4320→          {(() => {
+  4321→            const todayStr = adminDate
+  4322→            const activeEmps = new Map<string, { name: string; lastTime: string; rooms: number; branch: string }>()
+  4323→            adminCarEntries.filter(e => e.date === todayStr).forEach(e => {
+  4324→              const existing = activeEmps.get(e.empId)
+  4325→              if (existing) {
+  4326→                existing.rooms++
+  4327→                if (e.entryTime && e.entryTime > existing.lastTime) existing.lastTime = e.entryTime
+  4328→              } else {
+  4329→                const branchName = branches.find(b => b.id === e.branchId)?.name || ''
+  4330→                activeEmps.set(e.empId, { name: e.empName, lastTime: e.entryTime || '', rooms: 1, branch: branchName })
+  4331→              }
+  4332→            })
+  4333→            // موظفين لديهم رمز دخول فقط
+  4334→            const loginEmps = employees.filter(e => !e.deleted && e.hasLogin && e.branchId && branches.some(b => b.id === e.branchId))
+  4335→            const activeCount = loginEmps.filter(e => activeEmps.has(e.id)).length
+  4336→
+  4337→            if (loginEmps.length === 0) return null
+  4338→            return (
+  4339→              <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+  4340→                <button
+  4341→                  onClick={() => setShowActiveEmpsDropdown(!showActiveEmpsDropdown)}
+  4342→                  className="w-full flex items-center justify-between p-4 hover:bg-slate-750 transition"
+  4343→                >
+  4344→                  <div className="flex items-center gap-2">
+  4345→                    <h3 className="text-sm font-bold text-slate-300">📊 حالة الموظفين</h3>
+  4346→                    <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">{activeCount} أونلاين</span>
+  4347→                    <span className="text-xs bg-slate-700/50 text-slate-400 px-2.5 py-1 rounded-full border border-slate-600/30">{loginEmps.length - activeCount} أوفلاين</span>
+  4348→                  </div>
+  4349→                  <span className={`text-slate-400 transition-transform duration-200 ${showActiveEmpsDropdown ? 'rotate-180' : ''}`}>▼</span>
+  4350→                </button>
+  4351→                {showActiveEmpsDropdown && (
+  4352→                  <div className="border-t border-slate-700 p-3 space-y-1.5">
+  4353→                    {loginEmps.map(emp => {
+  4354→                      const info = activeEmps.get(emp.id)
+  4355→                      if (info) {
+  4356→                        return (
+  4357→                          <div key={emp.id} className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+  4358→                            <div className="flex items-center gap-3">
+  4359→                              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
+  4360→                              <div>
+  4361→                                <span className="text-sm text-emerald-300 font-bold">{info.name}</span>
+  4362→                                <span className="text-xs text-slate-400 mr-2">- {info.branch}</span>
+  4363→                              </div>
+  4364→                            </div>
+  4365→                            <div className="flex items-center gap-3">
+  4366→                              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full font-bold border border-emerald-500/20">● أونلاين</span>
+  4367→                              <span className="text-xs text-emerald-400/80 bg-emerald-500/10 px-2 py-1 rounded-lg">{info.rooms} غرف</span>
+  4368→                              {info.lastTime && <span className="text-xs text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-lg border border-indigo-500/20">🕐 {info.lastTime}</span>}
+  4369→                            </div>
+  4370→                          </div>
+  4371→                        )
+  4372→                      } else {
+  4373→                        return (
+  4374→                          <div key={emp.id} className="flex items-center justify-between bg-slate-700/20 border border-slate-600/15 rounded-xl px-4 py-3">
+  4375→                            <div className="flex items-center gap-3">
+  4376→                              <span className="w-3 h-3 rounded-full bg-slate-600"></span>
+  4377→                              <div>
+  4378→                                <span className="text-sm text-slate-500">{emp.name}</span>
+  4379→                                <span className="text-xs text-slate-600 mr-2">- {branches.find(b => b.id === emp.branchId)?.name || ''}</span>
+  4380→                              </div>
+  4381→                            </div>
+  4382→                            <span className="text-[10px] text-slate-500 bg-slate-700/50 px-2 py-1 rounded-full font-bold border border-slate-600/30">● أوفلاين</span>
+  4383→                          </div>
+  4384→                        )
+  4385→                      }
+  4386→                    })}
+  4387→                  </div>
+  4388→                )}
+  4389→              </div>
+  4390→            )
+  4391→          })()}
+  4392→
+  4393→          {/* صف واحد: السحبيات + العجوزات */}
+  4394→          <div className="grid grid-cols-2 gap-3">
+  4395→            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+  4396→              <div>
+  4397→                <p className="text-slate-400 text-xs font-bold">إجمالي سحوبات الشهر</p>
+  4398→                <h2 className="text-2xl font-black text-amber-400 mt-1">{grandWithdrawals} د.ل</h2>
+  4399→              </div>
+  4400→              <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
+  4401→            </div>
+  4402→            <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex justify-between items-center">
+  4403→              <div>
+  4404→                <p className="text-slate-400 text-xs font-bold">إجمالي عجوزات الشهر</p>
+  4405→                <h2 className="text-2xl font-black text-rose-400 mt-1">{grandShortages} د.ل</h2>
+  4406→              </div>
+  4407→              <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl text-2xl">📉</div>
+  4408→            </div>
+  4409→          </div>
+  4410→
+  4411→          {dayClosed && (
+  4412→            <div className="bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-xl p-4 flex justify-between items-center text-sm">
+  4413→              <span>🔒 هذا اليوم ({formatDateShort(adminDate)}) <strong>مغلق</strong></span>
+  4414→            </div>
+  4415→          )}
+  4416→
+  4417→          {/* بطاقات الفروع - شبكة عمودين */}
+  4418→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  4419→            {branches.map(branch => {
+  4420→              const todayStr = adminDate
+  4421→              const isMulti = (e: any) => { try { return JSON.parse(e.multiBranchIds || '[]').length > 0 } catch { return false } }
+  4422→              const branchEmps = employees.filter(e => e.branchId === branch.id && !isMulti(e))
+  4423→              let branchWithdrawals = 0
+  4424→              let branchShortages = 0
+  4425→              let branchCarTotal = 0
+  4426→              let branchCarCount = 0
+  4427→
+  4428→              const currentMonth = adminDate.substring(0, 7) // 'YYYY-MM'
+  4429→              const empCards = branchEmps.map(emp => {
+  4430→                const empRecordsDay = records.filter(r => r.empId === emp.id && r.date === adminDate && r.branchId === branch.id)
+  4431→                const empRecordsMonth = records.filter(r => r.empId === emp.id && r.date.startsWith(currentMonth) && r.branchId === branch.id)
+  4432→                const withdrawals = empRecordsMonth.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0)
+  4433→                const shortages = empRecordsMonth.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0)
+  4434→                branchWithdrawals += withdrawals
+  4435→                branchShortages += shortages
+  4436→
+  4437→                const empCarEntries = adminCarEntries.filter(e => e.empId === emp.id && e.date === adminDate)
+  4438→                const carTotal = empCarEntries.reduce((s, e) => s + e.totalAmount, 0)
+  4439→                const carCount = empCarEntries.reduce((s, e) => s + e.totalCars, 0)
+  4440→                branchCarTotal += carTotal
+  4441→                branchCarCount += carCount
+  4442→
+  4443→                const isEmpOnline = adminCarEntries.some(e => e.empId === emp.id && e.date === todayStr)
+  4444→                return (
+  4445→                  <div key={emp.id} className={`bg-slate-900 border rounded-xl p-3.5 transition-all ${isEmpOnline ? 'border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.08)]' : 'border-slate-700/40'}`}>
+  4446→                    {/* الهيدر: اسم + أزرار */}
+  4447→                    <div className="flex justify-between items-center mb-1.5">
+  4448→                      <div className="flex items-center gap-2 min-w-0">
+  4449→                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isEmpOnline ? 'bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.5)]' : 'bg-slate-600'}`} title={isEmpOnline ? 'أونلاين' : 'أوفلاين'}></span>
+  4450→                        <h3 className={`text-sm truncate ${isEmpOnline ? 'font-bold text-emerald-300' : 'font-bold text-slate-300'}`}>{emp.name}</h3>
+  4451→                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full border flex-shrink-0 ${isEmpOnline ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-700/50 border-slate-600/30'}`}>{isEmpOnline ? 'أونلاين' : 'أوفلاين'}</span>
+  4452→                      </div>
+  4453→                      <div className="flex gap-1 flex-shrink-0">
+  4454→                        {user?.role !== 'viewer' && !dayClosed && (
+  4455→                          <button
+  4456→                            onClick={() => {
+  4457→                              setRecordModalData({
+  4458→                                id: '', empId: emp.id, empName: emp.name, type: 'withdrawal',
+  4459→                                amount: '', note: '', date: adminDate, branchId: branch.id
+  4460→                              })
+  4461→                              setShowRecordModal(true)
+  4462→                            }}
+  4463→                            className="bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition hover:bg-cyan-400"
+  4464→                          >+ حركة</button>
+  4465→                        )}
+  4466→                        {user?.role !== 'viewer' && <>
+  4467→                        <button onClick={() => handleDeleteEmployee(emp.id, emp.name)} className="text-slate-500 hover:text-rose-400 text-xs p-1" title="حذف الموظف مع بقاء الحركات">🗑️</button>
+  4468→                        <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>
+  4469→                        </>}
+  4470→                      </div>
+  4471→                    </div>
+  4472→
+  4473→                    {/* الباجات: شفت + حالات */}
+  4474→                    <div className="flex items-center gap-1.5 flex-wrap mb-2.5 pl-[18px]">
+  4475→                      <span className="text-[9px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+  4476→                      {emp.hasLogin && emp.role === 'viewer' && <span className="text-[9px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
+  4477→                      {!emp.hasLogin && <span className="text-[9px] text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
+  4478→                      {emp.endDate ? (
+  4479→                        <span className="text-[9px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-full border border-rose-500/20">⏸️ متوقف</span>
+  4480→                      ) : (
+  4481→                        <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">✅ مستمر</span>
+  4482→                      )}
+  4483→                      {(() => { try { const ids = JSON.parse(emp.multiBranchIds || '[]'); if (ids.length > 0) return true; return false } catch { return false } })() && (
+  4484→                        <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">🌐 متعدد</span>
+  4485→                      )}
+  4486→                    </div>
+  4487→
+  4488→                    {/* سحب + عجز */}
+  4489→                    <div className="flex items-center gap-0 bg-slate-800/80 rounded-lg overflow-hidden text-[11px] border border-slate-700/30">
+  4490→                      <div className="flex-1 flex justify-between px-3 py-2">
+  4491→                        <span className="text-slate-400">💸 السحب</span>
+  4492→                        <span className="font-bold text-amber-400">{withdrawals}</span>
+  4493→                      </div>
+  4494→                      <div className="w-px h-6 bg-slate-700/50" />
+  4495→                      <div className="flex-1 flex justify-between px-3 py-2">
+  4496→                        <span className="text-slate-400">📉 العجز</span>
+  4497→                        <span className="font-bold text-rose-400">{shortages}</span>
+  4498→                      </div>
+  4499→                    </div>
+  4500→
+  4501→                    {/* سجل حركات الشهر */}
+  4502→                    <div className="space-y-1 mt-2 max-h-52 overflow-y-auto custom-scrollbar">
+  4503→                      {empRecordsMonth.length === 0 && (
+  4504→                        <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
+  4505→                      )}
+  4506→                      {empRecordsMonth.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(r => (
+  4507→                        <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1.5 rounded-lg">
+  4508→                          <span>{r.date?.substring(5)} {r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
+  4509→                          <div className="flex items-center gap-2">
+  4510→                            <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
+  4511→                            {user?.role !== 'viewer' && !dayClosed && (
+  4512→                              <>
+  4513→                                <button onClick={() => {
+  4514→                                  setRecordModalData({
+  4515→                                    id: r.id, empId: r.empId, empName: emp.name, type: r.type,
+  4516→                                    amount: String(r.amount), note: r.note, date: r.date, branchId: r.branchId
+  4517→                                  })
+  4518→                                  setShowRecordModal(true)
+  4519→                                }} className="text-slate-600 hover:text-cyan-400">✏️</button>
+  4520→                                <button onClick={() => handleDeleteRecord(r.id)} className="text-slate-600 hover:text-rose-400">×</button>
+  4521→                              </>
+  4522→                            )}
+  4523→                          </div>
+  4524→                        </div>
+  4525→                      ))}
+  4526→                    </div>
+  4527→                  </div>
+  4528→                )
+  4529→              })
+  4530→
+  4531→              return (
+  4532→                <div key={branch.id} className={`bg-slate-800 border rounded-2xl overflow-hidden shadow-lg transition-all ${isDayClosedForBranch(adminDate, branch.id) ? 'border-emerald-500/30' : 'border-slate-700'}`}>
+  4533→                  {/* رأس البطاقة */}
+  4534→                  <div className="flex justify-between items-center px-5 py-3.5 border-b border-slate-700/40">
+  4535→                    <div className="flex items-center gap-2">
+  4536→                      <span className="text-pink-400">📍</span>
+  4537→                      <h2 className="text-base font-bold text-cyan-400">{branch.name}</h2>
+  4538→                      {isDayClosedForBranch(adminDate, branch.id) && (
+  4539→                        <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">🔒 مقفل</span>
+  4540→                      )}
+  4541→                      {user?.role !== 'viewer' && (
+  4542→                        <button
+  4543→                          type="button"
+  4544→                          onClick={() => handleToggleBranchExtra(branch.id, branch.name)}
+  4545→                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${isExtraEnabledForBranch(branch.name) ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25' : 'bg-slate-700/50 text-slate-500 border-slate-600/40 hover:bg-slate-700'}`}
+  4546→                          title={isExtraEnabledForBranch(branch.name) ? 'إيقاف الإكسترا' : 'تفعيل الإكسترا'}
+  4547→                        >
+  4548→                          <span>{isExtraEnabledForBranch(branch.name) ? '⭐' : '☆'}</span>
+  4549→                          <span>اكسترا</span>
+  4550→                        </button>
+  4551→                      )}
+  4552→                    </div>
+  4553→                    {user?.role !== 'viewer' && (
+  4554→                      <div className="flex items-center gap-2">
+  4555→                        <button
+  4556→                          onClick={() => handleOpenEditBranch(branch.id)}
+  4557→                          className="text-cyan-400 hover:text-cyan-300 text-[11px] font-bold bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-cyan-500/20 hover:bg-cyan-500/20 transition"
+  4558→                        >✏️ تعديل</button>
+  4559→                        <button onClick={() => handleDeleteBranch(branch.id)} className="text-rose-400 hover:text-rose-300 text-[11px] font-bold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 transition">🗑️</button>
+  4560→                      </div>
+  4561→                    )}
+  4562→                  </div>
+  4563→                  {/* محتوى الموظفين */}
+  4564→                  <div className="p-3.5 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+  4565→                    {branchEmps.length === 0 && (
+  4566→                      <p className="text-slate-500 text-sm text-center py-4">لا يوجد موظفون بالفرع حالياً</p>
+  4567→                    )}
+  4568→                    {empCards}
+  4569→                  </div>
+  4570→                </div>
+  4571→              )
+  4572→            })}
+  4573→          </div>
+  4574→
+  4575→          {/* بطاقة الموظفين متعددي الفروع */}
+  4576→          {(() => {
+  4577→            const multiEmps = employees.filter(e => {
+  4578→              try { const ids = JSON.parse(e.multiBranchIds || '[]'); return ids.length > 0 } catch { return false }
+  4579→            })
+  4580→            if (multiEmps.length === 0) return null
+  4581→            const currentMonth = adminDate.substring(0, 7)
+  4582→            return (
+  4583→              <div className="mt-4 bg-slate-800 border border-amber-500/30 rounded-2xl overflow-hidden shadow-lg">
+  4584→                <div className="flex justify-between items-center px-5 py-3.5 border-b border-amber-500/20">
+  4585→                  <div className="flex items-center gap-2">
+  4586→                    <span className="text-amber-400">🌐</span>
+  4587→                    <h2 className="text-base font-bold text-amber-400">موظفين مشتركين (أكثر من فرع)</h2>
+  4588→                  </div>
+  4589→                </div>
+  4590→                <div className="p-3.5 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+  4591→                  {multiEmps.map(emp => {
+  4592→                    const empRecordsMonth = records.filter(r => r.empId === emp.id && r.date.startsWith(currentMonth))
+  4593→                    const withdrawals = empRecordsMonth.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+  4594→                    const shortages = empRecordsMonth.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+  4595→                    const total = withdrawals + shortages
+  4596→                    const branchNames = (() => {
+  4597→                      try {
+  4598→                        const ids: string[] = JSON.parse(emp.multiBranchIds || '[]')
+  4599→                        const names = ids.map(id => branches.find(b => b.id === id)?.name).filter(Boolean)
+  4600→                        const mainBranch = branches.find(b => b.id === emp.branchId)?.name
+  4601→                        return mainBranch ? [mainBranch, ...names] : names
+  4602→                      } catch { return [] }
+  4603→                    })()
+  4604→                    return (
+  4605→                      <div key={emp.id} className="bg-slate-900 border border-amber-500/20 rounded-xl p-3.5">
+  4606→                        {/* الهيدر: اسم + أزرار */}
+  4607→                        <div className="flex justify-between items-center mb-1.5">
+  4608→                          <div className="flex items-center gap-2 min-w-0">
+  4609→                            <h3 className="font-bold text-white text-sm truncate">{emp.name}</h3>
+  4610→                          </div>
+  4611→                          <div className="flex gap-1 flex-shrink-0">
+  4612→                            {!dayClosed && (
+  4613→                              <button
+  4614→                                onClick={() => {
+  4615→                                  setRecordModalData({
+  4616→                                    id: '', empId: emp.id, empName: emp.name, type: 'withdrawal',
+  4617→                                    amount: '', note: '', date: adminDate, branchId: emp.branchId
+  4618→                                  })
+  4619→                                  setShowRecordModal(true)
+  4620→                                }}
+  4621→                                className="bg-cyan-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition hover:bg-cyan-400"
+  4622→                              >+ حركة</button>
+  4623→                            )}
+  4624→                            {user?.role !== 'viewer' && <button onClick={() => { setEditEmp({ ...emp, hasLogin: !!emp.hasLogin, password: emp.password || '' }); setShowEditEmpModal(true) }} className="text-slate-500 hover:text-cyan-400 text-xs p-1">✏️</button>}
+  4625→                            {user?.role !== 'viewer' && (
+  4626→                              <button onClick={() => handleDeleteEmployee(emp.id, emp.name)} className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs px-2 py-1 rounded-lg border border-rose-500/20 transition font-bold">🗑️ حذف</button>
+  4627→                            )}
+  4628→                          </div>
+  4629→                        </div>
+  4630→
+  4631→                        {/* الباجات: شفت + فروع + حالات */}
+  4632→                        <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
+  4633→                          <span className="text-[9px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+  4634→                          <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">🌐 {branchNames.join(' | ')}</span>
+  4635→                          {emp.hasLogin && emp.role === 'viewer' && <span className="text-[9px] text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full border border-purple-500/20">👁️ مشاهد</span>}
+  4636→                          {!emp.hasLogin && <span className="text-[9px] text-slate-500 bg-slate-700/50 px-1.5 py-0.5 rounded-full border border-slate-600/30">بدون دخول</span>}
+  4637→                          {emp.endDate ? (
+  4638→                            <span className="text-[9px] text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-full border border-rose-500/20">⏸️ متوقف</span>
+  4639→                          ) : (
+  4640→                            <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full border border-emerald-500/20">✅ مستمر</span>
+  4641→                          )}
+  4642→                        </div>
+  4643→                        <div className="grid grid-cols-3 gap-2 mb-2">
+  4644→                          <div className="bg-slate-800/80 rounded-lg p-2 text-center">
+  4645→                            <div className="text-[10px] text-slate-400">سحوبات الشهر</div>
+  4646→                            <div className="text-sm font-bold text-amber-400">{withdrawals} د.ل</div>
+  4647→                          </div>
+  4648→                          <div className="bg-slate-800/80 rounded-lg p-2 text-center">
+  4649→                            <div className="text-[10px] text-slate-400">عجز الشهر</div>
+  4650→                            <div className="text-sm font-bold text-rose-400">{shortages} د.ل</div>
+  4651→                          </div>
+  4652→                          <div className="bg-slate-800/80 rounded-lg p-2 text-center">
+  4653→                            <div className="text-[10px] text-slate-400">الإجمالي</div>
+  4654→                            <div className="text-sm font-bold text-white">{total} د.ل</div>
+  4655→                          </div>
+  4656→                        </div>
+  4657→                        <div className="space-y-1 mt-2 max-h-52 overflow-y-auto custom-scrollbar">
+  4658→                          {empRecordsMonth.length === 0 && (
+  4659→                            <p className="text-slate-500 text-[11px] text-center py-1.5">لا توجد حركات</p>
+  4660→                          )}
+  4661→                          {empRecordsMonth.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(r => (
+  4662→                            <div key={r.id} className="flex justify-between items-center text-[11px] text-slate-400 bg-slate-800/80 px-2.5 py-1.5 rounded-lg">
+  4663→                              <span>{r.date?.substring(5)} {r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} {r.note || ''}</span>
+  4664→                              <div className="flex items-center gap-2">
+  4665→                                <span className={`font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}`}>{r.amount} د.ل</span>
+  4666→                                {!dayClosed && (
+  4667→                                  <>
+  4668→                                    <button onClick={() => {
+  4669→                                      setRecordModalData({
+  4670→                                        id: r.id, empId: r.empId, empName: emp.name, type: r.type,
+  4671→                                        amount: String(r.amount), note: r.note, date: r.date, branchId: r.branchId
+  4672→                                      })
+  4673→                                      setShowRecordModal(true)
+  4674→                                    }} className="text-slate-600 hover:text-cyan-400">✏️</button>
+  4675→                                    <button onClick={() => handleDeleteRecord(r.id)} className="text-slate-600 hover:text-rose-400">×</button>
+  4676→                                  </>
+  4677→                                )}
+  4678→                              </div>
+  4679→                            </div>
+  4680→                          ))}
+  4681→                        </div>
+  4682→                      </div>
+  4683→                    )
+  4684→                  })}
+  4685→                </div>
+  4686→              </div>
+  4687→            )
+  4688→          })()}
+  4689→        </main>
+  4690→      </div>
+  4691→    )
+  4692→  }
+  4693→
+  4694→  // ==================== LOGIN SCREEN ====================
+  4695→  const renderLoginScreen = () => (
+  4696→    <div className="min-h-screen login-bg flex items-center justify-center p-4">
+  4697→      <div className="w-full max-w-sm">
+  4698→        <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 shadow-2xl">
+  4699→          <div className="text-center mb-8">
+  4700→            <img src="/logo.png" alt="logo" className="w-20 h-20 rounded-2xl mx-auto mb-3" />
+  4701→            <h1 className="text-2xl font-black text-cyan-400">جيت كلين</h1>
+  4702→            <p className="text-sm text-slate-400 mt-1">مغسلة جيت كلين - نظام إدارة الفروع</p>
+  4703→          </div>
+  4704→
+  4705→          <div className="space-y-4">
+  4706→            <div>
+  4707→              <label className="text-sm text-slate-300 mb-1 block">اختر المستخدم</label>
+  4708→              <select
+  4709→                value={loginEmpId}
+  4710→                onChange={e => { setLoginEmpId(e.target.value); setLoginError('') }}
+  4711→                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4712→              >
+  4713→                <option value="">-- اختر اسمك --</option>
+  4714→                <option value="admin">👨‍💼 المسؤول (طه علي)</option>
+  4715→                {employees.filter(emp => emp.hasLogin).map(emp => {
+  4716→                  const brName = branches.find(b => b.id === emp.branchId)?.name || ''
+  4717→                  return (
+  4718→                    <option key={emp.id} value={emp.id}>{emp.name}{emp.role === 'viewer' ? ' 👁️ مشاهد' : ''}</option>
+  4719→                  )
+  4720→                })}
+  4721→              </select>
+  4722→            </div>
+  4723→
+  4724→            <div>
+  4725→              <label className="text-sm text-slate-300 mb-1 block">رمز المرور</label>
+  4726→              <input
+  4727→                type="password" value={loginPassword}
+  4728→                onChange={e => { setLoginPassword(e.target.value); setLoginError('') }}
+  4729→                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+  4730→                placeholder="أدخل رمز المرور"
+  4731→                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500 placeholder:text-slate-600"
+  4732→              />
+  4733→            </div>
+  4734→
+  4735→            {loginError && (
+  4736→              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl p-3 text-sm text-center">
+  4737→                {loginError}
+  4738→              </div>
+  4739→            )}
+  4740→
+  4741→            <button
+  4742→              onClick={handleLogin}
+  4743→              disabled={loginLoading}
+  4744→              className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm"
+  4745→            >
+  4746→              {loginLoading ? '⏳ جاري الدخول...' : '🔐 تسجيل الدخول'}
+  4747→            </button>
+  4748→          </div>
+  4749→        </div>
+  4750→      </div>
+  4751→    </div>
+  4752→  )
+  4753→
+  4754→  // ==================== MODALS ====================
+  4755→  const renderModals = () => (
+  4756→    <>
+  4757→      {/* Record Modal */}
+  4758→      {showRecordModal && (
+  4759→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  4760→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+  4761→            <h3 className="text-lg font-bold text-white text-center">
+  4762→              {recordModalData.id ? `تعديل حركة لـ (${recordModalData.empName})` : `إضافة حركة لـ (${recordModalData.empName})`}
+  4763→            </h3>
+  4764→            <div className="space-y-3">
+  4765→              <div>
+  4766→                <label className="text-xs text-slate-400 mb-1 block">نوع الحركة</label>
+  4767→                <select
+  4768→                  value={recordModalData.type}
+  4769→                  onChange={e => setRecordModalData(prev => ({ ...prev, type: e.target.value as 'withdrawal' | 'shortage' }))}
+  4770→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4771→                >
+  4772→                  <option value="withdrawal">💸 سحب</option>
+  4773→                  {(() => {
+  4774→                    const emp = employees.find(e => e.id === recordModalData.empId)
+  4775→                    if (!emp) return true
+  4776→                    try { return JSON.parse(emp.multiBranchIds || '[]').length === 0 } catch { return true }
+  4777→                  })() && <option value="shortage">📉 عجز</option>}
+  4778→                </select>
+  4779→              </div>
+  4780→              <div>
+  4781→                <label className="text-xs text-slate-400 mb-1 block">المبلغ (د.ل)</label>
+  4782→                <input
+  4783→                  type="number" value={recordModalData.amount}
+  4784→                  onChange={e => setRecordModalData(prev => ({ ...prev, amount: e.target.value }))}
+  4785→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4786→                  placeholder="0"
+  4787→                />
+  4788→              </div>
+  4789→              <div>
+  4790→                <label className="text-xs text-slate-400 mb-1 block">التاريخ</label>
+  4791→                <input
+  4792→                  type="date" value={recordModalData.date}
+  4793→                  onChange={e => setRecordModalData(prev => ({ ...prev, date: e.target.value }))}
+  4794→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4795→                />
+  4796→              </div>
+  4797→              <div>
+  4798→                <label className="text-xs text-slate-400 mb-1 block">ملاحظة</label>
+  4799→                <input
+  4800→                  type="text" value={recordModalData.note}
+  4801→                  onChange={e => setRecordModalData(prev => ({ ...prev, note: e.target.value }))}
+  4802→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4803→                  placeholder="ملاحظة (اختياري)"
+  4804→                />
+  4805→              </div>
+  4806→              {(() => {
+  4807→                const emp = employees.find(e => e.id === recordModalData.empId)
+  4808→                if (!emp) return null
+  4809→                try {
+  4810→                  const ids: string[] = JSON.parse(emp.multiBranchIds || '[]')
+  4811→                  if (ids.length === 0) return null
+  4812→                  const allBranchIds = [emp.branchId, ...ids].filter(Boolean)
+  4813→                  return (
+  4814→                    <div>
+  4815→                      <label className="text-xs text-slate-400 mb-1 block">📍 الفرع</label>
+  4816→                      <select
+  4817→                        value={recordModalData.branchId}
+  4818→                        onChange={e => setRecordModalData(prev => ({ ...prev, branchId: e.target.value }))}
+  4819→                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4820→                      >
+  4821→                        {allBranchIds.map(bId => {
+  4822→                          const bName = branches.find(b => b.id === bId)?.name || 'فرع غير معروف'
+  4823→                          return <option key={bId} value={bId}>{bName}</option>
+  4824→                        })}
+  4825→                      </select>
+  4826→                    </div>
+  4827→                  )
+  4828→                } catch { return null }
+  4829→              })()}
+  4830→            </div>
+  4831→            <div className="flex gap-3">
+  4832→              <button onClick={handleSaveRecord} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+  4833→              <button onClick={() => setShowRecordModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  4834→            </div>
+  4835→          </div>
+  4836→        </div>
+  4837→      )}
+  4838→
+  4839→      {/* Branch Modal */}
+  4840→      {showBranchModal && (
+  4841→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  4842→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+  4843→            <h3 className="text-lg font-bold text-white text-center">➕ إضافة فرع جديد</h3>
+  4844→            <div>
+  4845→              <label className="text-xs text-slate-400 mb-1 block">اسم الفرع</label>
+  4846→              <input
+  4847→                type="text" value={newBranchName}
+  4848→                onChange={e => setNewBranchName(e.target.value)}
+  4849→                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4850→                placeholder="اسم الفرع الجديد"
+  4851→              />
+  4852→            </div>
+  4853→            <div>
+  4854→              <label className="text-xs text-slate-400 mb-1 block">عدد الغرف ({newBranchRooms})</label>
+  4855→              <input type="range" min="1" max="6" value={newBranchRooms}
+  4856→                onChange={e => setNewBranchRooms(Number(e.target.value))}
+  4857→                className="w-full accent-cyan-500"
+  4858→              />
+  4859→              <div className="flex justify-between text-[10px] text-slate-500"><span>1</span><span>6</span></div>
+  4860→            </div>
+  4861→            <div>
+  4862→              <label className="text-xs text-slate-400 mb-1 block">مكينة غسيل</label>
+  4863→              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  4864→                <button type="button"
+  4865→                  onClick={() => setNewBranchHasMachine(!newBranchHasMachine)}
+  4866→                  className={`relative w-12 h-6 rounded-full transition-colors ${newBranchHasMachine ? 'bg-cyan-600' : 'bg-slate-600'}`}
+  4867→                >
+  4868→                  <span className={`absolute top-0.5 ${newBranchHasMachine ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  4869→                </button>
+  4870→                <span className={`text-sm ${newBranchHasMachine ? 'text-cyan-400' : 'text-slate-500'}`}>
+  4871→                  {newBranchHasMachine ? '✅ نعم' : '❌ لا'}
+  4872→                </span>
+  4873→              </div>
+  4874→            </div>
+  4875→            <div>
+  4876→              <label className="text-xs text-slate-400 mb-1 block">⭐ الإكسترا (خصم 5 د.ل من 30/35/45)</label>
+  4877→              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  4878→                <button type="button"
+  4879→                  onClick={() => setNewBranchExtraDisabled(!newBranchExtraDisabled)}
+  4880→                  className={`relative w-12 h-6 rounded-full transition-colors ${!newBranchExtraDisabled ? 'bg-amber-600' : 'bg-slate-600'}`}
+  4881→                >
+  4882→                  <span className={`absolute top-0.5 ${!newBranchExtraDisabled ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  4883→                </button>
+  4884→                <span className={`text-sm ${!newBranchExtraDisabled ? 'text-amber-400' : 'text-slate-500'}`}>
+  4885→                  {!newBranchExtraDisabled ? '✅ مفعّل' : '❌ متوقف'}
+  4886→                </span>
+  4887→              </div>
+  4888→            </div>
+  4889→            <div>
+  4890→              <label className="text-xs text-slate-400 mb-1 block">خصم الصافي (لكل سيارة)</label>
+  4891→              <input type="number" min="0" max="20" value={newBranchNetDeduction}
+  4892→                onChange={e => setNewBranchNetDeduction(Number(e.target.value))}
+  4893→                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4894→              />
+  4895→            </div>
+  4896→            <div>
+  4897→              <label className="text-xs text-slate-400 mb-1 block">مكينة بدون خصم (الإجمالي ÷ 2 بدون خصم إضافي)</label>
+  4898→              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  4899→                <button type="button"
+  4900→                  onClick={() => setNewBranchMachineNoDeduction(!newBranchMachineNoDeduction)}
+  4901→                  className={`relative w-12 h-6 rounded-full transition-colors ${newBranchMachineNoDeduction ? 'bg-cyan-600' : 'bg-slate-600'}`}
+  4902→                >
+  4903→                  <span className={`absolute top-0.5 ${newBranchMachineNoDeduction ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  4904→                </button>
+  4905→                <span className={`text-sm ${newBranchMachineNoDeduction ? 'text-cyan-400' : 'text-slate-500'}`}>
+  4906→                  {newBranchMachineNoDeduction ? '✅ نعم' : '❌ لا'}
+  4907→                </span>
+  4908→              </div>
+  4909→            </div>
+  4910→            <div>
+  4911→              <label className="text-xs text-slate-400 mb-1 block">نوع النظافة</label>
+  4912→              <select value={newBranchCleanType}
+  4913→                onChange={e => setNewBranchCleanType(e.target.value as 'fixed' | 'select')}
+  4914→                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4915→              >
+  4916→                <option value="select">اختيار من قيم</option>
+  4917→                <option value="fixed">قيمة ثابتة</option>
+  4918→              </select>
+  4919→            </div>
+  4920→            {newBranchCleanType === 'fixed' ? (
+  4921→              <div>
+  4922→                <label className="text-xs text-slate-400 mb-1 block">قيمة النظافة (د.ل)</label>
+  4923→                <input type="number" min="0" value={newBranchCleanValue}
+  4924→                  onChange={e => setNewBranchCleanValue(Number(e.target.value))}
+  4925→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4926→                />
+  4927→              </div>
+  4928→            ) : (
+  4929→              <div>
+  4930→                <label className="text-xs text-slate-400 mb-1 block">خيارات النظافة (مفصولة بفاصلة)</label>
+  4931→                <input type="text" value={newBranchCleanOptions}
+  4932→                  onChange={e => setNewBranchCleanOptions(e.target.value)}
+  4933→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4934→                  placeholder="10,20,30"
+  4935→                />
+  4936→              </div>
+  4937→            )}
+  4938→            <div className="flex gap-3">
+  4939→              <button onClick={handleCreateBranch} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+  4940→              <button onClick={() => { setShowBranchModal(false); setNewBranchName(''); setNewBranchRooms(6); setNewBranchHasMachine(true); setNewBranchNetDeduction(0); setNewBranchMachineNoDeduction(false); setNewBranchCleanType('select'); setNewBranchCleanValue(20); setNewBranchCleanOptions('10,20') }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  4941→            </div>
+  4942→          </div>
+  4943→        </div>
+  4944→      )}
+  4945→
+  4946→      {/* Edit Branch Modal */}
+  4947→      {showEditBranchModal && editBranch && (
+  4948→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  4949→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto custom-scrollbar">
+  4950→            <h3 className="text-lg font-bold text-white text-center">✏️ تعديل فرع: {editBranch.name}</h3>
+  4951→            <div>
+  4952→              <label className="text-xs text-slate-400 mb-1 block">عدد الغرف ({editBranch.rooms})</label>
+  4953→              <input type="range" min="1" max="6" value={editBranch.rooms}
+  4954→                onChange={e => setEditBranch(prev => ({ ...prev!, rooms: Number(e.target.value) }))}
+  4955→                className="w-full accent-cyan-500"
+  4956→              />
+  4957→              <div className="flex justify-between text-[10px] text-slate-500"><span>1</span><span>6</span></div>
+  4958→            </div>
+  4959→            <div>
+  4960→              <label className="text-xs text-slate-400 mb-1 block">مكينة غسيل</label>
+  4961→              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  4962→                <button type="button"
+  4963→                  onClick={() => setEditBranch(prev => ({ ...prev!, hasMachine: !prev!.hasMachine }))}
+  4964→                  className={`relative w-12 h-6 rounded-full transition-colors ${editBranch.hasMachine ? 'bg-cyan-600' : 'bg-slate-600'}`}
+  4965→                >
+  4966→                  <span className={`absolute top-0.5 ${editBranch.hasMachine ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  4967→                </button>
+  4968→                <span className={`text-sm ${editBranch.hasMachine ? 'text-cyan-400' : 'text-slate-500'}`}>
+  4969→                  {editBranch.hasMachine ? '✅ نعم' : '❌ لا'}
+  4970→                </span>
+  4971→              </div>
+  4972→            </div>
+  4973→            <div>
+  4974→              <label className="text-xs text-slate-400 mb-1 block">⭐ الإكسترا</label>
+  4975→              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  4976→                <button type="button"
+  4977→                  onClick={() => setEditBranch(prev => ({ ...prev!, extraDisabled: !prev!.extraDisabled }))}
+  4978→                  className={`relative w-12 h-6 rounded-full transition-colors ${!editBranch.extraDisabled ? 'bg-amber-600' : 'bg-slate-600'}`}
+  4979→                >
+  4980→                  <span className={`absolute top-0.5 ${!editBranch.extraDisabled ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  4981→                </button>
+  4982→                <span className={`text-sm ${!editBranch.extraDisabled ? 'text-amber-400' : 'text-slate-500'}`}>
+  4983→                  {!editBranch.extraDisabled ? '✅ مفعّل' : '❌ متوقف'}
+  4984→                </span>
+  4985→              </div>
+  4986→            </div>
+  4987→            <div>
+  4988→              <label className="text-xs text-slate-400 mb-1 block">خصم الصافي (لكل سيارة)</label>
+  4989→              <input type="number" min="0" max="20" value={editBranch.netDeduction}
+  4990→                onChange={e => setEditBranch(prev => ({ ...prev!, netDeduction: Number(e.target.value) }))}
+  4991→                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  4992→              />
+  4993→            </div>
+  4994→            <div>
+  4995→              <label className="text-xs text-slate-400 mb-1 block">مكينة بدون خصم</label>
+  4996→              <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  4997→                <button type="button"
+  4998→                  onClick={() => setEditBranch(prev => ({ ...prev!, machineNoDeduction: !prev!.machineNoDeduction }))}
+  4999→                  className={`relative w-12 h-6 rounded-full transition-colors ${editBranch.machineNoDeduction ? 'bg-cyan-600' : 'bg-slate-600'}`}
+  5000→                >
+  5001→                  <span className={`absolute top-0.5 ${editBranch.machineNoDeduction ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  5002→                </button>
+  5003→                <span className={`text-sm ${editBranch.machineNoDeduction ? 'text-cyan-400' : 'text-slate-500'}`}>
+  5004→                  {editBranch.machineNoDeduction ? '✅ نعم' : '❌ لا'}
+  5005→                </span>
+  5006→              </div>
+  5007→            </div>
+  5008→            <div>
+  5009→              <label className="text-xs text-slate-400 mb-1 block">نوع النظافة</label>
+  5010→              <select value={editBranch.cleanType}
+  5011→                onChange={e => setEditBranch(prev => ({ ...prev!, cleanType: e.target.value as 'fixed' | 'select' }))}
+  5012→                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5013→              >
+  5014→                <option value="select">اختيار من قيم</option>
+  5015→                <option value="fixed">قيمة ثابتة</option>
+  5016→              </select>
+  5017→            </div>
+  5018→            {editBranch.cleanType === 'fixed' ? (
+  5019→              <div>
+  5020→                <label className="text-xs text-slate-400 mb-1 block">قيمة النظافة (د.ل)</label>
+  5021→                <input type="number" min="0" value={editBranch.cleanValue}
+  5022→                  onChange={e => setEditBranch(prev => ({ ...prev!, cleanValue: Number(e.target.value) }))}
+  5023→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5024→                />
+  5025→              </div>
+  5026→            ) : (
+  5027→              <div>
+  5028→                <label className="text-xs text-slate-400 mb-1 block">خيارات النظافة (مفصولة بفاصلة)</label>
+  5029→                <input type="text" value={editBranch.cleanOptions}
+  5030→                  onChange={e => setEditBranch(prev => ({ ...prev!, cleanOptions: e.target.value }))}
+  5031→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5032→                  placeholder="10,20,30"
+  5033→                />
+  5034→              </div>
+  5035→            )}
+  5036→            <div className="flex gap-3">
+  5037→              <button onClick={handleSaveEditBranch} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+  5038→              <button onClick={() => { setShowEditBranchModal(false); setEditBranch(null) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5039→            </div>
+  5040→          </div>
+  5041→        </div>
+  5042→      )}
+  5043→
+  5044→      {/* Employee Modal */}
+  5045→      {showEmpModal && (
+  5046→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5047→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+  5048→            <h3 className="text-lg font-bold text-white text-center">👤 إضافة موظف جديد</h3>
+  5049→            <div className="space-y-3">
+  5050→              <div>
+  5051→                <label className="text-xs text-slate-400 mb-1 block">الاسم</label>
+  5052→                <input type="text" value={newEmp.name}
+  5053→                  onChange={e => setNewEmp(prev => ({ ...prev, name: e.target.value }))}
+  5054→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5055→                  placeholder="اسم الموظف"
+  5056→                />
+  5057→              </div>
+  5058→              {newEmp.role !== 'viewer' && <>
+  5059→              <div>
+  5060→                <label className="text-xs text-slate-400 mb-1 block">الفرع</label>
+  5061→                <select value={newEmp.branchId}
+  5062→                  onChange={e => setNewEmp(prev => ({ ...prev, branchId: e.target.value }))}
+  5063→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5064→                >
+  5065→                  <option value="">-- اختر فرع --</option>
+  5066→                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+  5067→                </select>
+  5068→              </div>
+  5069→              <div>
+  5070→                <div className="flex items-center justify-between bg-slate-900 border border-slate-600 rounded-lg p-2.5 cursor-pointer" onClick={(e) => { e.stopPropagation(); e.preventDefault() }}>
+  5071→                  <span className="text-xs text-slate-400">🌐 موظف مشترك (أكثر من فرع)</span>
+  5072→                  <div
+  5073→                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); if (showMultiBranchPicker) { setShowMultiBranchPicker(false); setNewEmp(prev => ({ ...prev, multiBranchIds: [] as string[] })) } else { setShowMultiBranchPicker(true) } }}
+  5074→                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer select-none ${showMultiBranchPicker ? 'bg-amber-500' : 'bg-slate-600'}`}
+  5075→                  >
+  5076→                    <div className={`absolute top-0.5 ${showMultiBranchPicker ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all shadow`} />
+  5077→                  </div>
+  5078→                </div>
+  5079→                {showMultiBranchPicker && (
+  5080→                  <div className="mt-2 bg-slate-900 border border-amber-500/30 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
+  5081→                    {branches.filter(b => b.id !== newEmp.branchId).map(b => (
+  5082→                      <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
+  5083→                        <input type="checkbox"
+  5084→                          checked={newEmp.multiBranchIds.includes(b.id)}
+  5085→                          onChange={e => {
+  5086→                            if (e.target.checked) {
+  5087→                              setNewEmp(prev => ({ ...prev, multiBranchIds: [...prev.multiBranchIds, b.id] }))
+  5088→                            } else {
+  5089→                              setNewEmp(prev => ({ ...prev, multiBranchIds: prev.multiBranchIds.filter(id => id !== b.id) }))
+  5090→                            }
+  5091→                          }}
+  5092→                          className="rounded border-slate-500 bg-slate-700 text-amber-500 focus:ring-amber-500"
+  5093→                        />
+  5094→                        <span>{b.name}</span>
+  5095→                      </label>
+  5096→                    ))}
+  5097→                    {branches.filter(b => b.id !== newEmp.branchId).length === 0 && (
+  5098→                      <span className="text-slate-500 text-xs">اختر الفرع الأساسي أولاً</span>
+  5099→                    )}
+  5100→                  </div>
+  5101→                )}
+  5102→              </div>
+  5103→              <div>
+  5104→                <label className="text-xs text-slate-400 mb-1 block">الوردية</label>
+  5105→                <select value={newEmp.shift}
+  5106→                  onChange={e => setNewEmp(prev => ({ ...prev, shift: e.target.value }))}
+  5107→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5108→                >
+  5109→                  <option value="الفترة الصباحية">الفترة الصباحية</option>
+  5110→                  <option value="الفترة المسائية">الفترة المسائية</option>
+  5111→                  <option value="الفترة كاملة">الفترة كاملة</option>
+  5112→                </select>
+  5113→              </div>
+  5114→              <div className="grid grid-cols-2 gap-3">
+  5115→                <div>
+  5116→                  <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة</label>
+  5117→                  <input type="date" value={newEmp.startDate}
+  5118→                    onChange={e => setNewEmp(prev => ({ ...prev, startDate: e.target.value }))}
+  5119→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5120→                  />
+  5121→                </div>
+  5122→                <div>
+  5123→                  <label className="text-xs text-slate-400 mb-1 block">تاريخ التوقف</label>
+  5124→                  <input type="date" value={newEmp.endDate}
+  5125→                    onChange={e => setNewEmp(prev => ({ ...prev, endDate: e.target.value }))}
+  5126→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5127→                  />
+  5128→                </div>
+  5129→              </div>
+  5130→              </>}
+  5131→              <div>
+  5132→                <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
+  5133→                <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  5134→                  <button
+  5135→                    type="button"
+  5136→                    onClick={() => setNewEmp(prev => ({ ...prev, hasLogin: !prev.hasLogin }))}
+  5137→                    className={`relative w-12 h-6 rounded-full transition-colors ${newEmp.hasLogin ? 'bg-cyan-600' : 'bg-slate-600'}`}
+  5138→                  >
+  5139→                    <span className={`absolute top-0.5 ${newEmp.hasLogin ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  5140→                  </button>
+  5141→                  <span className={`text-sm ${newEmp.hasLogin ? 'text-cyan-400' : 'text-slate-500'}`}>
+  5142→                    {newEmp.hasLogin ? '✅ نعم، يملك حساب دخول' : '❌ لا، بدون يوزر دخول'}
+  5143→                  </span>
+  5144→                </div>
+  5145→              </div>
+  5146→              {newEmp.hasLogin && (
+  5147→              <>
+  5148→                <div>
+  5149→                  <label className="text-xs text-slate-400 mb-1 block">الدور</label>
+  5150→                  <select value={newEmp.role}
+  5151→                    onChange={e => setNewEmp(prev => ({ ...prev, role: e.target.value }))}
+  5152→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5153→                  >
+  5154→                    <option value="employee">👤 موظف عادي</option>
+  5155→                    <option value="viewer">👁️ مشاهد فقط</option>
+  5156→                  </select>
+  5157→                </div>
+  5158→                <div>
+  5159→                  <label className="text-xs text-slate-400 mb-1 block">رمز المرور</label>
+  5160→                  <input type="text" value={newEmp.password}
+  5161→                    onChange={e => setNewEmp(prev => ({ ...prev, password: e.target.value }))}
+  5162→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5163→                    placeholder="رمز المرور"
+  5164→                  />
+  5165→                </div>
+  5166→              </>
+  5167→              )}
+  5168→            </div>
+  5169→            <div className="flex gap-3">
+  5170→              <button onClick={handleCreateEmployee} className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+  5171→              <button onClick={() => { setShowEmpModal(false); setNewEmp({ name: '', branchId: '', shift: 'الفترة الصباحية', password: '', role: 'employee', hasLogin: false }) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5172→            </div>
+  5173→          </div>
+  5174→        </div>
+  5175→      )}
+  5176→
+  5177→      {/* Edit Employee Modal */}
+  5178→      {showEditEmpModal && editEmp && (
+  5179→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5180→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+  5181→            <h3 className="text-lg font-bold text-white text-center">✏️ تعديل الموظف</h3>
+  5182→            <div className="space-y-3">
+  5183→              <div>
+  5184→                <label className="text-xs text-slate-400 mb-1 block">الاسم</label>
+  5185→                <input type="text" value={editEmp.name}
+  5186→                  onChange={e => setEditEmp(prev => ({ ...prev, name: e.target.value }))}
+  5187→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5188→                  placeholder="اسم الموظف"
+  5189→                />
+  5190→              </div>
+  5191→              <div>
+  5192→                <label className="text-xs text-slate-400 mb-1 block">الوردية</label>
+  5193→                <select value={editEmp.shift}
+  5194→                  onChange={e => setEditEmp(prev => ({ ...prev, shift: e.target.value }))}
+  5195→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5196→                >
+  5197→                  <option value="الفترة الصباحية">الفترة الصباحية</option>
+  5198→                  <option value="الفترة المسائية">الفترة المسائية</option>
+  5199→                  <option value="الفترة كاملة">الفترة كاملة</option>
+  5200→                </select>
+  5201→              </div>
+  5202→              <div>
+  5203→                <label className="text-xs text-slate-400 mb-1 block">الفرع</label>
+  5204→                <select value={editEmp.branchId || ''}
+  5205→                  onChange={e => setEditEmp(prev => ({ ...prev, branchId: e.target.value }))}
+  5206→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5207→                >
+  5208→                  <option value="">-- اختر فرع --</option>
+  5209→                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+  5210→                </select>
+  5211→              </div>
+  5212→              <div>
+  5213→                <label className="text-xs text-slate-400 mb-1 block">فروع إضافية <span className="text-[10px] text-amber-400">(اختياري - للموظفين اللي يخدموا في أكثر من فرع)</span></label>
+  5214→                <div className="bg-slate-900 border border-slate-600 rounded-lg p-2.5 max-h-32 overflow-y-auto custom-scrollbar">
+  5215→                  {(() => {
+  5216→                    const existingIds: string[] = (() => { try { return JSON.parse(editEmp.multiBranchIds || '[]') } catch { return [] } })()
+  5217→                    return branches.filter(b => b.id !== editEmp.branchId).map(b => (
+  5218→                      <label key={b.id} className="flex items-center gap-2 text-white text-sm py-0.5 cursor-pointer hover:bg-slate-800 rounded px-1">
+  5219→                        <input type="checkbox"
+  5220→                          checked={existingIds.includes(b.id)}
+  5221→                          onChange={e => {
+  5222→                            const currentIds: string[] = (() => { try { return JSON.parse(editEmp.multiBranchIds || '[]') } catch { return [] } })()
+  5223→                            if (e.target.checked) {
+  5224→                              setEditEmp(prev => ({ ...prev, multiBranchIds: JSON.stringify([...currentIds, b.id]) }))
+  5225→                            } else {
+  5226→                              setEditEmp(prev => ({ ...prev, multiBranchIds: JSON.stringify(currentIds.filter(id => id !== b.id)) }))
+  5227→                            }
+  5228→                          }}
+  5229→                          className="rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500"
+  5230→                        />
+  5231→                        <span>{b.name}</span>
+  5232→                      </label>
+  5233→                    ))
+  5234→                  })()}
+  5235→                </div>
+  5236→              </div>
+  5237→              <div className="grid grid-cols-2 gap-3">
+  5238→                <div>
+  5239→                  <label className="text-xs text-slate-400 mb-1 block">تاريخ المباشرة {editEmp.startDate ? '' : <span className="text-emerald-400 text-[10px]">(مستمر)</span>}</label>
+  5240→                  <input type="date" value={editEmp.startDate || ''}
+  5241→                    onChange={e => setEditEmp(prev => ({ ...prev, startDate: e.target.value }))}
+  5242→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5243→                  />
+  5244→                </div>
+  5245→                <div>
+  5246→                  <label className="text-xs text-slate-400 mb-1 block">تاريخ التوقف</label>
+  5247→                  <input type="date" value={editEmp.endDate || ''}
+  5248→                    onChange={e => setEditEmp(prev => ({ ...prev, endDate: e.target.value }))}
+  5249→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5250→                  />
+  5251→                </div>
+  5252→              </div>
+  5253→              <div>
+  5254→                <label className="text-xs text-slate-400 mb-1 block">حساب دخول (يوزر + باسورد)</label>
+  5255→                <div className="flex items-center gap-3 bg-slate-900 border border-slate-600 rounded-lg p-2.5">
+  5256→                  <button
+  5257→                    type="button"
+  5258→                    onClick={() => setEditEmp(prev => ({ ...prev, hasLogin: !prev.hasLogin }))}
+  5259→                    className={`relative w-12 h-6 rounded-full transition-colors ${editEmp.hasLogin ? 'bg-cyan-600' : 'bg-slate-600'}`}
+  5260→                  >
+  5261→                    <span className={`absolute top-0.5 ${editEmp.hasLogin ? 'left-0.5' : 'left-[22px]'} w-5 h-5 bg-white rounded-full transition-all`} />
+  5262→                  </button>
+  5263→                  <span className={`text-sm ${editEmp.hasLogin ? 'text-cyan-400' : 'text-slate-500'}`}>
+  5264→                    {editEmp.hasLogin ? '✅ نعم، يملك حساب دخول' : '❌ لا، بدون يوزر دخول'}
+  5265→                  </span>
+  5266→                </div>
+  5267→              </div>
+  5268→              {editEmp.hasLogin && (
+  5269→              <>
+  5270→                <div>
+  5271→                  <label className="text-xs text-slate-400 mb-1 block">الدور</label>
+  5272→                  <select value={editEmp.role}
+  5273→                    onChange={e => setEditEmp(prev => ({ ...prev, role: e.target.value }))}
+  5274→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5275→                  >
+  5276→                    <option value="employee">👤 موظف عادي</option>
+  5277→                    <option value="viewer">👁️ مشاهد فقط</option>
+  5278→                  </select>
+  5279→                </div>
+  5280→                <div>
+  5281→                  <label className="text-xs text-slate-400 mb-1 block">رمز المرور</label>
+  5282→                  <input type="text" value={editEmp.password || ''}
+  5283→                    onChange={e => setEditEmp(prev => ({ ...prev, password: e.target.value }))}
+  5284→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5285→                    placeholder="اتركه فارغاً إذا لا تريد تغييره"
+  5286→                  />
+  5287→                </div>
+  5288→              </>
+  5289→              )}
+  5290→            </div>
+  5291→            <div className="flex gap-3">
+  5292→              <button onClick={handleSaveEditEmployee} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ التعديلات</button>
+  5293→              <button onClick={() => { setShowEditEmpModal(false); setEditEmp(null) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5294→            </div>
+  5295→          </div>
+  5296→        </div>
+  5297→      )}
+  5298→
+  5299→      {/* Change Own Password Modal */}
+  5300→      {showChangePwdModal && (
+  5301→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5302→          <div className="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+  5303→            <h3 className="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">🔑 تغيير كلمة المرور</h3>
+  5304→            <div className="space-y-3">
+  5305→              <div className="bg-slate-900 rounded-xl p-3 border border-slate-600">
+  5306→                <p className="text-xs text-slate-400 mb-1">رمز المرور الحالي</p>
+  5307→                <p className="text-2xl font-black text-amber-400 tracking-widest text-center">{user?.password || '—'}</p>
+  5308→              </div>
+  5309→              <div>
+  5310→                <label className="text-sm text-slate-300 mb-1 block">كلمة المرور الجديدة</label>
+  5311→                <input
+  5312→                  type="text"
+  5313→                  inputMode="numeric"
+  5314→                  value={empNewPwd}
+  5315→                  onChange={e => setEmpNewPwd(e.target.value)}
+  5316→                  placeholder="أدخل الرمز الجديد"
+  5317→                  className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-lg font-bold text-center tracking-widest focus:outline-none focus:border-cyan-500"
+  5318→                  maxLength={20}
+  5319→                  autoFocus
+  5320→                  onKeyDown={e => { if (e.key === 'Enter') handleChangeOwnPassword() }}
+  5321→                />
+  5322→              </div>
+  5323→              <div className="flex gap-2 pt-2">
+  5324→                <button onClick={handleChangeOwnPassword} className="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl text-sm transition">💾 حفظ</button>
+  5325→                <button onClick={() => setShowChangePwdModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5326→              </div>
+  5327→            </div>
+  5328→          </div>
+  5329→        </div>
+  5330→      )}
+  5331→
+  5332→      {/* Passwords Modal */}
+  5333→      {showPasswordsModal && (
+  5334→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5335→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+  5336→            <h3 className="text-lg font-bold text-white text-center">🔑 تعديل كلمات المرور</h3>
+  5337→            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+  5338→              <div className="flex justify-between items-center mb-3">
+  5339→                <h4 className="font-bold text-amber-400 text-sm flex items-center gap-2">👨‍💼 المسؤول: طه علي</h4>
+  5340→                <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded-full">الحساب الرئيسي</span>
+  5341→              </div>
+  5342→              <div className="flex gap-2">
+  5343→                <input type="text" value={adminPassword}
+  5344→                  onChange={e => setAdminPassword(e.target.value)}
+  5345→                  placeholder="كلمة المرور الجديدة"
+  5346→                  className="flex-1 bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white focus:outline-none focus:border-amber-500 text-sm"
+  5347→                />
+  5348→                <button onClick={handleSaveAdminPassword} className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition">💾 حفظ</button>
+  5349→              </div>
+  5350→            </div>
+  5351→
+  5352→            {branches.map(branch => {
+  5353→              const branchEmps = employees.filter(e => e.branchId === branch.id && e.hasLogin && (() => { try { return JSON.parse(e.multiBranchIds || '[]').length === 0 } catch { return true } })())
+  5354→              if (branchEmps.length === 0) return null
+  5355→              return (
+  5356→                <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+  5357→                  <h4 className="font-bold text-cyan-400 text-sm mb-3 flex items-center gap-2">📍 {branch.name}</h4>
+  5358→                  <div className="space-y-3">
+  5359→                    {branchEmps.map(emp => (
+  5360→                      <div key={emp.id} className="bg-slate-800/80 border border-slate-700/40 rounded-lg p-3">
+  5361→                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+  5362→                          <div className="flex items-center gap-2">
+  5363→                            <span className="text-white font-semibold text-sm">{emp.name}</span>
+  5364→                            <span className="text-[11px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{emp.shift}</span>
+  5365→                          </div>
+  5366→                          <div className="flex gap-2">
+  5367→                            <input type="text" value={empPasswords[emp.id] || ''}
+  5368→                              onChange={e => setEmpPasswords(prev => ({ ...prev, [emp.id]: e.target.value }))}
+  5369→                              placeholder="كلمة المرور"
+  5370→                              className="flex-1 sm:w-40 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-teal-500"
+  5371→                            />
+  5372→                            <button onClick={() => handleSaveEmpPassword(emp.id)} className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-3 py-2 rounded-lg text-xs transition">💾</button>
+  5373→                          </div>
+  5374→                        </div>
+  5375→                      </div>
+  5376→                    ))}
+  5377→                  </div>
+  5378→                </div>
+  5379→              )
+  5380→            })}
+  5381→
+  5382→            <button onClick={() => setShowPasswordsModal(false)} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إغلاق</button>
+  5383→          </div>
+  5384→        </div>
+  5385→      )}
+  5386→
+  5387→      {/* Daily Closing Modal */}
+  5388→      {showClosingModal && (
+  5389→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5390→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
+  5391→            <h3 className="text-lg font-bold text-white text-center">🔒 الإغلاق اليومي - {formatDateShort(adminDate)}</h3>
+  5392→            <div className="space-y-2">
+  5393→              {(() => {
+  5394→                let gw = 0, gs = 0
+  5395→                branches.forEach(branch => {
+  5396→                  const bEmps = employees.filter(e => e.branchId === branch.id)
+  5397→                  bEmps.forEach(emp => {
+  5398→                    const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate && r.branchId === branch.id)
+  5399→                    gw += eRecs.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+  5400→                    gs += eRecs.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+  5401→                  })
+  5402→                })
+  5403→                return (
+  5404→                  <>
+  5405→                    <div className="flex justify-between items-center text-sm">
+  5406→                      <span className="text-slate-300">إجمالي السحوبات:</span>
+  5407→                      <span className="text-amber-400 font-bold">{gw} د.ل</span>
+  5408→                    </div>
+  5409→                    <div className="flex justify-between items-center text-sm">
+  5410→                      <span className="text-slate-300">إجمالي العجوزات:</span>
+  5411→                      <span className="text-rose-400 font-bold">{gs} د.ل</span>
+  5412→                    </div>
+  5413→                  </>
+  5414→                )
+  5415→              })()}
+  5416→            </div>
+  5417→
+  5418→            <div className="space-y-2">
+  5419→              {branches.map(branch => {
+  5420→                const bEmps = employees.filter(e => e.branchId === branch.id)
+  5421→                const isClosed = isDayClosedForBranch(adminDate, branch.id)
+  5422→                let bw = 0, bs = 0
+  5423→                const rows = bEmps.map(emp => {
+  5424→                  const eRecs = records.filter(r => r.empId === emp.id && r.date === adminDate && r.branchId === branch.id)
+  5425→                  if (eRecs.length === 0) return null
+  5426→                  const w = eRecs.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+  5427→                  const s2 = eRecs.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+  5428→                  bw += w; bs += s2
+  5429→                  return (
+  5430→                    <div key={emp.id} className="flex justify-between items-center text-xs bg-slate-900/70 px-3 py-2 rounded-lg">
+  5431→                      <span className="text-slate-200 font-semibold">{emp.name}</span>
+  5432→                      <div className="flex gap-3">
+  5433→                        <span className="text-amber-400">سحب: {w} د.ل</span>
+  5434→                        <span className="text-rose-400">عجز: {s2} د.ل</span>
+  5435→                      </div>
+  5436→                    </div>
+  5437→                  )
+  5438→                })
+  5439→                if (rows.every(r => r === null)) return null
+  5440→                return (
+  5441→                  <div key={branch.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+  5442→                    <div className="flex justify-between items-center mb-3">
+  5443→                      <h4 className="text-sm font-bold text-cyan-400">{branch.name} <span className={`text-xs px-2 py-0.5 rounded-full ${isClosed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>{isClosed ? 'مقفل ✓' : 'مفتوح'}</span></h4>
+  5444→                      <div className="flex gap-2 text-xs">
+  5445→                        <span className="text-amber-400">سحب: {bw}</span>
+  5446→                        <span className="text-rose-400">عجز: {bs}</span>
+  5447→                      </div>
+  5448→                    </div>
+  5449→                    <div className="space-y-1.5">{rows}</div>
+  5450→                  </div>
+  5451→                )
+  5452→              })}
+  5453→            </div>
+  5454→
+  5455→            <div className="flex gap-3 pt-3 border-t border-slate-700">
+  5456→              <button onClick={handleToggleDayClosing} className="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl text-sm">
+  5457→                {isDayClosed(adminDate) ? 'إعادة فتح الكل' : 'إغلاق جميع الفروع'}
+  5458→              </button>
+  5459→              <button onClick={() => setShowClosingModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm">إغلاق</button>
+  5460→            </div>
+  5461→          </div>
+  5462→        </div>
+  5463→      )}
+  5464→
+  5465→      {/* Branch Closing Modal - في صفحة تسجيل السيارات */}
+  5466→      {showBranchCloseModal && (
+  5467→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5468→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+  5469→            <div className="flex justify-between items-center">
+  5470→              <h3 className="text-lg font-bold text-white">🔒 قفل فرع ليوم محدد</h3>
+  5471→              <button onClick={() => setShowBranchCloseModal(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+  5472→            </div>
+  5473→
+  5474→            <div>
+  5475→              <label className="block text-xs text-slate-400 mb-1 font-semibold">📍 اختر الفرع</label>
+  5476→              <select
+  5477→                value={adminSelectedBranch || ''}
+  5478→                onChange={e => setAdminSelectedBranch(e.target.value || null)}
+  5479→                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5480→              >
+  5481→                <option value="">-- اختر فرع --</option>
+  5482→                {branches.map(b => <option key={b.id} value={b.id}>📍 {b.name}</option>)}
+  5483→              </select>
+  5484→            </div>
+  5485→
+  5486→            <div>
+  5487→              <label className="block text-xs text-slate-400 mb-1 font-semibold">📅 التاريخ</label>
+  5488→              <div className="bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm">
+  5489→                {empDate || 'لا يوجد تاريخ محدد'}
+  5490→              </div>
+  5491→            </div>
+  5492→
+  5493→            {adminSelectedBranch && empDate && (() => {
+  5494→              const isClosed = isDayClosedForBranch(empDate, adminSelectedBranch)
+  5495→              const branch = branches.find(b => b.id === adminSelectedBranch)
+  5496→              const branchName = branch?.name || ''
+  5497→              const branchEntries = carEntries.filter(e => e.branchId === adminSelectedBranch && e.date === empDate)
+  5498→              const hasData = branchEntries.length > 0
+  5499→
+  5500→              return (
+  5501→                <div className="bg-slate-900/60 rounded-xl p-4 space-y-3">
+  5502→                  <div className="flex items-center gap-2">
+  5503→                    <span className={`w-2.5 h-2.5 rounded-full ${isClosed ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+  5504→                    <span className={`text-sm font-bold ${isClosed ? 'text-emerald-400' : 'text-rose-400'}`}>
+  5505→                      {isClosed ? 'الفرع مقفل لهذا اليوم' : 'الفرع مفتوح'}
+  5506→                    </span>
+  5507→                  </div>
+  5508→
+  5509→                  {!isClosed && !hasData && (
+  5510→                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+  5511→                      <p className="text-amber-400 text-sm font-semibold">⚠️ تحذير</p>
+  5512→                      <p className="text-amber-200/80 text-xs mt-1">لا توجد تسجيلات سيارات لهذا الفرع في هذا اليوم</p>
+  5513→                    </div>
+  5514→                  )}
+  5515→
+  5516→                  {hasData && (
+  5517→                    <div className="space-y-1">
+  5518→                      <p className="text-xs text-slate-400 font-semibold">تسجيلات اليوم:</p>
+  5519→                      {branchEntries.map(e => (
+
+[showing lines 3520-5519 of 6091; use offset=5520 with limit to continue reading]

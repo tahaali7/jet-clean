@@ -1,0 +1,552 @@
+  5540→                          if (!confirm(`⚠️ الفرع "${branchName}" لم يدخل بيانات في ${empDate}!\n\nهل تريد الإغلاق مع ذلك؟`)) return
+  5541→                        }
+  5542→                        if (!confirm(`هل تريد قفل فرع "${branchName}" ليوم ${empDate}؟\nسيتمكن الموظف من تعديل البيانات بعد القفل`)) return
+  5543→                        await fetch('/api/closed-days', {
+  5544→                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+  5545→                          body: JSON.stringify({ date: empDate, branchId: adminSelectedBranch })
+  5546→                        })
+  5547→                        logActivity('قفل فرع', 'الإغلاق اليومي', `قفل فرع ${branchName}${!hasData ? ' - ⚠️ بدون بيانات' : ''} - التاريخ: ${empDate}`)
+  5548→                      } else {
+  5549→                        if (!confirm(`هل تريد إعادة فتح فرع "${branchName}" ليوم ${empDate}؟\nسيتمكن الموظف من تعديل البيانات`)) return
+  5550→                        await fetch('/api/closed-days', {
+  5551→                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+  5552→                          body: JSON.stringify({ date: empDate, branchId: adminSelectedBranch })
+  5553→                        })
+  5554→                        logActivity('فتح فرع', 'الإغلاق اليومي', `إعادة فتح فرع ${branchName} - التاريخ: ${empDate}`)
+  5555→                      }
+  5556→                      await loadClosedDays(empDate)
+  5557→                    }}
+  5558→                    className={`w-full font-bold py-3 rounded-xl text-sm transition ${isClosed ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'}`}
+  5559→                  >
+  5560→                    {isClosed ? `🔓 إعادة فتح فرع ${branchName}` : `🔒 قفل فرع ${branchName}`}
+  5561→                  </button>
+  5562→                </div>
+  5563→              )
+  5564→            })()}
+  5565→
+  5566→            {!adminSelectedBranch && (
+  5567→              <p className="text-slate-500 text-sm text-center py-4">اختر فرعاً لعرض حالة القفل</p>
+  5568→            )}
+  5569→
+  5570→            <button onClick={() => setShowBranchCloseModal(false)} className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إغلاق</button>
+  5571→          </div>
+  5572→        </div>
+  5573→      )}
+  5574→
+  5575→      {/* Employee Report Modal */}
+  5576→      {showEmpReportModal && (
+  5577→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5578→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+  5579→            <h3 className="text-lg font-bold text-white text-center">📄 تقرير مصاريف الموظفين</h3>
+  5580→            <div className="space-y-3">
+  5581→              <div>
+  5582→                <label className="text-xs text-slate-400 mb-1 block">نوع الفترة</label>
+  5583→                <select
+  5584→                  value={empReportRange}
+  5585→                  onChange={e => setEmpReportRange(e.target.value as 'month' | 'day' | 'range')}
+  5586→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5587→                >
+  5588→                  <option value="month">شهر كامل</option>
+  5589→                  <option value="day">يوم واحد</option>
+  5590→                  <option value="range">فترة مخصصة</option>
+  5591→                </select>
+  5592→              </div>
+  5593→
+  5594→              {empReportRange === 'month' && (
+  5595→                <div>
+  5596→                  <label className="text-xs text-slate-400 mb-1 block">اختر الشهر</label>
+  5597→                  <input type="month" value={empReportMonth}
+  5598→                    onChange={e => setEmpReportMonth(e.target.value)}
+  5599→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5600→                  />
+  5601→                </div>
+  5602→              )}
+  5603→
+  5604→              {empReportRange === 'day' && (
+  5605→                <div>
+  5606→                  <label className="text-xs text-slate-400 mb-1 block">اختر اليوم</label>
+  5607→                  <input type="date" value={empReportDay}
+  5608→                    onChange={e => setEmpReportDay(e.target.value)}
+  5609→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5610→                  />
+  5611→                </div>
+  5612→              )}
+  5613→
+  5614→              {empReportRange === 'range' && (
+  5615→                <div className="space-y-3">
+  5616→                  <div>
+  5617→                    <label className="text-xs text-slate-400 mb-1 block">من تاريخ</label>
+  5618→                    <input type="date" value={empReportFrom}
+  5619→                      onChange={e => setEmpReportFrom(e.target.value)}
+  5620→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5621→                    />
+  5622→                  </div>
+  5623→                  <div>
+  5624→                    <label className="text-xs text-slate-400 mb-1 block">إلى تاريخ</label>
+  5625→                    <input type="date" value={empReportTo}
+  5626→                      onChange={e => setEmpReportTo(e.target.value)}
+  5627→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5628→                    />
+  5629→                  </div>
+  5630→                </div>
+  5631→              )}
+  5632→            </div>
+  5633→
+  5634→            <div className="flex gap-3">
+  5635→              <button onClick={handleQuickEmployeeReport} disabled={exporting} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+  5636→                {exporting ? '⏳ جاري التصدير...' : '📄 تصدير'}
+  5637→              </button>
+  5638→              <button onClick={() => setShowEmpReportModal(false)} disabled={exporting} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5639→            </div>
+  5640→          </div>
+  5641→        </div>
+  5642→      )}
+  5643→
+  5644→      {/* Expenses Report Modal */}
+  5645→      {showExpReportModal && (
+  5646→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5647→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+  5648→            <h3 className="text-lg font-bold text-white text-center">📋 تقرير مصروفات الفروع</h3>
+  5649→            <div className="space-y-3">
+  5650→              <div>
+  5651→                <label className="text-xs text-slate-400 mb-1 block">اختر الفرع</label>
+  5652→                <select
+  5653→                  value={expReportBranchId}
+  5654→                  onChange={e => setExpReportBranchId(e.target.value)}
+  5655→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5656→                >
+  5657→                  <option value="">-- اختر الفرع --</option>
+  5658→                  {branches.map(b => (
+  5659→                    <option key={b.id} value={b.id}>{b.name}</option>
+  5660→                  ))}
+  5661→                </select>
+  5662→              </div>
+  5663→
+  5664→              <div>
+  5665→                <label className="text-xs text-slate-400 mb-1 block">نوع الفترة</label>
+  5666→                <select
+  5667→                  value={expReportPeriod}
+  5668→                  onChange={e => setExpReportPeriod(e.target.value as 'day' | 'range' | 'month')}
+  5669→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5670→                >
+  5671→                  <option value="day">يوم واحد</option>
+  5672→                  <option value="range">فترة مخصصة</option>
+  5673→                  <option value="month">شهر كامل</option>
+  5674→                </select>
+  5675→              </div>
+  5676→
+  5677→              {expReportPeriod === 'day' && (
+  5678→                <div>
+  5679→                  <label className="text-xs text-slate-400 mb-1 block">اختر اليوم</label>
+  5680→                  <input type="date" value={expReportDay}
+  5681→                    onChange={e => setExpReportDay(e.target.value)}
+  5682→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5683→                  />
+  5684→                </div>
+  5685→              )}
+  5686→
+  5687→              {expReportPeriod === 'range' && (
+  5688→                <div className="space-y-3">
+  5689→                  <div>
+  5690→                    <label className="text-xs text-slate-400 mb-1 block">من تاريخ</label>
+  5691→                    <input type="date" value={expReportFrom}
+  5692→                      onChange={e => setExpReportFrom(e.target.value)}
+  5693→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5694→                    />
+  5695→                  </div>
+  5696→                  <div>
+  5697→                    <label className="text-xs text-slate-400 mb-1 block">إلى تاريخ</label>
+  5698→                    <input type="date" value={expReportTo}
+  5699→                      onChange={e => setExpReportTo(e.target.value)}
+  5700→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5701→                    />
+  5702→                  </div>
+  5703→                </div>
+  5704→              )}
+  5705→
+  5706→              {expReportPeriod === 'month' && (
+  5707→                <div>
+  5708→                  <label className="text-xs text-slate-400 mb-1 block">اختر الشهر</label>
+  5709→                  <input type="month" value={expReportMonth}
+  5710→                    onChange={e => setExpReportMonth(e.target.value)}
+  5711→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5712→                  />
+  5713→                </div>
+  5714→              )}
+  5715→            </div>
+  5716→
+  5717→            <div className="flex gap-3">
+  5718→              <button onClick={handleExportExpensesPDF} disabled={exporting || !expReportBranchId} className="flex-1 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-2.5 rounded-xl text-sm transition">
+  5719→                {exporting ? '⏳ جاري التصدير...' : '📋 تصدير PDF'}
+  5720→              </button>
+  5721→              <button onClick={() => setShowExpReportModal(false)} disabled={exporting} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5722→            </div>
+  5723→          </div>
+  5724→        </div>
+  5725→      )}
+  5726→
+  5727→      {/* Export PDF Modal */}
+  5728→      {showExportModal && (
+  5729→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5730→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+  5731→            <h3 className="text-lg font-bold text-white text-center">📄 تصدير تقارير PDF</h3>
+  5732→            <div className="space-y-3">
+  5733→              <div>
+  5734→                <label className="text-xs text-slate-400 mb-1 block">نوع الفترة</label>
+  5735→                <select
+  5736→                  value={exportRangeType}
+  5737→                  onChange={e => setExportRangeType(e.target.value as 'month' | 'day' | 'range')}
+  5738→                  className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5739→                >
+  5740→                  <option value="month">شهر كامل</option>
+  5741→                  <option value="day">يوم واحد</option>
+  5742→                  <option value="range">فترة مخصصة</option>
+  5743→                </select>
+  5744→              </div>
+  5745→
+  5746→              {exportRangeType === 'month' && (
+  5747→                <div>
+  5748→                  <label className="text-xs text-slate-400 mb-1 block">اختر الشهر</label>
+  5749→                  <input type="month" value={exportMonth}
+  5750→                    onChange={e => setExportMonth(e.target.value)}
+  5751→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5752→                  />
+  5753→                </div>
+  5754→              )}
+  5755→
+  5756→              {exportRangeType === 'day' && (
+  5757→                <div>
+  5758→                  <label className="text-xs text-slate-400 mb-1 block">اختر اليوم</label>
+  5759→                  <input type="date" value={exportDay}
+  5760→                    onChange={e => setExportDay(e.target.value)}
+  5761→                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5762→                  />
+  5763→                </div>
+  5764→              )}
+  5765→
+  5766→              {exportRangeType === 'range' && (
+  5767→                <div className="space-y-3">
+  5768→                  <div>
+  5769→                    <label className="text-xs text-slate-400 mb-1 block">من تاريخ</label>
+  5770→                    <input type="date" value={exportFrom}
+  5771→                      onChange={e => setExportFrom(e.target.value)}
+  5772→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5773→                    />
+  5774→                  </div>
+  5775→                  <div>
+  5776→                    <label className="text-xs text-slate-400 mb-1 block">إلى تاريخ</label>
+  5777→                    <input type="date" value={exportTo}
+  5778→                      onChange={e => setExportTo(e.target.value)}
+  5779→                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-cyan-500"
+  5780→                    />
+  5781→                  </div>
+  5782→                </div>
+  5783→              )}
+  5784→            </div>
+  5785→
+  5786→            <div className="flex gap-3">
+  5787→              <button onClick={handleExportPDF} disabled={exporting} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 text-white font-bold py-2.5 rounded-xl text-sm transition">
+  5788→                {exporting ? '⏳ جاري التصدير...' : '📄 تصدير'}
+  5789→              </button>
+  5790→              <button onClick={() => setShowExportModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5791→            </div>
+  5792→          </div>
+  5793→        </div>
+  5794→      )}
+  5795→
+  5796→      {/* ===== إرسال تنبيه Modal ===== */}
+  5797→      {showNotifModal && (
+  5798→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5799→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4">
+  5800→            <h3 className="text-lg font-bold text-white text-center flex items-center justify-center gap-2">📢 إرسال تنبيه</h3>
+  5801→
+  5802→            <div>
+  5803→              <label className="text-xs text-slate-400 mb-1 block">نص التنبيه</label>
+  5804→              <textarea
+  5805→                value={notifMessage}
+  5806→                onChange={e => setNotifMessage(e.target.value)}
+  5807→                placeholder="اكتب نص التنبيه هنا..."
+  5808→                rows={3}
+  5809→                className="w-full bg-slate-900 border border-slate-600 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500 resize-none"
+  5810→              />
+  5811→            </div>
+  5812→
+  5813→            <div>
+  5814→              <label className="text-xs text-slate-400 mb-2 block">إرسال إلى</label>
+  5815→              {notifTargetAll ? (
+  5816→                <>
+  5817→                  <button
+  5818→                    type="button"
+  5819→                    onClick={() => setNotifTargetAll(true)}
+  5820→                    className="w-full mb-2 py-2 rounded-xl text-xs font-bold transition border bg-blue-500/20 text-blue-400 border-blue-500/30"
+  5821→                  >
+  5822→                    🌍 كل الفروع
+  5823→                  </button>
+  5824→                  <button
+  5825→                    type="button"
+  5826→                    onClick={() => setNotifTargetAll(false)}
+  5827→                    className="w-full py-2 rounded-xl text-xs font-bold transition border bg-slate-700/50 text-slate-400 border-slate-600/30 hover:bg-slate-700"
+  5828→                  >
+  5829→                    📍 اختيار فروع محددة
+  5830→                  </button>
+  5831→                </>
+  5832→              ) : (
+  5833→                <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
+  5834→                  {branches.map(b => (
+  5835→                    <label key={b.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition border ${notifBranchIds.includes(b.id) ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-700/30 border-slate-600/20 hover:bg-slate-700/50'}`}>
+  5836→                      <input
+  5837→                        type="checkbox"
+  5838→                        checked={notifBranchIds.includes(b.id)}
+  5839→                        onChange={e => {
+  5840→                          if (e.target.checked) {
+  5841→                            setNotifBranchIds(prev => [...prev, b.id])
+  5842→                          } else {
+  5843→                            setNotifBranchIds(prev => prev.filter(id => id !== b.id))
+  5844→                          }
+  5845→                        }}
+  5846→                        className="accent-emerald-500"
+  5847→                      />
+  5848→                      <span className={`text-xs ${notifBranchIds.includes(b.id) ? 'text-emerald-400 font-bold' : 'text-slate-300'}`}>📍 {b.name}</span>
+  5849→                    </label>
+  5850→                  ))}
+  5851→                </div>
+  5852→              )}
+  5853→              {!notifTargetAll && (
+  5854→                <button type="button" onClick={() => setNotifTargetAll(true)} className="text-[10px] text-slate-500 hover:text-slate-400 mt-1.5 transition">
+  5855→                  ← العودة لكل الفروع
+  5856→                </button>
+  5857→              )}
+  5858→            </div>
+  5859→
+  5860→            <div>
+  5861→              <label className="text-xs text-slate-400 mb-1 block">نوع التنبيه</label>
+  5862→              <div className="flex gap-3">
+  5863→                <button
+  5864→                  type="button"
+  5865→                  onClick={() => setNotifType('normal')}
+  5866→                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition border ${notifType === 'normal' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-700 text-slate-400 border-slate-600'}`}
+  5867→                >
+  5868→                  ⚪ عادي
+  5869→                </button>
+  5870→                <button
+  5871→                  type="button"
+  5872→                  onClick={() => setNotifType('urgent')}
+  5873→                  className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition border ${notifType === 'urgent' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-slate-700 text-slate-400 border-slate-600'}`}
+  5874→                >
+  5875→                  🔴 عاجل
+  5876→                </button>
+  5877→              </div>
+  5878→            </div>
+  5879→
+  5880→            <div className="flex gap-3">
+  5881→              <button onClick={handleSendNotif} disabled={sendingNotif || !notifMessage.trim()} className="flex-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-2.5 rounded-xl text-sm transition">
+  5882→                {sendingNotif ? '⏳ جاري الإرسال...' : '📢 إرسال'}
+  5883→              </button>
+  5884→              <button onClick={() => setShowNotifModal(false)} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
+  5885→            </div>
+  5886→          </div>
+  5887→        </div>
+  5888→      )}
+  5889→
+  5890→      {/* ===== سجل النشاطات Modal ===== */}
+  5891→      {showActivityLog && (
+  5892→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  5893→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-2xl shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+  5894→            <div className="flex justify-between items-center">
+  5895→              <h3 className="text-lg font-bold text-white">📊 سجل النشاطات</h3>
+  5896→              <button onClick={() => setShowActivityLog(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+  5897→            </div>
+  5898→
+  5899→            {/* فلاتر */}
+  5900→            <div className="flex gap-2">
+  5901→              <select
+  5902→                value={activityFilterBranch}
+  5903→                onChange={e => { setActivityFilterBranch(e.target.value); loadActivityLogs(1) }}
+  5904→                className="flex-1 bg-slate-700 border border-slate-600 text-white text-xs rounded-lg px-3 py-2"
+  5905→              >
+  5906→                <option value="">كل الفروع</option>
+  5907→                {branches.map((b: any) => (
+  5908→                  <option key={b.id} value={b.id}>{b.name}</option>
+  5909→                ))}
+  5910→              </select>
+  5911→              <select
+  5912→                value={activityFilterCategory}
+  5913→                onChange={e => { setActivityFilterCategory(e.target.value); loadActivityLogs(1) }}
+  5914→                className="flex-1 bg-slate-700 border border-slate-600 text-white text-xs rounded-lg px-3 py-2"
+  5915→              >
+  5916→                <option value="">كل الأقسام</option>
+  5917→                <option value="تسجيل الدخول">تسجيل الدخول</option>
+  5918→                <option value="تسجيل السيارات">تسجيل السيارات</option>
+  5919→                <option value="الإغلاق اليومي">الإغلاق اليومي</option>
+  5920→                <option value="التنبيهات">التنبيهات</option>
+  5921→                <option value="الصيانة">الصيانة</option>
+  5922→              </select>
+  5923→            </div>
+  5924→
+  5925→            {/* إجمالي */}
+  5926→            <div className="flex justify-between items-center text-xs text-slate-500">
+  5927→              <span>إجمالي السجلات: {activityLogTotal}</span>
+  5928→              {activityLogTotal > 100 && (
+  5929→                <span>صفحة {activityLogPage} من {Math.ceil(activityLogTotal / 100)}</span>
+  5930→              )}
+  5931→            </div>
+  5932→
+  5933→            {/* القائمة */}
+  5934→            <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar">
+  5935→              {activityLogLoading ? (
+  5936→                <div className="text-center py-8 text-slate-500">⏳ جاري التحميل...</div>
+  5937→              ) : activityLogs.length === 0 ? (
+  5938→                <div className="text-center py-8 text-slate-500">لا توجد سجلات</div>
+  5939→              ) : (
+  5940→                activityLogs.map((log: any) => (
+  5941→                  <div key={log.id} className="bg-slate-700/30 border border-slate-600/30 rounded-xl px-4 py-3">
+  5942→                    <div className="flex justify-between items-start mb-1">
+  5943→                      <div className="flex items-center gap-2">
+  5944→                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${(() => {
+  5945→                          switch (log.category) {
+  5946→                            case 'تسجيل الدخول': return 'text-blue-400 bg-blue-500/10'
+  5947→                            case 'تسجيل السيارات': return 'text-emerald-400 bg-emerald-500/10'
+  5948→                            case 'الإغلاق اليومي': return 'text-violet-400 bg-violet-500/10'
+  5949→                            case 'التنبيهات': return 'text-amber-400 bg-amber-500/10'
+  5950→                            case 'الصيانة': return 'text-rose-400 bg-rose-500/10'
+  5951→                            default: return 'text-slate-400 bg-slate-500/10'
+  5952→                          }
+  5953→                        })()}`}>
+  5954→                          {log.category}
+  5955→                        </span>
+  5956→                        <span className="text-xs text-white font-semibold">{log.action}</span>
+  5957→                      </div>
+  5958→                      <span className="text-[10px] text-slate-500 whitespace-nowrap mr-2">{new Date(log.createdAt).toLocaleString('ar-LY')}</span>
+  5959→                    </div>
+  5960→                    <div className="flex justify-between items-center mt-1.5">
+  5961→                      <div className="flex items-center gap-2">
+  5962→                        <span className="text-[11px] text-slate-300">{log.userName}</span>
+  5963→                        <span className="text-[10px] text-slate-500">
+  5964→                          {log.userRole === 'admin' ? '👑 مسؤول' : log.userRole === 'viewer' ? '👁️ مشاهد' : log.userRole === 'unknown' ? '❓ غير معروف' : '👷 موظف'}
+  5965→                        </span>
+  5966→                      </div>
+  5967→                      {log.branchName && (
+  5968→                        <span className="text-[10px] text-cyan-400/60">🏢 {log.branchName}</span>
+  5969→                      )}
+  5970→                    </div>
+  5971→                    {log.details && (
+  5972→                      <p className="text-[11px] text-slate-400 mt-1.5 border-t border-slate-700/50 pt-1.5">{log.details}</p>
+  5973→                    )}
+  5974→                  </div>
+  5975→                ))
+  5976→              )}
+  5977→            </div>
+  5978→
+  5979→            {/* ترقيم الصفحات + زر الحذف */}
+  5980→            <div className="flex justify-between items-center pt-2 border-t border-slate-700">
+  5981→              <div className="flex gap-2">
+  5982→                <button
+  5983→                  onClick={() => setShowActivityLog(false)}
+  5984→                  className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-xl text-xs transition"
+  5985→                >
+  5986→                  إغلاق
+  5987→                </button>
+  5988→                {activityLogTotal > 100 && (
+  5989→                  <div className="flex gap-1">
+  5990→                    <button
+  5991→                      onClick={() => loadActivityLogs(activityLogPage - 1)}
+  5992→                      disabled={activityLogPage <= 1}
+  5993→                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-xl text-xs transition"
+  5994→                    >
+  5995→                      السابق
+  5996→                    </button>
+  5997→                    <button
+  5998→                      onClick={() => loadActivityLogs(activityLogPage + 1)}
+  5999→                      disabled={activityLogPage >= Math.ceil(activityLogTotal / 100)}
+  6000→                      className="bg-slate-700 hover:bg-slate-600 disabled:opacity-30 text-white font-bold py-2 px-3 rounded-xl text-xs transition"
+  6001→                    >
+  6002→                      التالي
+  6003→                    </button>
+  6004→                  </div>
+  6005→                )}
+  6006→              </div>
+  6007→              <button
+  6008→                onClick={async () => {
+  6009→                  if (!confirm('هل تريد حذف سجلات النشاطات الأقدم من 30 يوم؟\nهذا الإجراء لا يمكن التراجع عنه.')) return
+  6010→                  try {
+  6011→                    await fetch('/api/activity-log?olderThan=30', { method: 'DELETE' })
+  6012→                    loadActivityLogs(1)
+  6013→                    alert('✅ تم حذف السجلات القديمة')
+  6014→                  } catch { alert('❌ حدث خطأ') }
+  6015→                }}
+  6016→                className="bg-rose-600/15 hover:bg-rose-600 text-rose-400 hover:text-white font-semibold py-2 px-4 rounded-xl text-xs transition border border-rose-500/20"
+  6017→              >
+  6018→                🗑️ حذف القديم (30 يوم)
+  6019→              </button>
+  6020→            </div>
+  6021→          </div>
+  6022→        </div>
+  6023→      )}
+  6024→
+  6025→      {/* ===== سجل التنبيهات Modal ===== */}
+  6026→      {showNotifHistory && (
+  6027→        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+  6028→          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[80vh] flex flex-col">
+  6029→            <div className="flex justify-between items-center">
+  6030→              <h3 className="text-lg font-bold text-white">📜 سجل التنبيهات</h3>
+  6031→              <button onClick={() => setShowNotifHistory(false)} className="text-slate-400 hover:text-white text-xl">✕</button>
+  6032→            </div>
+  6033→
+  6034→            <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+  6035→              {adminNotifs.length === 0 && (
+  6036→                <p className="text-slate-500 text-center py-8">لا توجد تنبيهات</p>
+  6037→              )}
+  6038→              {adminNotifs.map((n: any) => (
+  6039→                <div key={n.id} className={`border rounded-xl p-3 ${n.type === 'urgent' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-700/30 border-slate-600/30'}`}>
+  6040→                  <div className="flex justify-between items-start mb-1">
+  6041→                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${n.type === 'urgent' ? 'text-rose-400 bg-rose-500/10' : 'text-blue-400 bg-blue-500/10'}`}>
+  6042→                      {n.type === 'urgent' ? '🔴 عاجل' : '⚪ عادي'}
+  6043→                    </span>
+  6044→                    <div className="flex gap-2">
+  6045→                      <span className="text-[10px] text-slate-500">{(() => { if (!n.branchId) return '🌍 كل الفروع'; try { const ids = JSON.parse(n.branchId); if (Array.isArray(ids)) return ids.map((id: string) => branches.find((b: any) => b.id === id)?.name || '').filter(Boolean).join('، ') || 'فروع محددة'; } catch {} return branches.find((b: any) => b.id === n.branchId)?.name || 'فرع' })()}</span>
+  6046→                      <button onClick={() => handleDeleteNotif(n.id)} className="text-slate-600 hover:text-rose-400 text-xs">🗑️</button>
+  6047→                    </div>
+  6048→                  </div>
+  6049→                  <p className="text-sm text-white mt-1">{n.message}</p>
+  6050→                  <p className="text-[10px] text-slate-500 mt-1.5">بواسطة: {n.createdBy || 'مسؤول'} — {new Date(n.createdAt).toLocaleString('ar-LY')}</p>
+  6051→                  {(() => { try { const readers = JSON.parse(n.readBy || '[]'); return readers.length > 0 ? <p className="text-[10px] text-emerald-400/60 mt-1">قرأه {readers.length} موظف</p> : <p className="text-[10px] text-slate-600 mt-1">لم يقرأه أحد بعد</p> } catch { return null } })()}
+  6052→                </div>
+  6053→              ))}
+  6054→            </div>
+  6055→
+  6056→            <button onClick={() => setShowNotifHistory(false)} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إغلاق</button>
+  6057→          </div>
+  6058→        </div>
+  6059→      )}
+  6060→    </>
+  6061→  )
+  6062→
+  6063→  // ==================== MAIN RENDER ====================
+  6064→  return (
+  6065→    <div className="min-h-screen bg-slate-900 text-slate-100" style={{ fontFamily: 'Cairo, sans-serif' }} onClick={() => { if (showAdminDropdown) setShowAdminDropdown(false) }}>
+  6066→      <div ref={pdfAreaRef} id="pdfReportArea" style={{ position: 'fixed', top: '0', left: '-99999px', width: '800px', zIndex: -1 }} />
+  6067→      {renderModals()}
+  6068→
+  6069→      {/* ===== صفحة الصيانة ===== */}
+  6070→      {maintenanceMode && screen !== 'login' && !isAdminMode && user?.role !== 'admin' ? (
+  6071→        <div className="fixed inset-0 bg-slate-900 z-[200] flex items-center justify-center p-4">
+  6072→          <div className="text-center space-y-6 max-w-md">
+  6073→            <div className="text-7xl animate-bounce">🔧</div>
+  6074→            <h1 className="text-3xl font-extrabold text-white">الموقع تحت الصيانة</h1>
+  6075→            <p className="text-slate-400 text-lg leading-relaxed">نأسف، الموقع تحت الصيانة حالياً<br />يرجى العودة بعد قليل</p>
+  6076→            <div className="flex items-center justify-center gap-2 text-slate-600 text-sm">
+  6077→              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+  6078→              جاري العمل على تحسين الموقع
+  6079→            </div>
+  6080→          </div>
+  6081→        </div>
+  6082→      ) : null}
+  6083→
+  6084→      {screen === 'login' && renderLoginScreen()}
+  6085→      {screen === 'employee' && renderEmployeeScreen()}
+  6086→      {screen === 'admin' && renderAdminScreen()}
+  6087→    </div>
+  6088→  )
+  6089→}
+  6090→// trigger rebuild
+  6091→

@@ -1,0 +1,838 @@
+     1→<!DOCTYPE html>
+     2→<html lang="ar" dir="rtl">
+     3→<head>
+     4→    <meta charset="UTF-8">
+     5→    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     6→    <title>مغسلة جيت كلين - نظام إدارة المسحوبات والعجوزات</title>
+     7→    <!-- Tailwind CSS CDN -->
+     8→    <script src="https://cdn.tailwindcss.com"></script>
+     9→    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    10→    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    11→    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    12→    <style>
+    13→        body { font-family: 'Cairo', sans-serif; }
+    14→        #pdfReportArea { position: fixed; top: 0; left: -99999px; width: 800px; }
+    15→    </style>
+    16→</head>
+    17→<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8">
+    18→
+    19→    <!-- Header -->
+    20→    <header class="flex flex-col md:flex-row justify-between items-center bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 mb-8 gap-4">
+    21→        <div>
+    22→            <h1 class="text-3xl font-extrabold text-cyan-400">💧 جيت كلين (Get Clean)</h1>
+    23→            <p class="text-slate-400 text-sm mt-1">نظام تتبع سحوبات وعجوزات الموظفين بالفروع</p>
+    24→        </div>
+    25→        <div class="flex flex-wrap gap-3">
+    26→            <button id="closingBtn" onclick="openClosingModal()" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+    27→                🔒 الإغلاق اليومي
+    28→            </button>
+    29→            <button id="exportPdfBtn" onclick="openExportModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+    30→                📄 تصدير تقرير PDF
+    31→            </button>
+    32→            <button onclick="openBranchModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+    33→                ➕ إضافة فرع
+    34→            </button>
+    35→            <button onclick="openEmpModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-xl transition shadow-lg text-sm flex items-center gap-2">
+    36→                👤 إضافة موظف
+    37→            </button>
+    38→        </div>
+    39→    </header>
+    40→
+    41→    <!-- Filters & Stats Bar -->
+    42→    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    43→        <!-- Date Selector -->
+    44→        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col justify-center">
+    45→            <label class="text-xs text-slate-400 mb-2 font-bold">تحديد اليوم:</label>
+    46→            <input type="date" id="datePicker" class="bg-slate-900 border border-slate-600 text-white rounded-xl p-2.5 focus:outline-none focus:border-cyan-500" onchange="renderApp()">
+    47→        </div>
+    48→
+    49→        <!-- Total Withdrawals -->
+    50→        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex justify-between items-center">
+    51→            <div>
+    52→                <p class="text-slate-400 text-xs font-bold">إجمالي سحوبات اليوم</p>
+    53→                <h2 id="totalWithdrawals" class="text-2xl font-black text-amber-400 mt-1">0 د.ل</h2>
+    54→            </div>
+    55→            <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl text-2xl">💸</div>
+    56→        </div>
+    57→
+    58→        <!-- Total Shortages -->
+    59→        <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex justify-between items-center">
+    60→            <div>
+    61→                <p class="text-slate-400 text-xs font-bold">إجمالي عجوزات اليوم</p>
+    62→                <h2 id="totalShortages" class="text-2xl font-black text-rose-400 mt-1">0 د.ل</h2>
+    63→            </div>
+    64→            <div class="p-3 bg-rose-500/10 text-rose-400 rounded-xl text-2xl">📉</div>
+    65→        </div>
+    66→    </div>
+    67→
+    68→    <!-- Day Status Banner -->
+    69→    <div id="dayStatusBanner" class="mb-6"></div>
+    70→
+    71→    <!-- Branches Container -->
+    72→    <div id="branchesContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    73→        <!-- Dynamic Branches rendered by JS -->
+    74→    </div>
+    75→
+    76→    <!-- Modal: Add Record -->
+    77→    <div id="recordModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    78→        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+    79→            <h3 class="text-xl font-bold mb-4 text-cyan-400" id="modalTitle">إضافة حركة مالية</h3>
+    80→            <input type="hidden" id="recordEmpId">
+    81→            <input type="hidden" id="recordId">
+    82→            <div class="space-y-4">
+    83→                <div>
+    84→                    <label class="block text-sm text-slate-400 mb-1">نوع الحركة:</label>
+    85→                    <select id="recordType" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+    86→                        <option value="withdrawal">سحبيات (سلفة/مصروف)</option>
+    87→                        <option value="shortage">عجز في الصندوق</option>
+    88→                    </select>
+    89→                </div>
+    90→                <div>
+    91→                    <label class="block text-sm text-slate-400 mb-1">تاريخ الحركة:</label>
+    92→                    <input type="date" id="recordDate" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+    93→                </div>
+    94→                <div>
+    95→                    <label class="block text-sm text-slate-400 mb-1">المبلغ (د.ل):</label>
+    96→                    <input type="number" id="recordAmount" placeholder="0.00" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+    97→                </div>
+    98→                <div>
+    99→                    <label class="block text-sm text-slate-400 mb-1">ملاحظة / السبب (اختياري):</label>
+   100→                    <input type="text" id="recordNote" placeholder="مثال: سلفة شخصية" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   101→                </div>
+   102→                <div class="flex gap-3 pt-2">
+   103→                    <button onclick="saveRecord()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl">حفظ</button>
+   104→                    <button onclick="closeModal('recordModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+   105→                </div>
+   106→            </div>
+   107→        </div>
+   108→    </div>
+   109→
+   110→    <!-- Modal: Add Branch -->
+   111→    <div id="branchModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+   112→        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+   113→            <h3 class="text-xl font-bold mb-4 text-cyan-400">إضافة فرع جديد</h3>
+   114→            <div class="space-y-4">
+   115→                <div>
+   116→                    <label class="block text-sm text-slate-400 mb-1">اسم الفرع:</label>
+   117→                    <input type="text" id="branchName" placeholder="مثال: فرع طرابلس" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   118→                </div>
+   119→                <div class="flex gap-3 pt-2">
+   120→                    <button onclick="saveBranch()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-xl">إضافة الفرع</button>
+   121→                    <button onclick="closeModal('branchModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+   122→                </div>
+   123→            </div>
+   124→        </div>
+   125→    </div>
+   126→
+   127→    <!-- Modal: Add Employee -->
+   128→    <div id="empModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+   129→        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+   130→            <h3 class="text-xl font-bold mb-4 text-cyan-400">إضافة موظف جديد</h3>
+   131→            <div class="space-y-4">
+   132→                <div>
+   133→                    <label class="block text-sm text-slate-400 mb-1">اسم الموظف:</label>
+   134→                    <input type="text" id="empName" placeholder="اسم الموظف" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   135→                </div>
+   136→                <div>
+   137→                    <label class="block text-sm text-slate-400 mb-1">الفرع:</label>
+   138→                    <select id="empBranch" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white"></select>
+   139→                </div>
+   140→                <div>
+   141→                    <label class="block text-sm text-slate-400 mb-1">الفترة:</label>
+   142→                    <select id="empShift" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   143→                        <option value="الفترة الصباحية">الفترة الصباحية</option>
+   144→                        <option value="الفترة المسائية">الفترة المسائية</option>
+   145→                        <option value="الفترة كاملة">الفترة كاملة</option>
+   146→                    </select>
+   147→                </div>
+   148→                <div class="flex gap-3 pt-2">
+   149→                    <button onclick="saveEmployee()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl">إضافة الموظف</button>
+   150→                    <button onclick="closeModal('empModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+   151→                </div>
+   152→            </div>
+   153→        </div>
+   154→    </div>
+   155→
+   156→    <!-- Modal: Export PDF (choose period) -->
+   157→    <div id="exportModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+   158→        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+   159→            <h3 class="text-xl font-bold mb-4 text-emerald-400">📄 تصدير تقرير PDF</h3>
+   160→            <div class="space-y-4">
+   161→                <div>
+   162→                    <label class="block text-sm text-slate-400 mb-1">نوع الفترة:</label>
+   163→                    <select id="exportRangeType" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white" onchange="toggleExportRangeInputs()">
+   164→                        <option value="month">شهر كامل</option>
+   165→                        <option value="day">يوم واحد</option>
+   166→                        <option value="range">فترة مخصصة (من - إلى)</option>
+   167→                    </select>
+   168→                </div>
+   169→                <div id="exportMonthField">
+   170→                    <label class="block text-sm text-slate-400 mb-1">اختر الشهر:</label>
+   171→                    <input type="month" id="exportMonth" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   172→                </div>
+   173→                <div id="exportDayField" class="hidden">
+   174→                    <label class="block text-sm text-slate-400 mb-1">اختر اليوم:</label>
+   175→                    <input type="date" id="exportDay" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   176→                </div>
+   177→                <div id="exportRangeFields" class="hidden space-y-4">
+   178→                    <div>
+   179→                        <label class="block text-sm text-slate-400 mb-1">من تاريخ:</label>
+   180→                        <input type="date" id="exportFrom" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   181→                    </div>
+   182→                    <div>
+   183→                        <label class="block text-sm text-slate-400 mb-1">إلى تاريخ:</label>
+   184→                        <input type="date" id="exportTo" class="w-full bg-slate-900 border border-slate-600 rounded-xl p-2.5 text-white">
+   185→                    </div>
+   186→                </div>
+   187→                <div class="flex gap-3 pt-2">
+   188→                    <button id="exportConfirmBtn" onclick="exportPDF()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">تصدير</button>
+   189→                    <button onclick="closeModal('exportModal')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl">إلغاء</button>
+   190→                </div>
+   191→            </div>
+   192→        </div>
+   193→    </div>
+   194→
+   195→    <!-- Modal: Daily Closing -->
+   196→    <div id="closingModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+   197→        <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+   198→            <div class="flex justify-between items-center mb-4">
+   199→                <h3 class="text-xl font-bold text-violet-400 flex items-center gap-2">🔒 الإغلاق اليومي</h3>
+   200→                <button onclick="closeModal('closingModal')" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+   201→            </div>
+   202→            <div id="closingModalBody"></div>
+   203→        </div>
+   204→    </div>
+   205→
+   206→    <!-- Hidden Report Area (used to render the PDF content off-screen) -->
+   207→    <div id="pdfReportArea" dir="rtl"></div>
+   208→
+   209→    <!-- JavaScript Application Logic -->
+   210→    <script>
+   211→        // Initial Default Data setup
+   212→        const initialBranches = [
+   213→            { id: 'b1', name: 'بن غرسه' },
+   214→            { id: 'b2', name: 'ابونواس' },
+   215→            { id: 'b3', name: 'المنصور' },
+   216→            { id: 'b4', name: 'عين زاره' }
+   217→        ];
+   218→
+   219→        const initialEmployees = [
+   220→            { id: 'e1', branchId: 'b1', name: 'أحمد', shift: 'الفترة الصباحية' },
+   221→            { id: 'e2', branchId: 'b1', name: 'هاشم', shift: 'الفترة المسائية' },
+   222→            { id: 'e3', branchId: 'b2', name: 'هيثم', shift: 'الفترة الصباحية' },
+   223→            { id: 'e4', branchId: 'b2', name: 'اياد', shift: 'الفترة المسائية' },
+   224→            { id: 'e5', branchId: 'b3', name: 'وسام', shift: 'الفترة كاملة' },
+   225→            { id: 'e6', branchId: 'b4', name: 'اسامه', shift: 'الفترة الصباحية' },
+   226→            { id: 'e7', branchId: 'b4', name: 'اياد', shift: 'الفترة المسائية' }
+   227→        ];
+   228→
+   229→        // Application State
+   230→        let branches = JSON.parse(localStorage.getItem('gc_branches')) || initialBranches;
+   231→        let employees = JSON.parse(localStorage.getItem('gc_employees')) || initialEmployees;
+   232→        let records = JSON.parse(localStorage.getItem('gc_records')) || [];
+   233→        let closedDays = JSON.parse(localStorage.getItem('gc_closedDays')) || {}; // { 'YYYY-MM-DD': true }
+   234→
+   235→        // App Init
+   236→        window.onload = () => {
+   237→            document.getElementById('datePicker').value = todayISO();
+   238→            renderApp();
+   239→        };
+   240→
+   241→        function saveData() {
+   242→            localStorage.setItem('gc_branches', JSON.stringify(branches));
+   243→            localStorage.setItem('gc_employees', JSON.stringify(employees));
+   244→            localStorage.setItem('gc_records', JSON.stringify(records));
+   245→            localStorage.setItem('gc_closedDays', JSON.stringify(closedDays));
+   246→        }
+   247→
+   248→        function isDayClosed(date) {
+   249→            return !!closedDays[date];
+   250→        }
+   251→
+   252→        function renderApp() {
+   253→            const selectedDate = document.getElementById('datePicker').value;
+   254→            const dayClosed = isDayClosed(selectedDate);
+   255→            const container = document.getElementById('branchesContainer');
+   256→            container.innerHTML = '';
+   257→
+   258→            const banner = document.getElementById('dayStatusBanner');
+   259→            banner.innerHTML = dayClosed
+   260→                ? `<div class="bg-violet-500/10 border border-violet-500/30 text-violet-300 rounded-xl p-4 flex justify-between items-center text-sm">
+   261→                        <span>🔒 هذا اليوم (${formatDateShort(selectedDate)}) <strong>مغلق</strong> — لا يمكن إضافة أو تعديل أو حذف الحركات المالية له.</span>
+   262→                        <button onclick="openClosingModal()" class="text-violet-300 hover:text-white underline text-xs">عرض تفاصيل الإغلاق</button>
+   263→                   </div>`
+   264→                : '';
+   265→
+   266→            let grandWithdrawals = 0;
+   267→            let grandShortages = 0;
+   268→
+   269→            branches.forEach(branch => {
+   270→                const branchEmps = employees.filter(e => e.branchId === branch.id);
+   271→                
+   272→                let branchHtml = `
+   273→                    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-lg">
+   274→                        <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
+   275→                            <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">📍 ${branch.name}</h2>
+   276→                            <button onclick="deleteBranch('${branch.id}')" class="text-rose-400 hover:text-rose-300 text-xs font-semibold bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">حذف الفرع</button>
+   277→                        </div>
+   278→                        <div class="space-y-4">
+   279→                `;
+   280→
+   281→                if (branchEmps.length === 0) {
+   282→                    branchHtml += `<p class="text-slate-500 text-sm text-center py-4">لا يوجد موظفون بالفرع حالياً</p>`;
+   283→                }
+   284→
+   285→                branchEmps.forEach(emp => {
+   286→                    const empRecords = records.filter(r => r.empId === emp.id && r.date === selectedDate).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+   287→                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+   288→                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+   289→
+   290→                    grandWithdrawals += withdrawals;
+   291→                    grandShortages += shortages;
+   292→
+   293→                    branchHtml += `
+   294→                        <div class="bg-slate-900/70 border border-slate-700/60 rounded-xl p-4">
+   295→                            <div class="flex justify-between items-start mb-3">
+   296→                                <div>
+   297→                                    <h3 class="font-bold text-white text-base">${emp.name}</h3>
+   298→                                    <span class="text-xs text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full mt-1 inline-block border border-indigo-500/20">${emp.shift}</span>
+   299→                                </div>
+   300→                                <div class="flex gap-2">
+   301→                                    ${dayClosed
+   302→                                        ? `<button disabled class="bg-slate-700 text-slate-500 text-xs px-2.5 py-1.5 rounded-lg border border-slate-600 cursor-not-allowed">🔒 مغلق</button>`
+   303→                                        : `<button onclick="openRecordModal('${emp.id}', '${emp.name}')" class="bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white text-xs px-2.5 py-1.5 rounded-lg border border-cyan-500/30 transition">+ حركة</button>`
+   304→                                    }
+   305→                                    <button onclick="deleteEmployee('${emp.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1">🗑️</button>
+   306→                                </div>
+   307→                            </div>
+   308→                            
+   309→                            <!-- Financial Totals -->
+   310→                            <div class="grid grid-cols-2 gap-3 bg-slate-800/80 p-2.5 rounded-lg text-xs mb-3">
+   311→                                <div class="flex justify-between">
+   312→                                    <span class="text-slate-400">السحبيات:</span>
+   313→                                    <span class="font-bold text-amber-400">${withdrawals} د.ل</span>
+   314→                                </div>
+   315→                                <div class="flex justify-between border-r border-slate-700 pr-3">
+   316→                                    <span class="text-slate-400">العجوزات:</span>
+   317→                                    <span class="font-bold text-rose-400">${shortages} د.ل</span>
+   318→                                </div>
+   319→                            </div>
+   320→
+   321→                            <!-- Record History -->
+   322→                            <div class="space-y-1">
+   323→                                ${empRecords.map(r => `
+   324→                                    <div class="flex justify-between items-center text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded">
+   325→                                        <span>${r.type === 'withdrawal' ? '💸 سحب' : '📉 عجز'} — ${formatDateShort(r.date)}: ${r.note || 'بدون ملاحظة'}</span>
+   326→                                        <div class="flex items-center gap-2">
+   327→                                            <span class="font-semibold ${r.type === 'withdrawal' ? 'text-amber-400' : 'text-rose-400'}">${r.amount} د.ل</span>
+   328→                                            ${dayClosed
+   329→                                                ? ''
+   330→                                                : `<button onclick="editRecord('${r.id}')" class="text-slate-600 hover:text-cyan-400">✏️</button>
+   331→                                                   <button onclick="deleteRecord('${r.id}')" class="text-slate-600 hover:text-rose-400">×</button>`
+   332→                                            }
+   333→                                        </div>
+   334→                                    </div>
+   335→                                `).join('')}
+   336→                            </div>
+   337→                        </div>
+   338→                    `;
+   339→                });
+   340→
+   341→                branchHtml += `</div></div>`;
+   342→                container.innerHTML += branchHtml;
+   343→            });
+   344→
+   345→            document.getElementById('totalWithdrawals').innerText = `${grandWithdrawals} د.ل`;
+   346→            document.getElementById('totalShortages').innerText = `${grandShortages} د.ل`;
+   347→        }
+   348→
+   349→        // Modals Logic
+   350→        function todayISO() {
+   351→            const d = new Date();
+   352→            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+   353→        }
+   354→
+   355→        function formatDateShort(dateStr) {
+   356→            if (!dateStr) return '';
+   357→            const [y, m, d] = dateStr.split('-');
+   358→            return `${d}/${m}/${y}`;
+   359→        }
+   360→
+   361→        function openRecordModal(empId, empName) {
+   362→            if (isDayClosed(document.getElementById('datePicker').value)) {
+   363→                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للتعديل.');
+   364→            }
+   365→            document.getElementById('recordId').value = '';
+   366→            document.getElementById('recordEmpId').value = empId;
+   367→            document.getElementById('modalTitle').innerText = `إضافة حركة لـ (${empName})`;
+   368→            document.getElementById('recordType').value = 'withdrawal';
+   369→            document.getElementById('recordDate').value = document.getElementById('datePicker').value || todayISO();
+   370→            document.getElementById('recordAmount').value = '';
+   371→            document.getElementById('recordNote').value = '';
+   372→            document.getElementById('recordModal').classList.remove('hidden');
+   373→            document.getElementById('recordModal').classList.add('flex');
+   374→        }
+   375→
+   376→        function editRecord(recordId) {
+   377→            const r = records.find(rec => rec.id === recordId);
+   378→            if (!r) return;
+   379→            if (isDayClosed(r.date)) {
+   380→                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للتعديل.');
+   381→            }
+   382→            const emp = employees.find(e => e.id === r.empId);
+   383→            document.getElementById('recordId').value = r.id;
+   384→            document.getElementById('recordEmpId').value = r.empId;
+   385→            document.getElementById('modalTitle').innerText = `تعديل حركة لـ (${emp ? emp.name : ''})`;
+   386→            document.getElementById('recordType').value = r.type;
+   387→            document.getElementById('recordDate').value = r.date || todayISO();
+   388→            document.getElementById('recordAmount').value = r.amount;
+   389→            document.getElementById('recordNote').value = r.note || '';
+   390→            document.getElementById('recordModal').classList.remove('hidden');
+   391→            document.getElementById('recordModal').classList.add('flex');
+   392→        }
+   393→
+   394→        function openBranchModal() {
+   395→            document.getElementById('branchModal').classList.remove('hidden');
+   396→            document.getElementById('branchModal').classList.add('flex');
+   397→        }
+   398→
+   399→        function openEmpModal() {
+   400→            const select = document.getElementById('empBranch');
+   401→            select.innerHTML = branches.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+   402→            document.getElementById('empModal').classList.remove('hidden');
+   403→            document.getElementById('empModal').classList.add('flex');
+   404→        }
+   405→
+   406→        function closeModal(id) {
+   407→            document.getElementById(id).classList.remove('flex');
+   408→            document.getElementById(id).classList.add('hidden');
+   409→        }
+   410→
+   411→        // Actions
+   412→        function saveRecord() {
+   413→            const recordId = document.getElementById('recordId').value;
+   414→            const empId = document.getElementById('recordEmpId').value;
+   415→            const type = document.getElementById('recordType').value;
+   416→            const amount = parseFloat(document.getElementById('recordAmount').value);
+   417→            const note = document.getElementById('recordNote').value;
+   418→            const date = document.getElementById('recordDate').value;
+   419→
+   420→            if (!amount || amount <= 0) return alert('الرجاء إدخال مبلغ صحيح');
+   421→            if (!date) return alert('الرجاء تحديد تاريخ الحركة');
+   422→            if (isDayClosed(date)) return alert('لا يمكن حفظ حركة في يوم مغلق. الرجاء إعادة فتح اليوم أولاً.');
+   423→
+   424→            const month = date.slice(0, 7); // YYYY-MM derived from the chosen date
+   425→
+   426→            if (recordId) {
+   427→                // Editing an existing record
+   428→                const idx = records.findIndex(r => r.id === recordId);
+   429→                if (idx !== -1) {
+   430→                    records[idx] = { ...records[idx], type, amount, note, date, month };
+   431→                }
+   432→            } else {
+   433→                // Adding a new record
+   434→                records.push({ id: 'r_' + Date.now(), empId, type, amount, note, date, month });
+   435→            }
+   436→
+   437→            saveData();
+   438→            closeModal('recordModal');
+   439→            document.getElementById('recordAmount').value = '';
+   440→            document.getElementById('recordNote').value = '';
+   441→            document.getElementById('recordId').value = '';
+   442→
+   443→            // Switch the view to the day this record belongs to, so the user sees it immediately
+   444→            document.getElementById('datePicker').value = date;
+   445→            renderApp();
+   446→        }
+   447→
+   448→        function saveBranch() {
+   449→            const name = document.getElementById('branchName').value.trim();
+   450→            if (!name) return alert('الرجاء كتابة اسم الفرع');
+   451→
+   452→            branches.push({ id: 'b_' + Date.now(), name });
+   453→            saveData();
+   454→            closeModal('branchModal');
+   455→            document.getElementById('branchName').value = '';
+   456→            renderApp();
+   457→        }
+   458→
+   459→        function saveEmployee() {
+   460→            const name = document.getElementById('empName').value.trim();
+   461→            const branchId = document.getElementById('empBranch').value;
+   462→            const shift = document.getElementById('empShift').value;
+   463→
+   464→            if (!name) return alert('الرجاء كتابة اسم الموظف');
+   465→
+   466→            employees.push({ id: 'e_' + Date.now(), branchId, name, shift });
+   467→            saveData();
+   468→            closeModal('empModal');
+   469→            document.getElementById('empName').value = '';
+   470→            renderApp();
+   471→        }
+   472→
+   473→        function deleteRecord(id) {
+   474→            const r = records.find(rec => rec.id === id);
+   475→            if (r && isDayClosed(r.date)) {
+   476→                return alert('هذا اليوم مغلق. الرجاء إعادة فتحه من نافذة "الإغلاق اليومي" أولاً للحذف.');
+   477→            }
+   478→            records = records.filter(r => r.id !== id);
+   479→            saveData();
+   480→            renderApp();
+   481→        }
+   482→
+   483→        function deleteEmployee(id) {
+   484→            if (confirm('هل أنت تأكد من حذف الموظف؟ ستظل سجلاته محفوظة في النظام.')) {
+   485→                employees = employees.filter(e => e.id !== id);
+   486→                saveData();
+   487→                renderApp();
+   488→            }
+   489→        }
+   490→
+   491→        function deleteBranch(id) {
+   492→            if (confirm('هل أنت متاكد من حذف الفرع؟')) {
+   493→                branches = branches.filter(b => b.id !== id);
+   494→                employees = employees.filter(e => e.branchId !== id);
+   495→                saveData();
+   496→                renderApp();
+   497→            }
+   498→        }
+   499→
+   500→        // -------------------- PDF Export --------------------
+   501→        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+   502→
+   503→        function formatMonthLabel(monthValue) {
+   504→            if (!monthValue) return '';
+   505→            const [year, month] = monthValue.split('-');
+   506→            return `${arabicMonths[parseInt(month, 10) - 1]} ${year}`;
+   507→        }
+   508→
+   509→        function buildReportHTML(periodLabel, matchRecord) {
+   510→            const now = new Date();
+   511→            const generatedOn = now.toLocaleDateString('ar-LY', { year: 'numeric', month: 'long', day: 'numeric' });
+   512→
+   513→            let grandWithdrawals = 0;
+   514→            let grandShortages = 0;
+   515→            let branchesHtml = '';
+   516→
+   517→            branches.forEach(branch => {
+   518→                const branchEmps = employees.filter(e => e.branchId === branch.id);
+   519→                if (branchEmps.length === 0) return;
+   520→
+   521→                let branchWithdrawals = 0;
+   522→                let branchShortages = 0;
+   523→                let rowsHtml = '';
+   524→                let branchHasRecords = false;
+   525→
+   526→                branchEmps.forEach(emp => {
+   527→                    const empRecords = records.filter(r => r.empId === emp.id && matchRecord(r)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+   528→                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+   529→                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+   530→                    branchWithdrawals += withdrawals;
+   531→                    branchShortages += shortages;
+   532→                    grandWithdrawals += withdrawals;
+   533→                    grandShortages += shortages;
+   534→                    if (empRecords.length > 0) branchHasRecords = true;
+   535→
+   536→                    const notes = empRecords.map(r => `${formatDateShort(r.date)} — ${r.type === 'withdrawal' ? 'سحب' : 'عجز'}: ${r.amount} د.ل${r.note ? ' (' + r.note + ')' : ''}`).join(' | ') || '—';
+   537→
+   538→                    rowsHtml += `
+   539→                        <tr>
+   540→                            <td style="padding:8px;border:1px solid #ddd;">${emp.name}</td>
+   541→                            <td style="padding:8px;border:1px solid #ddd;">${emp.shift}</td>
+   542→                            <td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">${withdrawals} د.ل</td>
+   543→                            <td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">${shortages} د.ل</td>
+   544→                            <td style="padding:8px;border:1px solid #ddd;font-size:11px;color:#555;">${notes}</td>
+   545→                        </tr>`;
+   546→                });
+   547→
+   548→                if (!branchHasRecords) return;
+   549→
+   550→                branchesHtml += `
+   551→                    <div style="margin-bottom:24px;">
+   552→                        <h3 style="background:#0e7490;color:#fff;padding:8px 12px;border-radius:6px;font-size:15px;margin-bottom:8px;">
+   553→                            📍 فرع: ${branch.name} — إجمالي السحبيات: ${branchWithdrawals} د.ل | إجمالي العجوزات: ${branchShortages} د.ل
+   554→                        </h3>
+   555→                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+   556→                            <thead>
+   557→                                <tr style="background:#f1f5f9;">
+   558→                                    <th style="padding:8px;border:1px solid #ddd;">الموظف</th>
+   559→                                    <th style="padding:8px;border:1px solid #ddd;">الفترة</th>
+   560→                                    <th style="padding:8px;border:1px solid #ddd;">السحبيات</th>
+   561→                                    <th style="padding:8px;border:1px solid #ddd;">العجوزات</th>
+   562→                                    <th style="padding:8px;border:1px solid #ddd;">تفاصيل الحركات</th>
+   563→                                </tr>
+   564→                            </thead>
+   565→                            <tbody>${rowsHtml}</tbody>
+   566→                        </table>
+   567→                    </div>`;
+   568→            });
+   569→
+   570→            return `
+   571→                <div style="width:800px;background:#fff;color:#1e293b;padding:32px;font-family:'Cairo',sans-serif;">
+   572→                    <div style="text-align:center;margin-bottom:24px;border-bottom:3px solid #0e7490;padding-bottom:16px;">
+   573→                        <h1 style="font-size:24px;font-weight:800;color:#0e7490;margin:0;">💧 مغسلة جيت كلين</h1>
+   574→                        <p style="font-size:16px;font-weight:700;margin:6px 0 0;">تقرير سحوبات وعجوزات الموظفين</p>
+   575→                        <p style="font-size:13px;color:#64748b;margin:4px 0 0;">${periodLabel} — تاريخ الإصدار: ${generatedOn}</p>
+   576→                    </div>
+   577→
+   578→                    <div style="display:flex;gap:16px;margin-bottom:24px;">
+   579→                        <div style="flex:1;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;text-align:center;">
+   580→                            <p style="font-size:12px;color:#92400e;margin:0;">إجمالي السحبيات</p>
+   581→                            <p style="font-size:20px;font-weight:800;color:#b45309;margin:4px 0 0;">${grandWithdrawals} د.ل</p>
+   582→                        </div>
+   583→                        <div style="flex:1;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:12px;text-align:center;">
+   584→                            <p style="font-size:12px;color:#9f1239;margin:0;">إجمالي العجوزات</p>
+   585→                            <p style="font-size:20px;font-weight:800;color:#be123c;margin:4px 0 0;">${grandShortages} د.ل</p>
+   586→                        </div>
+   587→                    </div>
+   588→
+   589→                    ${branchesHtml || '<p style="text-align:center;color:#94a3b8;">لا توجد بيانات لعرضها لهذه الفترة</p>'}
+   590→
+   591→                    <div style="text-align:center;margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;">
+   592→                        تم إنشاء هذا التقرير آلياً بواسطة نظام جيت كلين لإدارة الفروع
+   593→                    </div>
+   594→                </div>`;
+   595→        }
+   596→
+   597→        // -------------------- Daily Closing --------------------
+   598→        function openClosingModal() {
+   599→            renderClosingModalBody();
+   600→            document.getElementById('closingModal').classList.remove('hidden');
+   601→            document.getElementById('closingModal').classList.add('flex');
+   602→        }
+   603→
+   604→        function renderClosingModalBody() {
+   605→            const selectedDate = document.getElementById('datePicker').value;
+   606→            const closed = isDayClosed(selectedDate);
+   607→
+   608→            let grandWithdrawals = 0;
+   609→            let grandShortages = 0;
+   610→            let branchesHtml = '';
+   611→
+   612→            branches.forEach(branch => {
+   613→                const branchEmps = employees.filter(e => e.branchId === branch.id);
+   614→                if (branchEmps.length === 0) return;
+   615→
+   616→                let branchWithdrawals = 0;
+   617→                let branchShortages = 0;
+   618→                let rowsHtml = '';
+   619→
+   620→                branchEmps.forEach(emp => {
+   621→                    const empRecords = records.filter(r => r.empId === emp.id && r.date === selectedDate);
+   622→                    const withdrawals = empRecords.filter(r => r.type === 'withdrawal').reduce((sum, r) => sum + r.amount, 0);
+   623→                    const shortages = empRecords.filter(r => r.type === 'shortage').reduce((sum, r) => sum + r.amount, 0);
+   624→                    if (empRecords.length === 0) return;
+   625→
+   626→                    branchWithdrawals += withdrawals;
+   627→                    branchShortages += shortages;
+   628→                    grandWithdrawals += withdrawals;
+   629→                    grandShortages += shortages;
+   630→
+   631→                    rowsHtml += `
+   632→                        <div class="flex justify-between items-center text-xs bg-slate-900/70 px-3 py-2 rounded-lg">
+   633→                            <span class="text-slate-200 font-semibold">${emp.name}</span>
+   634→                            <span class="text-amber-400">سحب: ${withdrawals} د.ل</span>
+   635→                            <span class="text-rose-400">عجز: ${shortages} د.ل</span>
+   636→                        </div>`;
+   637→                });
+   638→
+   639→                if (!rowsHtml) return;
+   640→
+   641→                branchesHtml += `
+   642→                    <div class="mb-4">
+   643→                        <p class="text-cyan-400 font-bold text-sm mb-2">📍 ${branch.name} — سحب: ${branchWithdrawals} د.ل | عجز: ${branchShortages} د.ل</p>
+   644→                        <div class="space-y-1.5">${rowsHtml}</div>
+   645→                    </div>`;
+   646→            });
+   647→
+   648→            const body = document.getElementById('closingModalBody');
+   649→            body.innerHTML = `
+   650→                <div class="flex justify-between items-center mb-4 bg-slate-900/60 border border-slate-700 rounded-xl p-4">
+   651→                    <div>
+   652→                        <p class="text-slate-400 text-xs">التاريخ</p>
+   653→                        <p class="text-white font-bold text-lg">${formatDateShort(selectedDate)}</p>
+   654→                    </div>
+   655→                    <span class="text-xs font-bold px-3 py-1.5 rounded-full ${closed ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'}">
+   656→                        ${closed ? '🔒 مغلق' : '🟢 مفتوح'}
+   657→                    </span>
+   658→                </div>
+   659→
+   660→                <div class="grid grid-cols-2 gap-3 mb-5">
+   661→                    <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+   662→                        <p class="text-xs text-amber-300">إجمالي السحبيات</p>
+   663→                        <p class="text-xl font-black text-amber-400">${grandWithdrawals} د.ل</p>
+   664→                    </div>
+   665→                    <div class="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-center">
+   666→                        <p class="text-xs text-rose-300">إجمالي العجوزات</p>
+   667→                        <p class="text-xl font-black text-rose-400">${grandShortages} د.ل</p>
+   668→                    </div>
+   669→                </div>
+   670→
+   671→                <div class="mb-5 max-h-64 overflow-y-auto pr-1">
+   672→                    ${branchesHtml || '<p class="text-slate-500 text-sm text-center py-4">لا توجد حركات مسجلة لهذا اليوم</p>'}
+   673→                </div>
+   674→
+   675→                <div class="flex flex-col sm:flex-row gap-3">
+   676→                    ${closed
+   677→                        ? `<button onclick="reopenDay()" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl">🔓 إعادة فتح اليوم</button>`
+   678→                        : `<button onclick="confirmCloseDay()" class="flex-1 bg-violet-600 hover:bg-violet-500 text-white font-bold py-2.5 rounded-xl">✅ تأكيد إغلاق اليوم</button>`
+   679→                    }
+   680→                    <button onclick="exportClosingPDF()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl">📄 تصدير PDF</button>
+   681→                </div>
+   682→            `;
+   683→        }
+   684→
+   685→        function confirmCloseDay() {
+   686→            const selectedDate = document.getElementById('datePicker').value;
+   687→            if (!confirm(`هل أنت متأكد من إغلاق يوم ${formatDateShort(selectedDate)}؟ لن يمكن إضافة أو تعديل أو حذف حركات هذا اليوم إلا بعد إعادة فتحه.`)) return;
+   688→            closedDays[selectedDate] = true;
+   689→            saveData();
+   690→            renderClosingModalBody();
+   691→            renderApp();
+   692→        }
+   693→
+   694→        function reopenDay() {
+   695→            const selectedDate = document.getElementById('datePicker').value;
+   696→            if (!confirm(`هل تريد إعادة فتح يوم ${formatDateShort(selectedDate)} للتعديل؟`)) return;
+   697→            delete closedDays[selectedDate];
+   698→            saveData();
+   699→            renderClosingModalBody();
+   700→            renderApp();
+   701→        }
+   702→
+   703→        async function exportClosingPDF() {
+   704→            const selectedDate = document.getElementById('datePicker').value;
+   705→            const periodLabel = `إغلاق يومي: ${formatDateShort(selectedDate)}`;
+   706→            const matchRecord = r => r.date === selectedDate;
+   707→
+   708→            try {
+   709→                const reportArea = document.getElementById('pdfReportArea');
+   710→                reportArea.innerHTML = buildReportHTML(periodLabel, matchRecord);
+   711→                await new Promise(resolve => setTimeout(resolve, 100));
+   712→
+   713→                const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+   714→                const imgData = canvas.toDataURL('image/png');
+   715→
+   716→                const { jsPDF } = window.jspdf;
+   717→                const pdf = new jsPDF('p', 'mm', 'a4');
+   718→                const pageWidth = pdf.internal.pageSize.getWidth();
+   719→                const pageHeight = pdf.internal.pageSize.getHeight();
+   720→                const imgWidth = pageWidth;
+   721→                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+   722→
+   723→                let heightLeft = imgHeight;
+   724→                let position = 0;
+   725→                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+   726→                heightLeft -= pageHeight;
+   727→                while (heightLeft > 0) {
+   728→                    position = heightLeft - imgHeight;
+   729→                    pdf.addPage();
+   730→                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+   731→                    heightLeft -= pageHeight;
+   732→                }
+   733→
+   734→                pdf.save(`إغلاق_يومي_${selectedDate}.pdf`);
+   735→                reportArea.innerHTML = '';
+   736→            } catch (err) {
+   737→                console.error(err);
+   738→                alert('حدث خطأ أثناء إنشاء ملف PDF. الرجاء المحاولة مرة أخرى.');
+   739→            }
+   740→        }
+   741→
+   742→        function openExportModal() {
+   743→            const today = document.getElementById('datePicker').value || todayISO();
+   744→            document.getElementById('exportRangeType').value = 'month';
+   745→            document.getElementById('exportMonth').value = today.slice(0, 7);
+   746→            document.getElementById('exportDay').value = today;
+   747→            document.getElementById('exportFrom').value = today;
+   748→            document.getElementById('exportTo').value = today;
+   749→            toggleExportRangeInputs();
+   750→            document.getElementById('exportModal').classList.remove('hidden');
+   751→            document.getElementById('exportModal').classList.add('flex');
+   752→        }
+   753→
+   754→        function toggleExportRangeInputs() {
+   755→            const type = document.getElementById('exportRangeType').value;
+   756→            document.getElementById('exportMonthField').classList.toggle('hidden', type !== 'month');
+   757→            document.getElementById('exportDayField').classList.toggle('hidden', type !== 'day');
+   758→            document.getElementById('exportRangeFields').classList.toggle('hidden', type !== 'range');
+   759→        }
+   760→
+   761→        async function exportPDF() {
+   762→            const type = document.getElementById('exportRangeType').value;
+   763→
+   764→            let periodLabel, matchRecord, fileSuffix;
+   765→
+   766→            if (type === 'month') {
+   767→                const monthValue = document.getElementById('exportMonth').value;
+   768→                if (!monthValue) return alert('الرجاء اختيار الشهر');
+   769→                periodLabel = `الشهر: ${formatMonthLabel(monthValue)}`;
+   770→                matchRecord = r => r.month === monthValue;
+   771→                fileSuffix = formatMonthLabel(monthValue).replace(/\s+/g, '_');
+   772→            } else if (type === 'day') {
+   773→                const dayValue = document.getElementById('exportDay').value;
+   774→                if (!dayValue) return alert('الرجاء اختيار اليوم');
+   775→                periodLabel = `اليوم: ${formatDateShort(dayValue)}`;
+   776→                matchRecord = r => r.date === dayValue;
+   777→                fileSuffix = dayValue;
+   778→            } else {
+   779→                const from = document.getElementById('exportFrom').value;
+   780→                const to = document.getElementById('exportTo').value;
+   781→                if (!from || !to) return alert('الرجاء تحديد بداية ونهاية الفترة');
+   782→                if (from > to) return alert('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+   783→                periodLabel = `من ${formatDateShort(from)} إلى ${formatDateShort(to)}`;
+   784→                matchRecord = r => r.date >= from && r.date <= to;
+   785→                fileSuffix = `${from}_${to}`;
+   786→            }
+   787→
+   788→            const confirmBtn = document.getElementById('exportConfirmBtn');
+   789→            const originalText = confirmBtn.innerHTML;
+   790→            confirmBtn.innerHTML = '⏳ جارٍ التصدير...';
+   791→            confirmBtn.disabled = true;
+   792→
+   793→            try {
+   794→                const reportArea = document.getElementById('pdfReportArea');
+   795→                reportArea.innerHTML = buildReportHTML(periodLabel, matchRecord);
+   796→
+   797→                // Give the browser a moment to layout the injected content
+   798→                await new Promise(resolve => setTimeout(resolve, 100));
+   799→
+   800→                const canvas = await html2canvas(reportArea, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+   801→                const imgData = canvas.toDataURL('image/png');
+   802→
+   803→                const { jsPDF } = window.jspdf;
+   804→                const pdf = new jsPDF('p', 'mm', 'a4');
+   805→                const pageWidth = pdf.internal.pageSize.getWidth();
+   806→                const pageHeight = pdf.internal.pageSize.getHeight();
+   807→                const imgWidth = pageWidth;
+   808→                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+   809→
+   810→                let heightLeft = imgHeight;
+   811→                let position = 0;
+   812→
+   813→                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+   814→                heightLeft -= pageHeight;
+   815→
+   816→                while (heightLeft > 0) {
+   817→                    position = heightLeft - imgHeight;
+   818→                    pdf.addPage();
+   819→                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+   820→                    heightLeft -= pageHeight;
+   821→                }
+   822→
+   823→                pdf.save(`تقرير_جيت_كلين_${fileSuffix}.pdf`);
+   824→
+   825→                reportArea.innerHTML = '';
+   826→                closeModal('exportModal');
+   827→            } catch (err) {
+   828→                console.error(err);
+   829→                alert('حدث خطأ أثناء إنشاء ملف PDF. الرجاء المحاولة مرة أخرى.');
+   830→            } finally {
+   831→                confirmBtn.innerHTML = originalText;
+   832→                confirmBtn.disabled = false;
+   833→            }
+   834→        }
+   835→    </script>
+   836→</body>
+   837→</html>
+   838→
