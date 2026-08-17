@@ -50,6 +50,8 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   }
 }
 
+export const maxDuration = 30 // 30 ثانية كحد أقصى (الافتراضي 10 ثوانٍ في Vercel hobby)
+
 export async function POST(req: NextRequest) {
   try {
     const { empId, password } = await req.json()
