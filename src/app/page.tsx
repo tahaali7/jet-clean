@@ -1309,8 +1309,9 @@ export default function JetCleanApp() {
         setEmpDate(todayISO())
         setScreen('employee')
       }
-    } catch {
-      setLoginError('حدث خطأ في الاتصال')
+    } catch (err) {
+      console.error('Login unexpected error:', err)
+      setLoginError('حدث خطأ غير متوقع - امسح كاش المتصفح وحاول مرة أخرى')
       setLoginLoading(false)
     }
   }
