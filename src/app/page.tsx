@@ -1260,7 +1260,7 @@ export default function JetCleanApp() {
       clearTimeout(timer)
 
       const text = await res.text()
-      setLoginDebug('Status: ' + res.status + ' | Type: ' + (res.headers.get('content-type') || '?') + ' | Body: ' + text.substring(0, 150))
+      setLoginDebug('Status: ' + res.status + ' | Type: ' + (res.headers.get('content-type') || '?') + ' | Body: ' + text.substring(0, 250))
 
       // التحقق إن الرد JSON صالح
       let data: any
