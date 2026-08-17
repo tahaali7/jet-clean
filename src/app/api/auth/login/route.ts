@@ -3,13 +3,28 @@ import { db } from '@/lib/db'
 import { createToken, createAuthCookie, clearAuthCookie } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 
-// Retry helper for connection issues
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 800): Promise<T> {
+// Retry helper for connection issues - محسّن بـ timeout أطول
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  let lastError: any = null
   for (let i = 0; i <= retries; i++) {
     try {
       return await fn()
     } catch (err: any) {
+      lastError = err
       const msg = err?.message || ''
+      // لو الخطأ مش مشكلة اتصال، لا داعي للإعادة
+      if (i < retries && (
+        msg.includes('connect') ||
+        msg.includes('timeout') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('fetch failed') ||
+        msg.includes('Could not connect') ||
+        msg.includes('socket hang up') ||
+        msg.includes('Prisma')
+      )) {
+        await new Promise(r => setTimeout(r, delay * (i + 1)))
+        continue
+      }
       if (i < retries) {
         await new Promise(r => setTimeout(r, delay * (i + 1)))
         continue
@@ -17,7 +32,22 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 800): Pro
       throw err
     }
   }
-  throw new Error('Failed after retries')
+  throw lastError || new Error('Failed after retries')
+}
+
+// Timeout wrapper - يمنع الانتظار اللانهائي
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  const timer = setTimeout(() => {
+    throw new Error(`${label} - انتهى وقت الانتظار`)
+  }, ms)
+  try {
+    const result = await promise
+    clearTimeout(timer)
+    return result
+  } catch (err) {
+    clearTimeout(timer)
+    throw err
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -32,12 +62,20 @@ export async function POST(req: NextRequest) {
     if (empId === 'admin') {
       let admin = null
       try {
-        admin = await withRetry(() =>
-          db.adminAccount.findUnique({ where: { id: 'admin' } })
+        admin = await withTimeout(
+          withRetry(() =>
+            db.adminAccount.findUnique({ where: { id: 'admin' } })
+          ),
+          20000,
+          'البحث عن حساب المسؤول'
         )
       } catch (dbErr: any) {
         console.error('Admin DB error:', dbErr?.message)
-        return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
+        return NextResponse.json({
+          success: false,
+          error: 'خطأ في الاتصال بقاعدة البيانات - يرجى المحاولة مرة أخرى',
+          code: 'DB_CONNECTION_ERROR'
+        }, { status: 503 })
       }
       if (!admin) {
         return NextResponse.json({ success: false, error: 'رمز المرور غير صحيح' }, { status: 401 })
@@ -49,7 +87,7 @@ export async function POST(req: NextRequest) {
       } else if (admin.password === password) {
         // كلمة مرور نصية قديمة — هاشها فوراً وحدّث
         const hashed = await bcrypt.hash(password, 12)
-        await db.adminAccount.update({ where: { id: 'admin' }, data: { password: hashed } })
+        await db.adminAccount.update({ where: { id: 'admin' }, data: { password: hashed } }).catch(() => {})
         passwordValid = true
       }
       if (!passwordValid) {
@@ -72,12 +110,20 @@ export async function POST(req: NextRequest) {
     // Employee login
     let employee = null
     try {
-      employee = await withRetry(() =>
-        db.employee.findUnique({ where: { id: empId } })
+      employee = await withTimeout(
+        withRetry(() =>
+          db.employee.findUnique({ where: { id: empId } })
+        ),
+        20000,
+        'البحث عن الموظف'
       )
     } catch (dbErr: any) {
       console.error('Employee DB error:', dbErr?.message)
-      return NextResponse.json({ success: false, error: 'حدث خطأ في الاتصال - حاول مرة أخرى' }, { status: 500 })
+      return NextResponse.json({
+        success: false,
+        error: 'خطأ في الاتصال بقاعدة البيانات - يرجى المحاولة مرة أخرى',
+        code: 'DB_CONNECTION_ERROR'
+      }, { status: 503 })
     }
     if (!employee) {
       return NextResponse.json({ success: false, error: 'الموظف غير موجود' }, { status: 404 })
@@ -95,7 +141,7 @@ export async function POST(req: NextRequest) {
     } else if (employee.password === password) {
       // كلمة مرور نصية قديمة — هاشها فوراً وحدّث
       const hashed = await bcrypt.hash(password, 12)
-      await db.employee.update({ where: { id: employee.id }, data: { password: hashed } })
+      await db.employee.update({ where: { id: employee.id }, data: { password: hashed } }).catch(() => {})
       passwordValid = true
     }
     if (!passwordValid) {
@@ -131,7 +177,11 @@ export async function POST(req: NextRequest) {
     })
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ success: false, error: 'حدث خطأ في الخادم - حاول مرة أخرى' }, { status: 500 })
+    return NextResponse.json({
+      success: false,
+      error: 'حدث خطأ في الخادم - يرجى المحاولة مرة أخرى',
+      code: 'SERVER_ERROR'
+    }, { status: 500 })
   }
 }
 

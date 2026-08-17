@@ -1221,13 +1221,37 @@ export default function JetCleanApp() {
     setLoginError('')
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ empId: loginEmpId, password: loginPassword })
-      })
-      const data = await res.json()
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 ثانية
+      let res: Response
+      try {
+        res = await fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empId: loginEmpId, password: loginPassword }),
+          signal: controller.signal
+        })
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId)
+        if (fetchErr?.name === 'AbortError') {
+          setLoginError('انتهت مهلة الاتصال - تحقق من اتصالك بالإنترنت وحاول مرة أخرى')
+        } else {
+          setLoginError('تعذر الاتصال بالخادم - تحقق من اتصالك بالإنترنت')
+        }
+        setLoginLoading(false)
+        return
+      }
+      clearTimeout(timeoutId)
+
+      let data: any
+      try {
+        data = await res.json()
+      } catch {
+        setLoginError('خطأ في استجابة الخادم - حاول مرة أخرى')
+        setLoginLoading(false)
+        return
+      }
       if (!data.success) {
         // تسجيل محاولة دخول فاشلة
         try {
