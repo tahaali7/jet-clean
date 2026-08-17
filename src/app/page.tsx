@@ -1221,51 +1221,31 @@ export default function JetCleanApp() {
     setLoginError('')
 
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 ثانية
-      let res: Response
+      const res = await fetch('/api/auth/login?' + Date.now(), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId: loginEmpId, password: loginPassword })
+      })
+      // نقرأ النص أولاً ثم نحاول تحويله لـ JSON
+      let data: any = null
+      let parseFailed = false
       try {
-        res = await fetch('/api/auth/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empId: loginEmpId, password: loginPassword }),
-          signal: controller.signal
-        })
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId)
-        if (fetchErr?.name === 'AbortError') {
-          setLoginError('انتهت مهلة الاتصال - تحقق من اتصالك بالإنترنت وحاول مرة أخرى')
-        } else {
-          setLoginError('تعذر الاتصال بالخادم - تحقق من اتصالك بالإنترنت')
-        }
-        setLoginLoading(false)
-        return
-      }
-      clearTimeout(timeoutId)
-
-      let data: any
-      const contentType = res.headers.get('content-type') || ''
-      if (contentType.includes('application/json')) {
+        const text = await res.text()
         try {
-          data = await res.json()
+          data = JSON.parse(text)
         } catch {
-          setLoginError('خطأ في قراءة استجابة الخادم - حاول مرة أخرى')
-          setLoginLoading(false)
-          return
+          parseFailed = true
+          console.error('Login non-JSON response:', res.status, text.substring(0, 300))
         }
-      } else {
-        // الخادم أرجع HTML بدل JSON - نقرأ النص لإظهاره
-        let errorText = ''
-        try { errorText = await res.text() } catch {}
-        const shortText = errorText.substring(0, 200)
-        console.error('Non-JSON login response:', res.status, contentType, shortText)
+      } catch {
+        parseFailed = true
+      }
+      if (parseFailed || !data) {
         if (res.status >= 500) {
-          setLoginError(`خطأ داخلي في الخادم (${res.status}) - يتم إصلاحه`)  
-        } else if (res.status === 504) {
-          setLoginError('انتهت مهلة الخادم - حاول مرة أخرى بعد قليل')
+          setLoginError('خطأ داخلي في الخادم (' + res.status + ')')
         } else {
-          setLoginError('خطأ في الخادم - حاول مرة أخرى')
+          setLoginError('خطأ في استجابة الخادم - حاول مرة أخرى')
         }
         setLoginLoading(false)
         return
