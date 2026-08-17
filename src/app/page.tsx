@@ -4802,7 +4802,7 @@ export default function JetCleanApp() {
               disabled={loginLoading}
               className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-800 text-white font-bold py-3 rounded-xl transition shadow-lg text-sm"
             >
-              {loginLoading ? '⏳ جاري الدخول...' : '🔐 تسجيل الدخول'}
+              {loginLoading ? '⏳ جاري الدخول...' : '🔐 تسجيل الدخول v3'}
             </button>
           </div>
         </div>
