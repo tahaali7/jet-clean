@@ -5,6 +5,7 @@ import { API_PERMISSIONS } from '@/lib/auth'
 const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/health',
+  '/api/test-deps',
   '/api/setup',
   '/api'
 ]
