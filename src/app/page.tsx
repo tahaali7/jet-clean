@@ -897,7 +897,21 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
+const APP_VERSION = 'v4-stable'
+
 export default function JetCleanApp() {
+  // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
+  useEffect(() => {
+    try {
+      const savedVer = sessionStorage.getItem('app_version')
+      if (savedVer && savedVer !== APP_VERSION) {
+        sessionStorage.clear()
+        window.location.reload()
+        return
+      }
+      sessionStorage.setItem('app_version', APP_VERSION)
+    } catch {}
+  }, [])
   // Screen state
   const [screen, setScreen] = useState<'login' | 'employee' | 'admin'>('login')
 
@@ -1233,6 +1247,8 @@ export default function JetCleanApp() {
     const xhr = new XMLHttpRequest()
     xhr.open('POST', '/api/auth/login?' + Date.now(), true)
     xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.setRequestHeader('Cache-Control', 'no-cache')
+    xhr.setRequestHeader('Pragma', 'no-cache')
     xhr.withCredentials = true
     xhr.timeout = 30000 // 30 ثانية
 
