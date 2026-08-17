@@ -4,6 +4,7 @@ import { API_PERMISSIONS } from '@/lib/auth'
 // مسارات لا تحتاج حماية
 const PUBLIC_PATHS = [
   '/api/auth/login',
+  '/api/health',
   '/api/setup',
   '/api'
 ]

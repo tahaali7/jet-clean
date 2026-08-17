@@ -1245,10 +1245,28 @@ export default function JetCleanApp() {
       clearTimeout(timeoutId)
 
       let data: any
-      try {
-        data = await res.json()
-      } catch {
-        setLoginError('خطأ في استجابة الخادم - حاول مرة أخرى')
+      const contentType = res.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json()
+        } catch {
+          setLoginError('خطأ في قراءة استجابة الخادم - حاول مرة أخرى')
+          setLoginLoading(false)
+          return
+        }
+      } else {
+        // الخادم أرجع HTML بدل JSON - نقرأ النص لإظهاره
+        let errorText = ''
+        try { errorText = await res.text() } catch {}
+        const shortText = errorText.substring(0, 200)
+        console.error('Non-JSON login response:', res.status, contentType, shortText)
+        if (res.status >= 500) {
+          setLoginError(`خطأ داخلي في الخادم (${res.status}) - يتم إصلاحه`)  
+        } else if (res.status === 504) {
+          setLoginError('انتهت مهلة الخادم - حاول مرة أخرى بعد قليل')
+        } else {
+          setLoginError('خطأ في الخادم - حاول مرة أخرى')
+        }
         setLoginLoading(false)
         return
       }
