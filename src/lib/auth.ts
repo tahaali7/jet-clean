@@ -1,12 +1,9 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Secret key - من متغيرات البيئة
+// Secret key - من متغيرات البيئة مع قيمة احتياطية
 const getSecret = () => {
-  const secret = process.env.JWT_SECRET
-  if (!secret) {
-    throw new Error('❌ JWT_SECRET غير محدد في متغيرات البيئة')
-  }
+  const secret = process.env.JWT_SECRET || 'jet-clean-fallback-secret-key-2024'
   return new TextEncoder().encode(secret)
 }
 
