@@ -103,12 +103,6 @@ let BRANCH_CLEANLINESS: Record<string, { type: string; value?: number; options?:
   'المنصوره': { type: 'select', options: [10, 20] },
   'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
 }
-let BRANCH_MAINTENANCE: Record<string, { type: string; value?: number; options?: number[] }> = {
-  'بن غرسه': { type: 'fixed', value: 0 },
-  'أبونواس': { type: 'fixed', value: 0 },
-  'المنصوره': { type: 'select', options: [10, 20] },
-  'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
-}
 const ROOM_ICONS: Record<string, string> = {
   'غرفة 1': '🚿', 'غرفة 2': '🚿', 'غرفة 3': '🚿',
   'غرفة 4': '🚿', 'غرفة 5': '🚿', 'غرفة 6': '🚿',
@@ -232,29 +226,6 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     '</tr>'
   }
 
-  // النظافة والصيانة: فقط للغرف اللي فيها بيانات وليست مكينة الغسيل
-  let roomAddonRowsHtml = ''
-  if (roomTotalCars > 0 && room !== 'مكينة الغسيل') {
-    const cleanConfig = BRANCH_CLEANLINESS[branchName]
-    const maintConfig = BRANCH_MAINTENANCE[branchName]
-    const cleanVal = cleanConfig?.type === 'fixed' ? (cleanConfig.value || 0) : 0
-    const maintVal = maintConfig?.type === 'fixed' ? (maintConfig.value || 0) : 0
-    if (cleanVal > 0) {
-      roomAddonRowsHtml += '<tr style="background:#fff3e0;">' +
-        '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
-        '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;">1</td>' +
-        '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">' + cleanVal + ' د.ل</td>' +
-      '</tr>'
-    }
-    if (maintVal > 0) {
-      roomAddonRowsHtml += '<tr style="background:#f3e5f5;">' +
-        '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#7b1fa2;">🔧 الصيانة</td>' +
-        '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;">1</td>' +
-        '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">' + maintVal + ' د.ل</td>' +
-      '</tr>'
-    }
-  }
-
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
     '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
@@ -266,7 +237,6 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     '</tr>' +
     rowsHtml +
     extraRowHtml +
-    roomAddonRowsHtml +
     '<tr style="background:#e0e0e0;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
@@ -329,7 +299,6 @@ const TREASURY_ITEMS = [
   { key: 'ملغي', label: 'ملغي' },
   { key: 'مصاريف_العمال', label: 'مصاريف العمال' },
   { key: 'بيع_البطاقة', label: 'بيع البطاقة المصرفية' },
-  { key: 'النظافة', label: 'النظافة' },
   { key: 'كوبونات', label: 'كوبونات', branchOnly: 'بن غرسه' },
   { key: 'فائض', label: 'فائض' },
   { key: 'تم_التحويل', label: 'تم التحويل' }
@@ -528,10 +497,6 @@ function buildWorkerExpensesAndTreasury(
   const cleannessConfig = BRANCH_CLEANLINESS[branchName]
   const wKey = branchName + '_' + selectedDate
   const savedWE = savedWorkerExpenses?.[wKey] || {}
-
-  // التوافق مع الأيام السابقة
-  const isLegacyPdf = (savedWE.cleanliness !== undefined && savedWE.cleanliness > 0 && !savedWE.treasury?.النظافة)
-
   let savedCleanliness = 0
   if (cleannessConfig) {
     if (cleannessConfig.type === 'fixed') {
@@ -559,15 +524,12 @@ function buildWorkerExpensesAndTreasury(
     '</tr>'
   })
 
-  // النظافة في مصاريف العمال: أيام سابقة فقط
-  if (isLegacyPdf) {
-    workerRowsHtml += '<tr style="">' +
-      '<td style="' + wCellPad + wLabelFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
-      '<td style="' + wCellPad + 'text-align:center;' + wValueFs + 'font-weight:bold;color:#e65100;">' + savedCleanliness + ' د.ل</td>' +
-    '</tr>'
-  }
+  workerRowsHtml += '<tr style="">' +
+    '<td style="' + wCellPad + wLabelFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
+    '<td style="' + wCellPad + 'text-align:center;' + wValueFs + 'font-weight:bold;color:#e65100;">' + savedCleanliness + ' د.ل</td>' +
+  '</tr>'
 
-  const finalTotalAfterExpenses = isLegacyPdf ? grandTotalNet + savedCleanliness : grandTotalNet
+  const finalTotalAfterExpenses = grandTotalNet + savedCleanliness
   const wTotalFs = wTotalFsMap[sl]
   workerRowsHtml += '<tr style="">' +
     '<td style="' + wCellPad + 'border:2px solid #333;' + wLabelFs + 'font-weight:bold;text-align:center;">الإجمالي</td>' +
@@ -610,18 +572,6 @@ function buildWorkerExpensesAndTreasury(
     if (item.key === 'مصاريف_العمال') {
       tExpense = pdfWorkerExpInTreasury
       isAuto = true
-    }
-    if (item.key === 'النظافة') {
-      if (isLegacyPdf) {
-        tExpense = 0
-        isAuto = true
-      } else {
-        const cleanCfg = BRANCH_CLEANLINESS[branchName]
-        if (cleanCfg?.type === 'fixed') {
-          tExpense = cleanCfg.value || 0
-          isAuto = true
-        }
-      }
     }
     if (item.key === 'تم_التحويل') {
       tExpense = Math.max(0, tRunningBalance)
@@ -3796,9 +3746,6 @@ export default function JetCleanApp() {
             const cleannessConfig = BRANCH_CLEANLINESS[branchName]
             if (!cleannessConfig) return null
 
-            // التوافق مع الأيام السابقة: إذا كان cleanliness محفوظ في البيانات القديمة
-            const isLegacyDay = savedWE.cleanliness !== undefined && savedWE.cleanliness > 0 && !savedWE.treasury?.النظافة
-
             // Calculate room net map
             const roomNetMap: Record<string, number> = {}
             displayEntries.forEach(e => {
@@ -3811,10 +3758,10 @@ export default function JetCleanApp() {
             availableRooms.forEach(r => { if (roomNetMap[r]) totalRoomsNet += roomNetMap[r] })
             if (totalRoomsNet === 0 && !Object.keys(roomNetMap).length) return null
 
-            // النظافة: أيام جديدة = ثابتة في الخزينة | أيام قديمة = كما كانت
             let selectedCleanliness = savedWE.cleanliness || 0
             if (cleannessConfig.type === 'fixed') selectedCleanliness = cleannessConfig.value || 0
-            const workerExpTotal = isLegacyDay ? totalRoomsNet + selectedCleanliness : totalRoomsNet
+
+            const workerExpTotal = totalRoomsNet + selectedCleanliness
 
             // Treasury calculations
             const treasSaved = savedWE.treasury || {}
@@ -3828,19 +3775,6 @@ export default function JetCleanApp() {
               let expense = rowSaved.expense || 0
               let isAuto = false
               if (item.key === 'مصاريف_العمال') { expense = workerExpInTreasury; isAuto = true }
-              if (item.key === 'النظافة') {
-                if (isLegacyDay) {
-                  // أيام سابقة: النظافة لا تظهر في الخزينة (محسوبة في مصاريف العمال)
-                  expense = 0; isAuto = true
-                } else {
-                  // أيام جديدة: قيمة ثابتة حسب الفرع أو يدوية
-                  const cleanCfg = BRANCH_CLEANLINESS[branchName]
-                  if (cleanCfg?.type === 'fixed') {
-                    expense = cleanCfg.value || 0; isAuto = true
-                  }
-                  // type === 'select' يبقى يدوي من treasSaved
-                }
-              }
               if (item.key === 'تم_التحويل') { expense = Math.max(0, runningBalance); isAuto = true }
               runningBalance = runningBalance + income - expense
               const balColor = runningBalance >= 0 ? '#fcd34d' : '#f87171'
@@ -3874,29 +3808,27 @@ export default function JetCleanApp() {
                           )
                         })}
                         <div className="border-t border-amber-500/20" />
-                        {/* النظافة: تظهر فقط في الأيام السابقة */}
-                        {isLegacyDay && (
-                          <div className="flex justify-between items-center px-4 py-2.5" style={{ background: 'rgba(245,158,11,0.05)' }}>
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">🧹</span>
-                              <span className="text-amber-300 text-sm font-semibold">النظافة</span>
-                            </div>
-                            {cleannessConfig.type === 'fixed' ? (
-                              <span className="text-amber-400 text-base font-bold">{cleannessConfig.value} د.ل</span>
-                            ) : (
-                              <select
-                                value={selectedCleanliness}
-                                onChange={e => handleCleanlinessChange(wKey, parseInt(e.target.value) || 0, currentBranchId, empDate)}
-                                className="bg-slate-900 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm font-bold outline-none"
-                              >
-                                <option value={0}>-- اختر --</option>
-                                {cleannessConfig.options?.map(opt => (
-                                  <option key={opt} value={opt}>{opt} د.ل</option>
-                                ))}
-                              </select>
-                            )}
+                        {/* Cleanliness */}
+                        <div className="flex justify-between items-center px-4 py-2.5" style={{ background: 'rgba(245,158,11,0.05)' }}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">🧹</span>
+                            <span className="text-amber-300 text-sm font-semibold">النظافة</span>
                           </div>
-                        )}
+                          {cleannessConfig.type === 'fixed' ? (
+                            <span className="text-amber-400 text-base font-bold">{cleannessConfig.value} د.ل</span>
+                          ) : (
+                            <select
+                              value={selectedCleanliness}
+                              onChange={e => handleCleanlinessChange(wKey, parseInt(e.target.value) || 0, currentBranchId, empDate)}
+                              className="bg-slate-900 border border-amber-500/30 text-amber-300 rounded-lg px-3 py-1 text-sm font-bold outline-none"
+                            >
+                              <option value={0}>-- اختر --</option>
+                              {cleannessConfig.options?.map(opt => (
+                                <option key={opt} value={opt}>{opt} د.ل</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
                         <div className="border-t-2 border-emerald-500/30" />
                         {/* Grand total */}
                         <div className="flex justify-between items-center px-4 py-3" style={{ background: 'rgba(16,185,129,0.1)' }}>
