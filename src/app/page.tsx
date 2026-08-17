@@ -1214,103 +1214,71 @@ export default function JetCleanApp() {
   }
 
   // ==================== LOGIN ====================
-  const handleLogin = async () => {
+  const handleLogin = () => {
     if (!loginEmpId) { setLoginError('الرجاء اختيار اسم المستخدم'); return }
     if (!loginPassword) { setLoginError('الرجاء إدخال رمز المرور'); return }
     setLoginLoading(true)
     setLoginError('')
 
-    try {
-      const res = await fetch('/api/auth/login?' + Date.now(), {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ empId: loginEmpId, password: loginPassword })
-      })
-      // نقرأ النص أولاً ثم نحاول تحويله لـ JSON
-      let data: any = null
-      let parseFailed = false
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', '/api/auth/login?' + Date.now(), true)
+    xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.withCredentials = true
+    xhr.timeout = 30000 // 30 ثانية
+
+    xhr.onload = function () {
+      setLoginLoading(false)
       try {
-        const text = await res.text()
-        try {
-          data = JSON.parse(text)
-        } catch {
-          parseFailed = true
-          console.error('Login non-JSON response:', res.status, text.substring(0, 300))
+        const data = JSON.parse(xhr.responseText)
+        if (!data.success) {
+          setLoginError(data.error)
+          return
         }
-      } catch {
-        parseFailed = true
-      }
-      if (parseFailed || !data) {
-        if (res.status >= 500) {
-          setLoginError('خطأ داخلي في الخادم (' + res.status + ')')
+        setUser(data.user)
+        setLoginPassword('')
+        setLoginEmpId('')
+        if (data.user.role === 'admin' || data.user.role === 'viewer') {
+          setIsAdminMode(false)
+          setAdminSelectedBranch(null)
+          setAdminDate(todayISO())
+          setScreen('admin')
         } else {
-          setLoginError('خطأ في استجابة الخادم - حاول مرة أخرى')
+          setIsAdminMode(false)
+          setAdminSelectedBranch(null)
+          setEmpDate(todayISO())
+          setScreen('employee')
         }
-        setLoginLoading(false)
-        return
-      }
-      if (!data.success) {
-        // تسجيل محاولة دخول فاشلة
+        // تسجيل عملية الدخول
         try {
+          const branchId = data.user.branchId || ''
+          const branchName = branches.find(b => b.id === branchId)?.name || ''
           fetch('/api/activity-log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: loginEmpId,
-              userName: loginEmpId,
-              userRole: 'unknown',
-              action: 'محاولة دخول فاشلة',
-              category: 'تسجيل الدخول',
-              details: `السبب: ${data.error}`
-            })
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: data.user.id, userName: data.user.name, userRole: data.user.role, branchId, branchName, action: 'تسجيل دخول', category: 'تسجيل الدخول', details: 'دخول بنجاح' })
           }).catch(() => {})
         } catch {}
-        setLoginError(data.error)
-        setLoginLoading(false)
-        return
+      } catch {
+        // JSON parse فشل - نعرض التفاصيل
+        console.error('Login parse error:', xhr.status, xhr.responseText?.substring(0, 200))
+        setLoginError('خطأ في الخادم (' + xhr.status + ') - حاول مرة أخرى')
       }
+    }
 
-      setUser(data.user)
-      setLoginPassword('')
-      setLoginEmpId('')
+    xhr.onerror = function () {
       setLoginLoading(false)
+      setLoginError('تعذر الاتصال بالخادم - تحقق من الإنترنت')
+    }
 
-      // تسجيل عملية الدخول في سجل النشاطات
-      try {
-        const branchId = data.user.branchId || ''
-        const branchName = branches.find(b => b.id === branchId)?.name || ''
-        fetch('/api/activity-log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: data.user.id,
-            userName: data.user.name,
-            userRole: data.user.role,
-            branchId,
-            branchName,
-            action: 'تسجيل دخول',
-            category: 'تسجيل الدخول',
-            details: `دخول بنجاح - الدور: ${data.user.role === 'admin' ? 'مسؤول' : data.user.role === 'viewer' ? 'مشاهد' : 'موظف'}${branchName ? ' - الفرع: ' + branchName : ''}`
-          })
-        }).catch(() => {})
-      } catch {}
-
-      if (data.user.role === 'admin' || data.user.role === 'viewer') {
-        setIsAdminMode(false)
-        setAdminSelectedBranch(null)
-        setAdminDate(todayISO())
-        setScreen('admin')
-      } else {
-        setIsAdminMode(false)
-        setAdminSelectedBranch(null)
-        setEmpDate(todayISO())
-        setScreen('employee')
-      }
-    } catch (err) {
-      console.error('Login unexpected error:', err)
-      setLoginError('حدث خطأ غير متوقع - امسح كاش المتصفح وحاول مرة أخرى')
+    xhr.ontimeout = function () {
       setLoginLoading(false)
+      setLoginError('انتهت مهلة الاتصال (30 ثانية) - حاول مرة أخرى')
+    }
+
+    try {
+      xhr.send(JSON.stringify({ empId: loginEmpId, password: loginPassword }))
+    } catch (e) {
+      setLoginLoading(false)
+      setLoginError('حدث خطأ غير متوقع - أعد تحميل الصفحة')
     }
   }
 
