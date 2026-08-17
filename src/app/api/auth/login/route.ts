@@ -178,14 +178,11 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error)
-    const errStack = error instanceof Error ? (error.stack || '').substring(0, 300) : ''
-    console.error('Login error:', errMsg, errStack)
+    console.error('Login error:', error)
     return NextResponse.json({
       success: false,
       error: 'حدث خطأ في الخادم - يرجى المحاولة مرة أخرى',
-      code: 'SERVER_ERROR',
-      debug: errMsg.substring(0, 200)
+      code: 'SERVER_ERROR'
     }, { status: 500 })
   }
 }

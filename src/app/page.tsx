@@ -104,8 +104,8 @@ let BRANCH_CLEANLINESS: Record<string, { type: string; value?: number; options?:
   'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
 }
 let BRANCH_MAINTENANCE: Record<string, { type: string; value?: number; options?: number[] }> = {
-  'بن غرسه': { type: 'fixed', value: 0 },
-  'أبونواس': { type: 'fixed', value: 0 },
+  'بن غرسه': { type: 'fixed', value: 10 },
+  'أبونواس': { type: 'fixed', value: 10 },
   'المنصوره': { type: 'select', options: [10, 20] },
   'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
 }
@@ -1238,13 +1238,11 @@ export default function JetCleanApp() {
   }
 
   // ==================== LOGIN ====================
-  const [loginDebug, setLoginDebug] = useState('')
   const handleLogin = async () => {
     if (!loginEmpId) { setLoginError('الرجاء اختيار اسم المستخدم'); return }
     if (!loginPassword) { setLoginError('الرجاء إدخال رمز المرور'); return }
     setLoginLoading(true)
     setLoginError('')
-    setLoginDebug('')
 
     try {
       const controller = new AbortController()
@@ -1260,15 +1258,12 @@ export default function JetCleanApp() {
       clearTimeout(timer)
 
       const text = await res.text()
-      setLoginDebug('Status: ' + res.status + ' | Type: ' + (res.headers.get('content-type') || '?') + ' | Body: ' + text.substring(0, 250))
-
-      // التحقق إن الرد JSON صالح
       let data: any
       try {
         data = JSON.parse(text)
       } catch {
         setLoginLoading(false)
-        setLoginError('خطأ في الخادم — الرد ليس JSON (حالة ' + res.status + ')')
+        setLoginError('خطأ في الخادم — حاول مرة أخرى')
         return
       }
 
@@ -1281,7 +1276,6 @@ export default function JetCleanApp() {
       setUser(data.user)
       setLoginPassword('')
       setLoginEmpId('')
-      setLoginDebug('')
       if (data.user.role === 'admin' || data.user.role === 'viewer') {
         setIsAdminMode(false)
         setAdminSelectedBranch(null)
@@ -1306,10 +1300,8 @@ export default function JetCleanApp() {
       setLoginLoading(false)
       if (err?.name === 'AbortError') {
         setLoginError('انتهت مهلة الاتصال (30 ثانية)')
-        setLoginDebug('ABORT: timeout 30s')
       } else {
         setLoginError('تعذر الاتصال بالخادم - تحقق من الإنترنت')
-        setLoginDebug('ERROR: ' + (err?.message || 'unknown'))
       }
     }
   }
@@ -4836,13 +4828,6 @@ export default function JetCleanApp() {
             >
               {loginLoading ? '⏳ جاري الدخول...' : '🔐 تسجيل الدخول'}
             </button>
-
-            {/* معلومات التشخيص — تظهر فقط عند وجود خطأ */}
-            {loginDebug && (
-              <div className="mt-3 p-3 bg-red-900/40 border border-red-500/30 rounded-xl text-left" dir="ltr">
-                <p className="text-red-300 text-[10px] font-mono break-all leading-relaxed">{loginDebug}</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
