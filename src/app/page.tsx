@@ -420,9 +420,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     const dateFsMap = ['14px', '12px', '10px']
     const mbMap = ['14px', '10px', '6px']
     const padMap2 = ['10px 12px', '7px 10px', '5px 8px']
-    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';background:linear-gradient(to left, #1F497D, #31869A);color:#FFFFFF;padding:' + padMap2[sl] + ';border-radius:4px;">' +
-      '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 4px 0;color:#FFFFFF;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
-      '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#E8EEF7;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';background:#FFFFFF;color:#000000;padding:' + padMap2[sl] + ';border-radius:4px;border:1px solid #999;">' +
+      '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 4px 0;color:#000000;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
+      '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#333333;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v6-gray-total'
+const APP_VERSION = 'v7-white-header'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
