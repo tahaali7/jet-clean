@@ -464,24 +464,26 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const overflowRoomCount = hasRemainder ? roomCells.length % MAX_ROOMS_PER_PAGE : 0
   const overflowCells = overflowRoomCount > 0 ? roomCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE) : []
 
-  // Treasury pages - worker expenses and treasury on separate pages
-  const treasuryPages = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
+  // Treasury page - uses same global sizeLevel
+  const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
   const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, sl) : ''
 
-  // صفحة الغرف الزائدة (لو موجودة)
+  // Split overflow rooms and treasury onto pages
   if (overflowHtml) {
     if (overflowRoomCount <= 3 && totalFullPages > 0) {
-      // غرف زائدة قليلة (1-3) → صفحة واحدة للغرف الزائدة
+      // غرف زائدة قليلة مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
       pages.push(
-        '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
+        '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
         buildHeader(sl) +
-        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
         overflowHtml +
+        '<div style="margin-top:16px;">' +
+        treasuryContent +
         '</div>' +
         '</div>'
       )
     } else {
-      // غرف زائدة كثيرة أو لا توجد صفحات غرف كاملة → صفحة منفصلة
+      // إما غرف زائدة كثيرة أو لا توجد صفحات غرف كاملة (مثل المنصوره 3 غرف)
+      // → صفحة منفصلة للغرف + صفحة منفصلة للخزينة
       pages.push(
         '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
         buildHeader(sl) +
@@ -490,24 +492,22 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
         '</div>' +
         '</div>'
       )
+      pages.push(
+        '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+        buildHeader(sl) +
+        treasuryContent +
+        '</div>'
+      )
     }
+  } else {
+    // No overflow rooms - treasury is the only content on this page
+    pages.push(
+      '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+      buildHeader(sl) +
+      treasuryContent +
+      '</div>'
+    )
   }
-
-  // صفحة مصاريف العمال
-  pages.push(
-    '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-    buildHeader(sl) +
-    treasuryPages[0] +
-    '</div>'
-  )
-
-  // صفحة الخزينة
-  pages.push(
-    '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-    buildHeader(sl) +
-    treasuryPages[1] +
-    '</div>'
-  )
 
   return pages
 }
@@ -518,7 +518,7 @@ function buildWorkerExpensesAndTreasury(
   branchName: string, selectedDate: string, orderedRooms: string[], entries: CarEntry[],
   grandTotalNet: number, savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>,
   sizeLevel?: number
-): string[] {
+): string {
   const sl = sizeLevel || 0
   // Adaptive sizing maps
   const wPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
@@ -655,13 +655,7 @@ function buildWorkerExpensesAndTreasury(
     '</table>' +
     '</div>'
 
-  // صفحة مصاريف العمال
-  const workerPage = '<div style="border-top:2px solid #1F497D;">' + workerExpensesHtml + '</div>'
-
-  // صفحة الخزينة
-  const treasuryPage = '<div style="border-top:2px solid #1F497D;">' + treasuryHtml + '</div>'
-
-  return [workerPage, treasuryPage]
+  return '<div style="' + sepMtMap[sl] + 'border-top:2px solid #1F497D;"><div style="display:flex;' + sepGapMap[sl] + '">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 
@@ -862,15 +856,15 @@ function buildEmployeeReportHTML(
       '</tr></thead>' +
       '<tbody>' + bd.empsHtml + '</tbody>' +
       '</table></div>'
-    // Estimate: title ~30px + header row ~30px + each emp row ~35px + detail rows ~25px each
+    // Estimate: title ~35px + header row ~35px + each emp row ~45px (including detail rows)
     const rowCount = bd.empsHtml.split('<tr').length
-    branchBlocks.push({ html: blockHtml, estimatedHeight: 30 + 30 + rowCount * 35 })
+    branchBlocks.push({ html: blockHtml, estimatedHeight: 35 + 35 + rowCount * 45 })
   })
 
-  // Header + summary estimated ~200px, footer ~30px, page usable ~880px (1120 - 200 - 30)
+  // Header + summary estimated ~200px, footer ~30px, page usable ~890px (1120 - 200 - 30)
   const headerHeight = 200
   const footerHeight = 30
-  const usableHeight = 890
+  const pageUsableHeight = 920
 
   let pageNum = 1
   let currentPageContent = headerHtml + summaryHtml
@@ -882,14 +876,14 @@ function buildEmployeeReportHTML(
       currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
       pages.push('<div style="' + pageWithMinHeight + '">' + currentPageContent + '</div>')
       pageNum++
+      // On new pages, add header but not summary
       currentPageContent = headerHtml + block.html
-      currentPageUsed = headerHeight + block.estimatedHeight
+      currentPageUsed = headerHeight - 80 + block.estimatedHeight  // -80 because no summary on continuation pages
     } else {
       currentPageContent += block.html
       currentPageUsed += block.estimatedHeight
     }
   })
-
   // Last page
   if (currentPageContent) {
     currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
@@ -901,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v14-paginated-expenses'
+const APP_VERSION = 'v15-expenses-pagination'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
