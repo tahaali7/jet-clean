@@ -198,10 +198,9 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   const titleFs = titleFsMap[sl]
   const countFs = countFsMap[sl]
 
-  // ألوان متناوبة: الغرف على اليمين (زوجي) أزرق، على اليسار (فردي) أخضر/تركوازي
-  const isLeftRoom = roomIndex !== undefined && roomIndex % 2 === 1
-  const titleBg = isLeftRoom ? '#31869A' : '#1F497D'
-  const headerBg = isLeftRoom ? '#D5E8EB' : '#D9E1F1'
+  // تدرج لوني من الأزرق الداكن (يمين) إلى التركوازي (يسار)
+  const titleBg = 'linear-gradient(to left, #1F497D, #31869A)'
+  const headerBg = '#D9E1F1'
 
   let rowsHtml = ''
   let rowNum = 0
@@ -297,9 +296,9 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number, roomIndex?: n
   const cellFs = fsMap[sl]
   const titlePad = titlePadMap[sl]
   const titleFs = titleFsMap[sl]
-  const isLeftRoom = roomIndex !== undefined && roomIndex % 2 === 1
-  const titleBg = isLeftRoom ? '#31869A' : '#1F497D'
-  const headerBg = isLeftRoom ? '#D5E8EB' : '#D9E1F1'
+  // تدرج لوني من الأزرق الداكن (يمين) إلى التركوازي (يسار)
+  const titleBg = 'linear-gradient(to left, #1F497D, #31869A)'
+  const headerBg = '#D9E1F1'
   let rowsHtml = ''
   let rowNum = 0
   prices.forEach(price => {
@@ -421,7 +420,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     const dateFsMap = ['14px', '12px', '10px']
     const mbMap = ['14px', '10px', '6px']
     const padMap2 = ['10px 12px', '7px 10px', '5px 8px']
-    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';background:#1F497D;color:#FFFFFF;padding:' + padMap2[sl] + ';border-radius:4px;">' +
+    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';background:linear-gradient(to left, #1F497D, #31869A);color:#FFFFFF;padding:' + padMap2[sl] + ';border-radius:4px;">' +
       '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 4px 0;color:#FFFFFF;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
       '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#E8EEF7;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
@@ -587,7 +586,7 @@ function buildWorkerExpensesAndTreasury(
   const wTitleFs = wTitleFsMap[sl]
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;vertical-align:middle;background:#1F497D;color:#FFFFFF;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;vertical-align:middle;background:linear-gradient(to left, #1F497D, #31869A);color:#FFFFFF;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -651,7 +650,7 @@ function buildWorkerExpensesAndTreasury(
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;background:#1F497D;color:#FFFFFF;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;background:linear-gradient(to left, #1F497D, #31869A);color:#FFFFFF;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
@@ -896,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v5-colors'
+const APP_VERSION = 'v5-gradient'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
