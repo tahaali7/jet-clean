@@ -232,7 +232,7 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   let extraRowHtml = ''
   if (roomExtraCars > 0) {
-    extraRowHtml = '<tr style="background:#fffde7;">' +
+    extraRowHtml = '<tr style="background:#FFFFFF;">' +
       '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">⭐ إكسترا</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraCars + '</td>' +
       '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;color:#e65100;">' + roomExtraAmount + ' د.ل</td>' +
@@ -245,14 +245,14 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     const cleanVal = ROOM_CLEAN_VALUES[branchName] || 0
     const maintVal = ROOM_MAINT_VALUES[branchName] || 0
     if (cleanVal > 0) {
-      roomAddonRowsHtml += '<tr style="background:#fff3e0;">' +
+      roomAddonRowsHtml += '<tr style="background:#FFFFFF;">' +
         '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
         '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;">1</td>' +
         '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">' + cleanVal + ' د.ل</td>' +
       '</tr>'
     }
     if (maintVal > 0) {
-      roomAddonRowsHtml += '<tr style="background:#f3e5f5;">' +
+      roomAddonRowsHtml += '<tr style="background:#FFFFFF;">' +
         '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#7b1fa2;">🔧 الصيانة</td>' +
         '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + countFs + 'font-weight:bold;">1</td>' +
         '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">' + maintVal + ' د.ل</td>' +
@@ -272,11 +272,11 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     roomAddonRowsHtml +
-    '<tr style="background:#FFF1CC;">' +
+    '<tr style="background:#D9E1F1;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
-    '<tr style="background:#FFF1CC;">' +
+    '<tr style="background:#D9E1F1;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:' + titleBg + ';">الصافي</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:' + titleBg + ';">' + roomNet + ' د.ل</td>' +
     '</tr>' +
@@ -320,11 +320,11 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number, roomIndex?: n
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
     '</tr>' +
     rowsHtml +
-    '<tr style="background:#FFF1CC;">' +
+    '<tr style="background:#D9E1F1;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">0</td>' +
     '</tr>' +
-    '<tr style="background:#FFF1CC;">' +
+    '<tr style="background:#D9E1F1;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:' + titleBg + ';">الصافي</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:' + titleBg + ';">0</td>' +
     '</tr>' +
@@ -577,7 +577,7 @@ function buildWorkerExpensesAndTreasury(
 
   const finalTotalAfterExpenses = isLegacyPdf ? grandTotalNet + savedCleanliness : grandTotalNet
   const wTotalFs = wTotalFsMap[sl]
-  workerRowsHtml += '<tr style="background:#FFF1CC;">' +
+  workerRowsHtml += '<tr style="background:#D9E1F1;">' +
     '<td style="' + wCellPad + 'border:2px solid #333;' + wLabelFs + 'font-weight:bold;text-align:center;">الإجمالي</td>' +
     '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;' + wTotalFs + 'font-weight:bold;color:#1F497D;">' + finalTotalAfterExpenses + ' د.ل</td>' +
   '</tr>'
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v5-gradient'
+const APP_VERSION = 'v5-rowcolors'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
