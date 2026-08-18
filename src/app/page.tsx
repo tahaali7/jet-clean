@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v12-smaller-rooms'
+const APP_VERSION = 'v13-cash-optional'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
@@ -4107,7 +4107,6 @@ export default function JetCleanApp() {
             const bankCardSale = parseInt(String(bankTreasury['بيع_البطاقة']?.expense)) || 0
             const cashRemaining = parseInt(String(bankTreasury['الكاش_المتبقي']?.expense)) || 0
             const canEditBank = user?.role !== 'viewer' && !isBranchLocked
-            if (bankCardSale === 0 && cashRemaining === 0) return null
             const isAdminView = isAdminMode || user?.role === 'admin' || user?.role === 'viewer'
             return (
               <div className="bg-gradient-to-l from-blue-600/10 to-indigo-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl mt-4">
@@ -4137,9 +4136,9 @@ export default function JetCleanApp() {
                       <span className="text-center text-emerald-400 text-sm font-bold">{bankCardSale}</span>
                     )}
                   </div>
-                  {/* الكاش المتبقي */}
+                  {/* الكاش المتبقي - اختياري */}
                   <div className="grid grid-cols-2 gap-0 items-center px-3 py-3">
-                    <span className="text-slate-200 text-xs font-semibold">💵 الكاش المتبقي</span>
+                    <span className="text-slate-200 text-xs font-semibold">💵 الكاش المتبقي <span className="text-slate-500 text-[10px]">(اختياري)</span></span>
                     {canEditBank ? (
                       <div className="text-center">
                         <input
