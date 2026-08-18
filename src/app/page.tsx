@@ -431,8 +431,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const treasuryPagePadMap = ['8px 10px', '6px 8px', '4px 6px']
   const sl = globalSizeLevel
 
-  // Split rooms across pages: max 6 rooms per page (3 rows × 2 cols)
-  const MAX_ROOMS_PER_PAGE = 6
+  // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols) — bigger fonts need more space
+  const MAX_ROOMS_PER_PAGE = 4
   const pages: string[] = []
 
   const totalFullPages = Math.floor(roomCells.length / MAX_ROOMS_PER_PAGE)
@@ -470,8 +470,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Split overflow rooms and treasury onto pages
   if (overflowHtml) {
-    if (overflowRoomCount <= 3 && totalFullPages > 0) {
-      // غرف زائدة قليلة مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
+    if (overflowRoomCount <= 2 && totalFullPages > 0) {
+      // غرف زائدة قليلة (1-2) مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
       pages.push(
         '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
         buildHeader(sl) +
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v8-bigger-fonts'
+const APP_VERSION = 'v9-4rooms-page'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
