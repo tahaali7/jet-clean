@@ -522,14 +522,14 @@ function buildWorkerExpensesAndTreasury(
   const sl = sizeLevel || 0
   // Adaptive sizing maps
   const wPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const wLabelFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
-  const wValueFsMap = ['font-size:13px;', 'font-size:11px;', 'font-size:10px;']
-  const wTotalFsMap = ['font-size:15px;', 'font-size:13px;', 'font-size:11px;']
+  const wLabelFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
+  const wValueFsMap = ['font-size:16px;', 'font-size:14px;', 'font-size:12px;']
+  const wTotalFsMap = ['font-size:18px;', 'font-size:16px;', 'font-size:14px;']
   const wTitlePadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const wTitleFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const wTitleFsMap = ['font-size:14px;', 'font-size:13px;', 'font-size:12px;']
   const tPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const tLabelFsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
-  const tValueFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const tLabelFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const tValueFsMap = ['font-size:14px;', 'font-size:12px;', 'font-size:11px;']
   const sepMtMap = ['margin-top:6px;padding-top:6px;', 'margin-top:4px;padding-top:4px;', 'margin-top:2px;padding-top:2px;']
   const sepGapMap = ['gap:8px;', 'gap:5px;', 'gap:3px;']
 
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v10-slightly-bigger'
+const APP_VERSION = 'v11-bigger-treasury'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
