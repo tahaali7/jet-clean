@@ -2479,7 +2479,7 @@ export default function JetCleanApp() {
     
     // Write clean HTML with only our inline styles and Cairo font
     iframeDoc.open()
-    iframeDoc.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"><style>* { margin: 0; padding: 0; box-sizing: border-box; color: #000; } body { font-family: Cairo, sans-serif; direction: rtl; background: #fff; } table { font-family: Cairo, sans-serif; } td, th { direction: rtl; unicode-bidi: isolate; border-left: none !important; border-right: none !important; }</style></head><body>' + html + '</body></html>')
+    iframeDoc.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"><style>* { margin: 0; padding: 0; box-sizing: border-box; color: #000; } body { font-family: Cairo, sans-serif; direction: rtl; background: #fff; } table { font-family: Cairo, sans-serif; } td, th { direction: rtl; unicode-bidi: isolate; border-left: none !important; border-right: none !important; border-top-color: #999 !important; border-bottom-color: #999 !important; }</style></head><body>' + html + '</body></html>')
     iframeDoc.close()
     
     // Wait for fonts to load
