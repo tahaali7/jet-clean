@@ -272,13 +272,13 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     roomAddonRowsHtml +
-    '<tr style="background:#31869A;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#FFFFFF;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#FFFFFF;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
+    '<tr style="background:#D9D9D9;">' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#000000;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
-    '<tr style="background:#31869A;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#FFFFFF;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#FFFFFF;">' + roomNet + ' د.ل</td>' +
+    '<tr style="background:#D9D9D9;">' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#000000;">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
@@ -320,13 +320,13 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number, roomIndex?: n
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
     '</tr>' +
     rowsHtml +
-    '<tr style="background:#31869A;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#FFFFFF;">إجمالي الغرفة</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#FFFFFF;">0</td>' +
+    '<tr style="background:#D9D9D9;">' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#000000;">إجمالي الغرفة</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">0</td>' +
     '</tr>' +
-    '<tr style="background:#31869A;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#FFFFFF;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#FFFFFF;">0</td>' +
+    '<tr style="background:#D9D9D9;">' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#000000;">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#000000;">0</td>' +
     '</tr>' +
     '</table>'
 }
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v5-hborders'
+const APP_VERSION = 'v6-gray-total'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
