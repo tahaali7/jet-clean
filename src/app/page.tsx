@@ -944,7 +944,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v16-emp-level-pagination'
+const APP_VERSION = 'v17-expenses-pagination'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
@@ -2906,97 +2906,202 @@ export default function JetCleanApp() {
       const totalExpAmount = allExpenses.reduce((s, e) => s + e.amount, 0)
       const totalRecAmount = allRecords.reduce((s, r) => s + r.amount, 0)
 
-      // Build PDF HTML pages
-      const pages: string[] = []
+      // ===== Pagination constants =====
+      const PAGE_WIDTH = 780
+      const PAGE_HEIGHT = 1100
+      const HEADER_H = 120
+      const SECTION_TITLE_H = 50
+      const TABLE_HEADER_H = 40
+      const TABLE_TOTAL_H = 45
+      const FOOTER_H = 30
+      const ROW_H = 30 // normal row
+      const DATE_ROW_H = 35 // date header row
+      const CONT_HEADER_H = 80 // continuation page header (smaller)
 
-      // Page 1: Expenses summary
-      let rowsHtml = ''
-      let rowNum = 0
-      let prevDate = ''
+      // Helper: build page header HTML
+      const buildHeader = (isFirst: boolean) => {
+        return '<div style="text-align:center;margin-bottom:20px;border-bottom:3px solid #1e40af;padding-bottom:12px;">' +
+          '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">مغسلة جيت كلين</h1>' +
+          '<p style="font-size:15px;margin:6px 0 0;color:#000000;">تقرير مصروفات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
+          '</div>'
+      }
+
+      // Helper: build page footer HTML
+      const buildFooter = (pageNum: number) => {
+        return '<div style="text-align:center;margin-top:10px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:9px;color:#000000;">صفحة ' + pageNum + '</div>'
+      }
+
+      const pages: string[] = []
+      let pageNum = 1
+
+      // ===== SECTION 1: Expenses (المصروفات) with pagination =====
       const grouped: Record<string, { name: string; amount: number }[]> = {}
       allExpenses.forEach(e => {
         if (!grouped[e.date]) grouped[e.date] = []
         grouped[e.date].push(e)
       })
 
+      // Build expense rows with height info
+      const expRows: { html: string; height: number }[] = []
+      let rowNum = 0
       for (const date of dates) {
         const dayExps = grouped[date] || []
         if (dayExps.length === 0) continue
-        if (date !== prevDate) {
-          const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
-          rowsHtml += '<tr style="color:#000000;">' +
-            '<td colspan="2" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
-            '<td style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + dayTotal + ' د.ل</td>' +
-            '</tr>'
-          dayExps.forEach(exp => {
-            rowNum++
-            rowsHtml += '<tr style="">' +
-              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#000000;">' + (rowNum) + '</td>' +
+        const dayTotal = dayExps.reduce((s, e) => s + e.amount, 0)
+        expRows.push({
+          html: '<tr style="color:#000000;"><td colspan="2" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + formatDateShort(date) + '</td>' +
+            '<td style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + dayTotal + ' د.ل</td></tr>',
+          height: DATE_ROW_H
+        })
+        dayExps.forEach(exp => {
+          rowNum++
+          expRows.push({
+            html: '<tr><td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:10px;text-align:center;color:#000000;">' + rowNum + '</td>' +
               '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + exp.name + '</td>' +
-              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + exp.amount + ' د.ل</td>' +
-              '</tr>'
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + exp.amount + ' د.ل</td></tr>',
+            height: ROW_H
           })
-          prevDate = date
-        }
+        })
       }
 
-      pages.push(
-        '<div style="width:780px;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
-        '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
-        '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
-        '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير مصروفات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
-        '</div>' +
-        '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">📋 المصروفات</h2>' +
-        (rowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">م</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">البيان</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
-        rowsHtml +
-        '<tr style="color:#000000;"><td colspan="2" style="padding:10px 12px;border:1px solid #991b1b;font-size:13px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:10px 12px;border:1px solid #991b1b;font-size:15px;font-weight:bold;text-align:center;">' + totalExpAmount + ' د.ل</td></tr>' +
-        '</table>' : '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد مصروفات في هذه الفترة</p>') +
-        '</div>'
-      )
+      // Paginate expense rows
+      if (expRows.length > 0) {
+        const tableHeaderHtml = '<table style="width:100%;border-collapse:collapse;"><tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">م</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">البيان</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>'
+        const totalRowHtml = '<tr style="color:#000000;"><td colspan="2" style="padding:10px 12px;border:1px solid #991b1b;font-size:13px;font-weight:bold;text-align:center;">إجمالي المصروفات</td><td style="padding:10px 12px;border:1px solid #991b1b;font-size:15px;font-weight:bold;text-align:center;">' + totalExpAmount + ' د.ل</td></tr>'
 
-      // Page 2: Withdrawals & Shortages
-      let recRowsHtml = ''
+        let pageContent = buildHeader(true)
+        let usedHeight = HEADER_H + SECTION_TITLE_H + TABLE_HEADER_H
+        pageContent += '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">المصروفات</h2>'
+        pageContent += tableHeaderHtml
+        let rowIdx = 0
+
+        while (rowIdx < expRows.length) {
+          const row = expRows[rowIdx]
+          // Check if this row + total row + footer fits
+          const remaining = expRows.length - rowIdx
+          const isLastRow = remaining === 1
+          const needTotalAndFooter = isLastRow
+          const spaceNeeded = row.height + (needTotalAndFooter ? TABLE_TOTAL_H + FOOTER_H : FOOTER_H)
+
+          if (usedHeight + spaceNeeded > PAGE_HEIGHT && rowIdx > 0) {
+            // Flush current page
+            pageContent += '</table>'
+            pageContent += buildFooter(pageNum)
+            pages.push('<div style="width:' + PAGE_WIDTH + 'px;color:#000000;padding:30px;font-family:Cairo,sans-serif;min-height:' + PAGE_HEIGHT + 'px;" dir="rtl">' + pageContent + '</div>')
+            pageNum++
+            // Start new continuation page
+            pageContent = buildHeader(false)
+            pageContent += '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">المصروفات (تابع)</h2>'
+            pageContent += tableHeaderHtml
+            usedHeight = CONT_HEADER_H + SECTION_TITLE_H + TABLE_HEADER_H
+          }
+
+          pageContent += row.html
+          usedHeight += row.height
+          rowIdx++
+        }
+
+        // Close table and add total
+        pageContent += totalRowHtml
+        pageContent += '</table>'
+        pageContent += buildFooter(pageNum)
+        pages.push('<div style="width:' + PAGE_WIDTH + 'px;color:#000000;padding:30px;font-family:Cairo,sans-serif;min-height:' + PAGE_HEIGHT + 'px;" dir="rtl">' + pageContent + '</div>')
+        pageNum++
+      } else {
+        pages.push(
+          '<div style="width:' + PAGE_WIDTH + 'px;color:#000000;padding:30px;font-family:Cairo,sans-serif;min-height:' + PAGE_HEIGHT + 'px;" dir="rtl">' +
+          buildHeader(true) +
+          '<h2 style="font-size:18px;font-weight:bold;color:#b91c1c;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #b91c1c;border-radius:0 8px 8px 0;">المصروفات</h2>' +
+          '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد مصروفات في هذه الفترة</p>' +
+          buildFooter(pageNum) +
+          '</div>'
+        )
+        pageNum++
+      }
+
+      // ===== SECTION 2: Withdrawals & Shortages (السحوبات والعجوزات) with pagination =====
+      const totalWithdrawals = allRecords.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
+      const totalShortages = allRecords.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
+
       const groupedRec: Record<string, { empName: string; type: string; amount: number }[]> = {}
       allRecords.forEach(r => {
         if (!groupedRec[r.date]) groupedRec[r.date] = []
         groupedRec[r.date].push(r)
       })
-      const totalWithdrawals = allRecords.filter(r => r.type === 'withdrawal').reduce((s, r) => s + r.amount, 0)
-      const totalShortages = allRecords.filter(r => r.type === 'shortage').reduce((s, r) => s + r.amount, 0)
 
+      // Build record rows with height info
+      const recRows: { html: string; height: number }[] = []
       for (const date of dates) {
         const dayRecs = groupedRec[date] || []
         if (dayRecs.length === 0) continue
-        recRowsHtml += '<tr style="color:#000000;">' +
-          '<td colspan="3" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">📅 ' + formatDateShort(date) + '</td>' +
-          '</tr>'
+        recRows.push({
+          html: '<tr style="color:#000000;"><td colspan="3" style="padding:8px 10px;border:1px solid #1e3a5f;font-size:11px;font-weight:bold;text-align:center;">' + formatDateShort(date) + '</td></tr>',
+          height: DATE_ROW_H
+        })
         dayRecs.forEach(rec => {
-          const isWithdrawal = rec.type === 'withdrawal'
-          recRowsHtml += '<tr style="">' +
-            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + rec.empName + '</td>' +
-            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#000000;background:' + (isWithdrawal ? '#d97706' : '#dc2626') + ';">' + (isWithdrawal ? '💰 سحب' : '⚠️ عجز') + '</td>' +
-            '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + rec.amount + ' د.ل</td>' +
-            '</tr>'
+          const isW = rec.type === 'withdrawal'
+          recRows.push({
+            html: '<tr><td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;text-align:right;color:#000000;">' + rec.empName + '</td>' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#000000;background:' + (isW ? '#d97706' : '#dc2626') + ';">' + (isW ? 'سحب' : 'عجز') + '</td>' +
+              '<td style="padding:5px 10px;border:1px solid #cbd5e1;font-size:11px;font-weight:bold;text-align:center;color:#b91c1c;">' + rec.amount + ' د.ل</td></tr>',
+            height: ROW_H
+          })
         })
       }
 
-      pages.push(
-        '<div style="width:780px;color:#000000;padding:30px;font-family:Cairo,sans-serif;" dir="rtl">' +
-        '<div style="text-align:center;margin-bottom:25px;border-bottom:3px solid #1e40af;padding-bottom:15px;">' +
-        '<h1 style="font-size:26px;font-weight:bold;margin:0;color:#1e40af;">🚗 مغسلة جيت كلين</h1>' +
-        '<p style="font-size:15px;margin:8px 0 0;color:#000000;">تقرير سحوبات وعجوزات الفرع: <strong>' + branchName + '</strong> | ' + periodLabel + '</p>' +
-        '</div>' +
-        '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">💰 السحوبات والعجوزات</h2>' +
-        (recRowsHtml ? '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">الموظف</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">النوع</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>' +
-        recRowsHtml +
-        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b45309;font-size:13px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b45309;font-size:15px;font-weight:bold;text-align:center;">' + totalWithdrawals + ' د.ل</td></tr>' +
-        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b91c1c;font-size:13px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b91c1c;font-size:15px;font-weight:bold;text-align:center;">' + totalShortages + ' د.ل</td></tr>' +
-        '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #020617;font-size:13px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:10px 12px;border:1px solid #020617;font-size:17px;font-weight:bold;text-align:center;">' + totalRecAmount + ' د.ل</td></tr>' +
-        '</table>' : '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>') +
-        '</div>'
-      )
+      // Paginate record rows
+      if (recRows.length > 0) {
+        const tableHeaderHtml = '<table style="width:100%;border-collapse:collapse;"><tr style="color:#000000;"><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">الموظف</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">النوع</th><th style="padding:10px;border:1px solid #1e3a5f;font-size:12px;font-weight:bold;">المبلغ</th></tr>'
+        const totalRowsHtml =
+          '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b45309;font-size:13px;font-weight:bold;text-align:center;">إجمالي السحوبات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b45309;font-size:15px;font-weight:bold;text-align:center;">' + totalWithdrawals + ' د.ل</td></tr>' +
+          '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #b91c1c;font-size:13px;font-weight:bold;text-align:center;">إجمالي العجوزات</td><td colspan="2" style="padding:10px 12px;border:1px solid #b91c1c;font-size:15px;font-weight:bold;text-align:center;">' + totalShortages + ' د.ل</td></tr>' +
+          '<tr style="color:#000000;"><td style="padding:10px 12px;border:1px solid #020617;font-size:13px;font-weight:bold;text-align:center;">الإجمالي الكلي</td><td colspan="2" style="padding:10px 12px;border:1px solid #020617;font-size:17px;font-weight:bold;text-align:center;">' + totalRecAmount + ' د.ل</td></tr>'
+
+        let pageContent = buildHeader(true)
+        let usedHeight = HEADER_H + SECTION_TITLE_H + TABLE_HEADER_H
+        pageContent += '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">السحوبات والعجوزات</h2>'
+        pageContent += tableHeaderHtml
+        let rowIdx = 0
+
+        while (rowIdx < recRows.length) {
+          const row = recRows[rowIdx]
+          const remaining = recRows.length - rowIdx
+          const isLastRow = remaining === 1
+          const spaceNeeded = row.height + (isLastRow ? TABLE_TOTAL_H * 3 + FOOTER_H : FOOTER_H)
+
+          if (usedHeight + spaceNeeded > PAGE_HEIGHT && rowIdx > 0) {
+            // Flush current page
+            pageContent += '</table>'
+            pageContent += buildFooter(pageNum)
+            pages.push('<div style="width:' + PAGE_WIDTH + 'px;color:#000000;padding:30px;font-family:Cairo,sans-serif;min-height:' + PAGE_HEIGHT + 'px;" dir="rtl">' + pageContent + '</div>')
+            pageNum++
+            // Start new continuation page
+            pageContent = buildHeader(false)
+            pageContent += '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">السحوبات والعجوزات (تابع)</h2>'
+            pageContent += tableHeaderHtml
+            usedHeight = CONT_HEADER_H + SECTION_TITLE_H + TABLE_HEADER_H
+          }
+
+          pageContent += row.html
+          usedHeight += row.height
+          rowIdx++
+        }
+
+        // Close table and add totals
+        pageContent += totalRowsHtml
+        pageContent += '</table>'
+        pageContent += buildFooter(pageNum)
+        pages.push('<div style="width:' + PAGE_WIDTH + 'px;color:#000000;padding:30px;font-family:Cairo,sans-serif;min-height:' + PAGE_HEIGHT + 'px;" dir="rtl">' + pageContent + '</div>')
+      } else {
+        pages.push(
+          '<div style="width:' + PAGE_WIDTH + 'px;color:#000000;padding:30px;font-family:Cairo,sans-serif;min-height:' + PAGE_HEIGHT + 'px;" dir="rtl">' +
+          buildHeader(true) +
+          '<h2 style="font-size:18px;font-weight:bold;color:#d97706;margin:20px 0 12px;padding:8px 15px;border-right:4px solid #d97706;border-radius:0 8px 8px 0;">السحوبات والعجوزات</h2>' +
+          '<p style="text-align:center;color:#000000;padding:30px;font-size:14px;">لا توجد سحوبات أو عجوزات في هذه الفترة</p>' +
+          buildFooter(pageNum) +
+          '</div>'
+        )
+      }
 
       // Generate PDF
       const jspdfModule = await import('jspdf')
