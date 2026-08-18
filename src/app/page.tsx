@@ -187,10 +187,10 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   // Auto-adaptive: level 0=normal, 1=compact, 2=ultra-compact
   const sl = sizeLevel || 0
   const padMap = ['10px 10px', '5px 7px', '3px 5px']
-  const fsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const fsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
   const titlePadMap = ['padding:10px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const titleFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
-  const countFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const titleFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
+  const countFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
   const _pad = padMap[sl]
   const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
   const cellFs = fsMap[sl]
@@ -288,9 +288,9 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number, roomIndex?: n
   const prices = getPricesForRoom(room)
   const sl = sizeLevel || 0
   const padMap = ['10px 10px', '5px 7px', '3px 5px']
-  const fsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const fsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
   const titlePadMap = ['padding:10px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const titleFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const titleFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
   const _pad = padMap[sl]
   const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
   const cellFs = fsMap[sl]
@@ -522,14 +522,14 @@ function buildWorkerExpensesAndTreasury(
   const sl = sizeLevel || 0
   // Adaptive sizing maps
   const wPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const wLabelFsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
-  const wValueFsMap = ['font-size:12px;', 'font-size:10px;', 'font-size:9px;']
-  const wTotalFsMap = ['font-size:14px;', 'font-size:12px;', 'font-size:10px;']
+  const wLabelFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const wValueFsMap = ['font-size:14px;', 'font-size:12px;', 'font-size:11px;']
+  const wTotalFsMap = ['font-size:16px;', 'font-size:14px;', 'font-size:12px;']
   const wTitlePadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const wTitleFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const wTitleFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
   const tPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const tLabelFsMap = ['font-size:9px;', 'font-size:8px;', 'font-size:7px;']
-  const tValueFsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const tLabelFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const tValueFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
   const sepMtMap = ['margin-top:6px;padding-top:6px;', 'margin-top:4px;padding-top:4px;', 'margin-top:2px;padding-top:2px;']
   const sepGapMap = ['gap:8px;', 'gap:5px;', 'gap:3px;']
 
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v7-white-header'
+const APP_VERSION = 'v8-bigger-fonts'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
