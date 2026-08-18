@@ -187,10 +187,10 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   // Auto-adaptive: level 0=normal, 1=compact, 2=ultra-compact
   const sl = sizeLevel || 0
   const padMap = ['10px 10px', '5px 7px', '3px 5px']
-  const fsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const fsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
   const titlePadMap = ['padding:10px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const titleFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
-  const countFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
+  const titleFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const countFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
   const _pad = padMap[sl]
   const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
   const cellFs = fsMap[sl]
@@ -288,9 +288,9 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number, roomIndex?: n
   const prices = getPricesForRoom(room)
   const sl = sizeLevel || 0
   const padMap = ['10px 10px', '5px 7px', '3px 5px']
-  const fsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const fsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
   const titlePadMap = ['padding:10px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const titleFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
+  const titleFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
   const _pad = padMap[sl]
   const cellPad = 'padding:' + _pad + ';vertical-align:middle;'
   const cellFs = fsMap[sl]
@@ -431,8 +431,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const treasuryPagePadMap = ['8px 10px', '6px 8px', '4px 6px']
   const sl = globalSizeLevel
 
-  // Split rooms across pages: max 4 rooms per page (2 rows × 2 cols) — bigger fonts need more space
-  const MAX_ROOMS_PER_PAGE = 4
+  // Split rooms across pages: max 6 rooms per page (3 rows × 2 cols)
+  const MAX_ROOMS_PER_PAGE = 6
   const pages: string[] = []
 
   const totalFullPages = Math.floor(roomCells.length / MAX_ROOMS_PER_PAGE)
@@ -470,8 +470,8 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
 
   // Split overflow rooms and treasury onto pages
   if (overflowHtml) {
-    if (overflowRoomCount <= 2 && totalFullPages > 0) {
-      // غرف زائدة قليلة (1-2) مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
+    if (overflowRoomCount <= 3 && totalFullPages > 0) {
+      // غرف زائدة قليلة مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
       pages.push(
         '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
         buildHeader(sl) +
@@ -522,14 +522,14 @@ function buildWorkerExpensesAndTreasury(
   const sl = sizeLevel || 0
   // Adaptive sizing maps
   const wPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const wLabelFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
-  const wValueFsMap = ['font-size:14px;', 'font-size:12px;', 'font-size:11px;']
-  const wTotalFsMap = ['font-size:16px;', 'font-size:14px;', 'font-size:12px;']
+  const wLabelFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
+  const wValueFsMap = ['font-size:13px;', 'font-size:11px;', 'font-size:10px;']
+  const wTotalFsMap = ['font-size:15px;', 'font-size:13px;', 'font-size:11px;']
   const wTitlePadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const wTitleFsMap = ['font-size:13px;', 'font-size:12px;', 'font-size:11px;']
+  const wTitleFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
   const tPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
-  const tLabelFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
-  const tValueFsMap = ['font-size:12px;', 'font-size:11px;', 'font-size:10px;']
+  const tLabelFsMap = ['font-size:10px;', 'font-size:9px;', 'font-size:8px;']
+  const tValueFsMap = ['font-size:11px;', 'font-size:10px;', 'font-size:9px;']
   const sepMtMap = ['margin-top:6px;padding-top:6px;', 'margin-top:4px;padding-top:4px;', 'margin-top:2px;padding-top:2px;']
   const sepGapMap = ['gap:8px;', 'gap:5px;', 'gap:3px;']
 
@@ -895,7 +895,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v9-4rooms-page'
+const APP_VERSION = 'v10-slightly-bigger'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
