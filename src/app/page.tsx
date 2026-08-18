@@ -258,8 +258,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#1F497D;color:#FFFFFF;">' + room + '</td></tr>' +
+    '<tr style="background:#D9E1F1;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
@@ -268,13 +268,13 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     rowsHtml +
     extraRowHtml +
     roomAddonRowsHtml +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr style="background:#FFF1CC;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
-    '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">' + roomNet + ' د.ل</td>' +
+    '<tr style="background:#FFF1CC;">' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#1F497D;">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#1F497D;">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
@@ -305,21 +305,21 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#bdbdbd;color:#222;">' + room + '</td></tr>' +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#1F497D;color:#FFFFFF;">' + room + '</td></tr>' +
+    '<tr style="background:#D9E1F1;">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">الإجمالي</td>' +
     '</tr>' +
     rowsHtml +
-    '<tr style="background:#e0e0e0;">' +
+    '<tr style="background:#FFF1CC;">' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;">إجمالي الغرفة</td>' +
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">0</td>' +
     '</tr>' +
-    '<tr style="background:#e8f5e9;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#2e7d32;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#2e7d32;">0</td>' +
+    '<tr style="background:#FFF1CC;">' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#1F497D;">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#1F497D;">0</td>' +
     '</tr>' +
     '</table>'
 }
@@ -412,10 +412,10 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
     const fsMap = ['22px', '18px', '15px']
     const dateFsMap = ['14px', '12px', '10px']
     const mbMap = ['14px', '10px', '6px']
-    const pbMap = ['10px', '6px', '4px']
-    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';border-bottom:2px solid #000;padding-bottom:' + pbMap[sl] + ';">' +
-      '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 6px 0;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
-      '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#000000;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
+    const padMap2 = ['10px 12px', '7px 10px', '5px 8px']
+    return '<div style="text-align:center;margin-bottom:' + mbMap[sl] + ';background:#1F497D;color:#FFFFFF;padding:' + padMap2[sl] + ';border-radius:4px;">' +
+      '<h1 style="font-size:' + fsMap[sl] + ';font-weight:bold;margin:0 0 4px 0;color:#FFFFFF;">مغسلة <span style="margin:0 0 0 15px;">' + branchName + '</span></h1>' +
+      '<p style="font-size:' + dateFsMap[sl] + ';margin:0;color:#E8EEF7;">التاريخ: ' + formatDateShort(selectedDate) + '</p>' +
       '</div>'
   }
 
@@ -570,16 +570,16 @@ function buildWorkerExpensesAndTreasury(
 
   const finalTotalAfterExpenses = isLegacyPdf ? grandTotalNet + savedCleanliness : grandTotalNet
   const wTotalFs = wTotalFsMap[sl]
-  workerRowsHtml += '<tr style="">' +
+  workerRowsHtml += '<tr style="background:#FFF1CC;">' +
     '<td style="' + wCellPad + 'border:2px solid #333;' + wLabelFs + 'font-weight:bold;text-align:center;">الإجمالي</td>' +
-    '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;' + wTotalFs + 'font-weight:bold;color:#2e7d32;">' + finalTotalAfterExpenses + ' د.ل</td>' +
+    '<td style="' + wCellPad + 'border:2px solid #333;text-align:center;' + wTotalFs + 'font-weight:bold;color:#1F497D;">' + finalTotalAfterExpenses + ' د.ل</td>' +
   '</tr>'
 
   const wTitlePad = wTitlePadMap[sl]
   const wTitleFs = wTitleFsMap[sl]
   const workerExpensesHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;vertical-align:middle;">مصاريف العمال</td></tr>' +
+    '<tr><td colspan="2" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;vertical-align:middle;background:#1F497D;color:#FFFFFF;">مصاريف العمال</td></tr>' +
     workerRowsHtml +
     '</table>' +
     '</div>'
@@ -594,7 +594,7 @@ function buildWorkerExpensesAndTreasury(
   const tValueStyle = tCellPad + 'text-align:center;' + tValueFsMap[sl] + 'font-weight:bold;'
 
   let treasuryRowsHtml = ''
-  treasuryRowsHtml += '<tr style="">' +
+  treasuryRowsHtml += '<tr style="background:#D9E1F1;">' +
     '<td style="' + tLabelStyle + 'font-weight:bold;text-align:center;">البيان</td>' +
     '<td style="' + tValueStyle + '">دخل</td>' +
     '<td style="' + tValueStyle + '">خرج</td>' +
@@ -643,12 +643,12 @@ function buildWorkerExpensesAndTreasury(
 
   const treasuryHtml = '<div style="flex:1;border:1.5px solid #333;">' +
     '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;">' +
-    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;">الخزينة</td></tr>' +
+    '<tr><td colspan="4" style="' + wTitlePad + 'text-align:center;' + wTitleFs + 'font-weight:bold;border:1px solid #555;background:#1F497D;color:#FFFFFF;">الخزينة</td></tr>' +
     treasuryRowsHtml +
     '</table>' +
     '</div>'
 
-  return '<div style="' + sepMtMap[sl] + 'border-top:2px solid #000;"><div style="display:flex;' + sepGapMap[sl] + '">' + workerExpensesHtml + treasuryHtml + '</div></div>'
+  return '<div style="' + sepMtMap[sl] + 'border-top:2px solid #1F497D;"><div style="display:flex;' + sepGapMap[sl] + '">' + workerExpensesHtml + treasuryHtml + '</div></div>'
 }
 
 
