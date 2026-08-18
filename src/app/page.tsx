@@ -464,26 +464,14 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const overflowRoomCount = hasRemainder ? roomCells.length % MAX_ROOMS_PER_PAGE : 0
   const overflowCells = overflowRoomCount > 0 ? roomCells.slice(totalFullPages * MAX_ROOMS_PER_PAGE) : []
 
-  // Treasury page - uses same global sizeLevel
-  const treasuryContent = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
+  // Treasury pages - worker expenses and treasury on separate pages
+  const treasuryPages = buildWorkerExpensesAndTreasury(branchName, selectedDate, orderedRooms, entries, grandTotalNet, savedWorkerExpenses, sl)
   const overflowHtml = overflowCells.length > 0 ? buildRoomsGrid(overflowCells, sl) : ''
 
-  // Split overflow rooms and treasury onto pages
+  // صفحة الغرف الزائدة (لو موجودة)
   if (overflowHtml) {
     if (overflowRoomCount <= 3 && totalFullPages > 0) {
-      // غرف زائدة قليلة مع وجود صفحات غرف كاملة → ندمجها مع الخزينة في صفحة واحدة
-      pages.push(
-        '<div style="width:780px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-        buildHeader(sl) +
-        overflowHtml +
-        '<div style="margin-top:16px;">' +
-        treasuryContent +
-        '</div>' +
-        '</div>'
-      )
-    } else {
-      // إما غرف زائدة كثيرة أو لا توجد صفحات غرف كاملة (مثل المنصوره 3 غرف)
-      // → صفحة منفصلة للغرف + صفحة منفصلة للخزينة
+      // غرف زائدة قليلة (1-3) → صفحة واحدة للغرف الزائدة
       pages.push(
         '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
         buildHeader(sl) +
@@ -492,22 +480,34 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
         '</div>' +
         '</div>'
       )
+    } else {
+      // غرف زائدة كثيرة أو لا توجد صفحات غرف كاملة → صفحة منفصلة
       pages.push(
-        '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+        '<div style="width:780px;min-height:1120px;color:#000000;padding:' + roomPagePadMap[sl] + ';font-family:Cairo,sans-serif;display:flex;flex-direction:column;box-sizing:border-box;" dir="rtl">' +
         buildHeader(sl) +
-        treasuryContent +
+        '<div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;">' +
+        overflowHtml +
+        '</div>' +
         '</div>'
       )
     }
-  } else {
-    // No overflow rooms - treasury is the only content on this page
-    pages.push(
-      '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
-      buildHeader(sl) +
-      treasuryContent +
-      '</div>'
-    )
   }
+
+  // صفحة مصاريف العمال
+  pages.push(
+    '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+    buildHeader(sl) +
+    treasuryPages[0] +
+    '</div>'
+  )
+
+  // صفحة الخزينة
+  pages.push(
+    '<div style="width:780px;min-height:1120px;color:#000000;padding:' + treasuryPagePadMap[sl] + ';font-family:Cairo,sans-serif;" dir="rtl">' +
+    buildHeader(sl) +
+    treasuryPages[1] +
+    '</div>'
+  )
 
   return pages
 }
@@ -518,7 +518,7 @@ function buildWorkerExpensesAndTreasury(
   branchName: string, selectedDate: string, orderedRooms: string[], entries: CarEntry[],
   grandTotalNet: number, savedWorkerExpenses?: Record<string, { cleanliness?: number; treasury?: Record<string, { income: number; expense: number }> }>,
   sizeLevel?: number
-): string {
+): string[] {
   const sl = sizeLevel || 0
   // Adaptive sizing maps
   const wPadMap = ['padding:7px 10px;', 'padding:5px 7px;', 'padding:3px 5px;']
@@ -655,7 +655,13 @@ function buildWorkerExpensesAndTreasury(
     '</table>' +
     '</div>'
 
-  return '<div style="' + sepMtMap[sl] + 'border-top:2px solid #1F497D;"><div style="display:flex;' + sepGapMap[sl] + '">' + workerExpensesHtml + treasuryHtml + '</div></div>'
+  // صفحة مصاريف العمال
+  const workerPage = '<div style="border-top:2px solid #1F497D;">' + workerExpensesHtml + '</div>'
+
+  // صفحة الخزينة
+  const treasuryPage = '<div style="border-top:2px solid #1F497D;">' + treasuryHtml + '</div>'
+
+  return [workerPage, treasuryPage]
 }
 
 
@@ -895,7 +901,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v13-cash-optional'
+const APP_VERSION = 'v14-paginated-expenses'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
