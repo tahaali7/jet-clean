@@ -109,6 +109,9 @@ let BRANCH_MAINTENANCE: Record<string, { type: string; value?: number; options?:
   'المنصوره': { type: 'select', options: [10, 20] },
   'عين زاره': { type: 'select', options: [10, 20, 30, 40, 50] }
 }
+// قيم النظافة والصيانة اللي تظهر في بطاقة الغرفة (مختلفة عن الخزينة)
+const ROOM_CLEAN_VALUES: Record<string, number> = { 'أبونواس': 5, 'بن غرسه': 10 }
+const ROOM_MAINT_VALUES: Record<string, number> = { 'أبونواس': 10, 'بن غرسه': 10 }
 const ROOM_ICONS: Record<string, string> = {
   'غرفة 1': '🚿', 'غرفة 2': '🚿', 'غرفة 3': '🚿',
   'غرفة 4': '🚿', 'غرفة 5': '🚿', 'غرفة 6': '🚿',
@@ -150,7 +153,7 @@ function formatDateShort(dateStr: string) {
 
 // ==================== PDF REPORT BUILDERS ====================
 // Auto-adaptive sizing: level 0=normal(<=4 rooms), 1=compact(5-6), 2=ultra-compact(7+)
-function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, sizeLevel?: number, addonValues?: { cleanliness?: number; maintenance?: number }) {
+function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, sizeLevel?: number) {
   const prices = getPricesForRoom(room)
   let roomTotalAmount = 0
   let roomTotalCars = 0
@@ -235,11 +238,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   // النظافة والصيانة: فقط للغرف اللي فيها بيانات وليست مكينة الغسيل
   let roomAddonRowsHtml = ''
   if (roomTotalCars > 0 && room !== 'مكينة الغسيل') {
-    const cleanConfig = BRANCH_CLEANLINESS[branchName]
-    const maintConfig = BRANCH_MAINTENANCE[branchName]
-    // القيمة: fixed من الإعدادات، select من القيمة المحفوظة (addonValues)
-    const cleanVal = cleanConfig?.type === 'fixed' ? (cleanConfig.value || 0) : (addonValues?.cleanliness || 0)
-    const maintVal = maintConfig?.type === 'fixed' ? (maintConfig.value || 0) : (addonValues?.maintenance || 0)
+    const cleanVal = ROOM_CLEAN_VALUES[branchName] || 0
+    const maintVal = ROOM_MAINT_VALUES[branchName] || 0
     if (cleanVal > 0) {
       roomAddonRowsHtml += '<tr style="background:#fff3e0;">' +
         '<td colspan="2" style="' + cellPad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#e65100;">🧹 النظافة</td>' +
@@ -367,15 +367,6 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   const totalRoomCount = orderedRooms.length
   const globalSizeLevel = totalRoomCount <= 5 ? 0 : 2
 
-  // حساب قيم النظافة والصيانة للغرف (fixed من الإعدادات، select من المحفوظ)
-  const wKey = branchName + '_' + selectedDate
-  const savedWE = savedWorkerExpenses?.[wKey] || {}
-  const cleannessConfig = BRANCH_CLEANLINESS[branchName]
-  const maintConfig = BRANCH_MAINTENANCE[branchName]
-  const addonCleanliness = cleannessConfig?.type === 'fixed' ? (cleannessConfig.value || 0) : (savedWE.treasury?.النظافة?.expense || savedWE.cleanliness || 0)
-  const addonMaintenance = maintConfig?.type === 'fixed' ? (maintConfig.value || 0) : (savedWE.treasury?.الصيانة?.expense || 0)
-  const addonValues = { cleanliness: addonCleanliness, maintenance: addonMaintenance }
-
   // Build room data with global adaptive sizing
   const buildRoomCells = (sizeLevel: number) => {
     const cells: string[] = []
@@ -387,7 +378,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
         grandTotalAmount += roomTotal
         grandTotalCars += roomCars
         grandTotalNet += getNetAmount(roomTotal, branchName, room)
-        cells.push(buildRoomTableHTML(room, roomEntries, branchName, sizeLevel, addonValues))
+        cells.push(buildRoomTableHTML(room, roomEntries, branchName, sizeLevel))
       } else {
         cells.push(buildEmptyRoomTableHTML(room, sizeLevel))
       }
