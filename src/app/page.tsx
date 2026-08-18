@@ -677,7 +677,7 @@ function buildEmployeeReportHTML(
 
   let grandWithdrawals = 0
   let grandShortages = 0
-  const branchDatas: { name: string; withdrawals: number; shortages: number; empsHtml: string }[] = []
+  const branchDatas: { name: string; withdrawals: number; shortages: number; emps: { html: string; height: number }[] }[] = []
 
   allBranches.forEach(branch => {
     const branchEmps = activeEmployees.filter(e => e.branchId === branch.id)
@@ -685,7 +685,7 @@ function buildEmployeeReportHTML(
 
     let branchWithdrawals = 0
     let branchShortages = 0
-    let rowsHtml = ''
+    const empEntries: { html: string; height: number }[] = []
     let branchHasRecords = false
 
     branchEmps.forEach(emp => {
@@ -713,14 +713,14 @@ function buildEmployeeReportHTML(
           '</tr>'
       })
 
-      rowsHtml += '<tr style="background:#f8fafc;">' +
+      let empHtml = '<tr style="background:#f8fafc;">' +
         '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#0e7490;">' + emp.name + ' <span style="font-size:10px;color:#94a3b8;font-weight:400;">(' + emp.shift + ')</span></td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
         '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#1e293b;">' + total + ' د.ل</td>' +
         '</tr>'
       if (detailHtml) {
-        rowsHtml += '<tr><td colspan="4" style="padding:0;border:1px solid #ddd;">' +
+        empHtml += '<tr><td colspan="4" style="padding:0;border:1px solid #ddd;">' +
           '<table style="width:100%;border-collapse:collapse;margin:0;">' +
           '<thead><tr style="background:#f1f5f9;">' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">التاريخ</th>' +
@@ -731,10 +731,15 @@ function buildEmployeeReportHTML(
           '<tbody>' + detailHtml + '</tbody>' +
           '</table></td></tr>'
       }
+
+      // Estimate height: summary row ~40px + detail header ~25px + each detail row ~25px
+      const detailRowCount = empRecords.length
+      const empHeight = 40 + (detailRowCount > 0 ? 25 + detailRowCount * 25 : 0)
+      empEntries.push({ html: empHtml, height: empHeight })
     })
 
     if (!branchHasRecords) return
-    branchDatas.push({ name: branch.name, withdrawals: branchWithdrawals, shortages: branchShortages, empsHtml: rowsHtml })
+    branchDatas.push({ name: branch.name, withdrawals: branchWithdrawals, shortages: branchShortages, emps: empEntries })
   })
 
   // ---- Multi-branch employees section ----
@@ -744,7 +749,7 @@ function buildEmployeeReportHTML(
   if (multiEmps.length > 0) {
     let multiWithdrawals = 0
     let multiShortages = 0
-    let multiRowsHtml = ''
+    const multiEmpEntries: { html: string; height: number }[] = []
     let multiHasRecords = false
 
     multiEmps.forEach(emp => {
@@ -781,14 +786,14 @@ function buildEmployeeReportHTML(
           '</tr>'
       })
 
-      multiRowsHtml += '<tr style="background:#fffbeb;">' +
+      let empHtml = '<tr style="background:#fffbeb;">' +
         '<td style="padding:8px;border:1px solid #ddd;font-weight:700;color:#92400e;">' + emp.name + ' <span style="font-size:10px;color:#94a3b8;font-weight:400;">(' + (branchNames || emp.shift) + ')</span></td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#b45309;font-weight:bold;">' + withdrawals + ' د.ل</td>' +
         '<td style="padding:8px;border:1px solid #ddd;color:#be123c;font-weight:bold;">' + shortages + ' د.ل</td>' +
         '<td style="padding:8px;border:1px solid #ddd;font-weight:800;color:#1e293b;">' + total + ' د.ل</td>' +
         '</tr>'
       if (detailHtml) {
-        multiRowsHtml += '<tr><td colspan="5" style="padding:0;border:1px solid #ddd;">' +
+        empHtml += '<tr><td colspan="5" style="padding:0;border:1px solid #ddd;">' +
           '<table style="width:100%;border-collapse:collapse;margin:0;"><thead><tr style="background:#f1f5f9;">' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">التاريخ</th>' +
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">النوع</th>' +
@@ -797,10 +802,13 @@ function buildEmployeeReportHTML(
           '<th style="padding:4px 8px;border:1px solid #eee;font-size:10px;color:#64748b;">ملاحظة</th>' +
           '</tr></thead><tbody>' + detailHtml + '</tbody></table></td></tr>'
       }
+      const detailRowCount = empRecords.length
+      const empHeight = 40 + (detailRowCount > 0 ? 25 + detailRowCount * 25 : 0)
+      multiEmpEntries.push({ html: empHtml, height: empHeight })
     })
 
     if (multiHasRecords) {
-      branchDatas.push({ name: '🌐 موظفين مشتركين (أكثر من فرع)', withdrawals: multiWithdrawals, shortages: multiShortages, empsHtml: multiRowsHtml })
+      branchDatas.push({ name: '🌐 موظفين مشتركين (أكثر من فرع)', withdrawals: multiWithdrawals, shortages: multiShortages, emps: multiEmpEntries })
     }
   }
 
@@ -839,11 +847,34 @@ function buildEmployeeReportHTML(
   const footerHtml = '<div style="text-align:center;margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:9px;color:#000000;">صفحة __PAGE__</div>'
   const pageStyle = 'width:800px;color:#000000;padding:24px;font-family:Cairo,sans-serif;'
   const pageWithMinHeight = pageStyle + 'min-height:1120px;'
+  const PAGE_HEIGHT = 1120
+  const HEADER_FOOTER_HEIGHT = 200 // header ~130 + summary ~50 + footer ~20
+  const BRANCH_HEADER_HEIGHT = 70 // branch title + table header
+  const USABLE = PAGE_HEIGHT - HEADER_FOOTER_HEIGHT // ~920px
+  const USABLE_CONTINUATION = PAGE_HEIGHT - 130 - 20 // continuation pages: no summary, smaller header, footer
 
-  // Render each branch as a separate block, then pack into pages
-  const branchBlocks: { html: string; estimatedHeight: number }[] = []
-  branchDatas.forEach(bd => {
-    const blockHtml = '<div style="margin-bottom:16px;">' +
+  let pageNum = 1
+  let currentPageContent = headerHtml + summaryHtml
+  let currentPageUsed = HEADER_FOOTER_HEIGHT
+  let isFirstPage = true
+  let currentTableOpen = ''
+  let currentBranchName = ''
+
+  // Helper: close current table if open
+  const closeTable = () => {
+    if (currentTableOpen) {
+      currentPageContent += '</tbody></table></div>'
+      currentPageUsed += 0
+      currentTableOpen = ''
+    }
+  }
+
+  // Helper: open a new branch table
+  const openBranchTable = (bd: typeof branchDatas[0]) => {
+    const isMulti = bd.name.includes('مشتركين')
+    const cols = isMulti ? 4 : 4
+    currentBranchName = bd.name
+    currentTableOpen = '<div style="margin-bottom:16px;">' +
       '<h3 style="background:#0e7490;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;margin-bottom:6px;">' +
       'فرع ' + bd.name + ' — سحوبات: ' + bd.withdrawals + ' د.ل | عجوزات: ' + bd.shortages + ' د.ل | الإجمالي: ' + (bd.withdrawals + bd.shortages) + ' د.ل' +
       '</h3>' +
@@ -853,49 +884,67 @@ function buildEmployeeReportHTML(
       '<th style="padding:6px;border:1px solid #ddd;">السحبيات</th>' +
       '<th style="padding:6px;border:1px solid #ddd;">العجوزات</th>' +
       '<th style="padding:6px;border:1px solid #ddd;">الإجمالي</th>' +
-      '</tr></thead>' +
-      '<tbody>' + bd.empsHtml + '</tbody>' +
-      '</table></div>'
-    // Estimate: title ~35px + header row ~35px + each emp row ~45px (including detail rows)
-    const rowCount = bd.empsHtml.split('<tr').length
-    branchBlocks.push({ html: blockHtml, estimatedHeight: 35 + 35 + rowCount * 45 })
-  })
+      '</tr></thead><tbody>'
+    currentPageContent += currentTableOpen
+    currentPageUsed += BRANCH_HEADER_HEIGHT
+  }
 
-  // Header + summary estimated ~200px, footer ~30px, page usable ~890px (1120 - 200 - 30)
-  const headerHeight = 200
-  const footerHeight = 30
-  const pageUsableHeight = 920
-
-  let pageNum = 1
-  let currentPageContent = headerHtml + summaryHtml
-  let currentPageUsed = headerHeight
-
-  branchBlocks.forEach((block, idx) => {
-    if (currentPageUsed + block.estimatedHeight + footerHeight > 1120 && idx > 0) {
-      // Current page is full, start a new one
-      currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
-      pages.push('<div style="' + pageWithMinHeight + '">' + currentPageContent + '</div>')
-      pageNum++
-      // On new pages, add header but not summary
-      currentPageContent = headerHtml + block.html
-      currentPageUsed = headerHeight - 80 + block.estimatedHeight  // -80 because no summary on continuation pages
-    } else {
-      currentPageContent += block.html
-      currentPageUsed += block.estimatedHeight
-    }
-  })
-  // Last page
-  if (currentPageContent) {
+  // Helper: flush current page
+  const flushPage = () => {
+    closeTable()
     currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
-    const isLastPage = branchBlocks.length <= 2
-    pages.push('<div style="' + (isLastPage ? pageWithMinHeight : pageStyle) + '">' + currentPageContent + '</div>')
+    pages.push('<div style="' + (isFirstPage ? pageWithMinHeight : pageStyle) + '">' + currentPageContent + '</div>')
+    pageNum++
+    isFirstPage = false
+  }
+
+  // Helper: start a new page
+  const startNewPage = (bd: typeof branchDatas[0]) => {
+    flushPage()
+    currentPageContent = headerHtml
+    currentPageUsed = 130 // just header, no summary
+    openBranchTable(bd)
+  }
+
+  branchDatas.forEach(bd => {
+    const needsNewTable = !currentTableOpen || currentBranchName !== bd.name
+    const empTotalHeight = bd.emps.reduce((s, e) => s + e.height, 0)
+    const totalNeeded = needsNewTable ? BRANCH_HEADER_HEIGHT + empTotalHeight : empTotalHeight
+
+    // Check if this branch needs a new page
+    if (currentPageUsed + totalNeeded + 30 > PAGE_HEIGHT && currentTableOpen) {
+      // Need to start on a new page
+      startNewPage(bd)
+    } else if (needsNewTable) {
+      closeTable()
+      openBranchTable(bd)
+    }
+
+    // Add employees one by one, splitting if needed
+    bd.emps.forEach((emp, empIdx) => {
+      if (currentPageUsed + emp.height + 30 > PAGE_HEIGHT && empIdx > 0) {
+        // This employee doesn't fit, start new page with same branch header
+        startNewPage(bd)
+        // Re-add employees before this one? No, they were already added.
+        // We only need the current employee on the new page
+      }
+      currentPageContent += emp.html
+      currentPageUsed += emp.height
+    })
+  })
+
+  // Close any open table and flush last page
+  if (currentPageContent) {
+    closeTable()
+    currentPageContent += footerHtml.replace('__PAGE__', String(pageNum))
+    pages.push('<div style="' + pageWithMinHeight + '">' + currentPageContent + '</div>')
   }
 
   return pages
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v15-expenses-pagination'
+const APP_VERSION = 'v16-emp-level-pagination'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
