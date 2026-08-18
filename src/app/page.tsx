@@ -153,7 +153,7 @@ function formatDateShort(dateStr: string) {
 
 // ==================== PDF REPORT BUILDERS ====================
 // Auto-adaptive sizing: level 0=normal(<=4 rooms), 1=compact(5-6), 2=ultra-compact(7+)
-function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, sizeLevel?: number) {
+function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: string, sizeLevel?: number, roomIndex?: number) {
   const prices = getPricesForRoom(room)
   let roomTotalAmount = 0
   let roomTotalCars = 0
@@ -197,6 +197,11 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
   const titlePad = titlePadMap[sl]
   const titleFs = titleFsMap[sl]
   const countFs = countFsMap[sl]
+
+  // ألوان متناوبة: الغرف على اليمين (زوجي) أزرق، على اليسار (فردي) أخضر/تركوازي
+  const isLeftRoom = roomIndex !== undefined && roomIndex % 2 === 1
+  const titleBg = isLeftRoom ? '#31869A' : '#1F497D'
+  const headerBg = isLeftRoom ? '#D5E8EB' : '#D9E1F1'
 
   let rowsHtml = ''
   let rowNum = 0
@@ -258,8 +263,8 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
 
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#1F497D;color:#FFFFFF;">' + room + '</td></tr>' +
-    '<tr style="background:#D9E1F1;">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:' + titleBg + ';color:#FFFFFF;">' + room + '</td></tr>' +
+    '<tr style="background:' + headerBg + ';">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
@@ -273,14 +278,14 @@ function buildRoomTableHTML(room: string, roomEntries: CarEntry[], branchName: s
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">' + roomTotalCars + ' سيارة = ' + roomTotalAmount + ' د.ل</td>' +
     '</tr>' +
     '<tr style="background:#FFF1CC;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#1F497D;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#1F497D;">' + roomNet + ' د.ل</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:' + titleBg + ';">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:' + titleBg + ';">' + roomNet + ' د.ل</td>' +
     '</tr>' +
     '</table>'
 }
 
 
-function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
+function buildEmptyRoomTableHTML(room: string, sizeLevel?: number, roomIndex?: number) {
   const prices = getPricesForRoom(room)
   const sl = sizeLevel || 0
   const padMap = ['10px 10px', '5px 7px', '3px 5px']
@@ -292,6 +297,9 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   const cellFs = fsMap[sl]
   const titlePad = titlePadMap[sl]
   const titleFs = titleFsMap[sl]
+  const isLeftRoom = roomIndex !== undefined && roomIndex % 2 === 1
+  const titleBg = isLeftRoom ? '#31869A' : '#1F497D'
+  const headerBg = isLeftRoom ? '#D5E8EB' : '#D9E1F1'
   let rowsHtml = ''
   let rowNum = 0
   prices.forEach(price => {
@@ -305,8 +313,8 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
   })
   return '<table style="width:100%;border-collapse:collapse;font-family:Cairo,sans-serif;table-layout:fixed;border:1px solid #333;">' +
     '<colgroup><col style="width:10%;"/><col style="width:28%;"/><col style="width:24%;"/><col style="width:38%;"/></colgroup>' +
-    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:#1F497D;color:#FFFFFF;">' + room + '</td></tr>' +
-    '<tr style="background:#D9E1F1;">' +
+    '<tr><td colspan="4" style="' + titlePad + 'text-align:center;' + titleFs + 'font-weight:bold;background:' + titleBg + ';color:#FFFFFF;">' + room + '</td></tr>' +
+    '<tr style="background:' + headerBg + ';">' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">م</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">السعر</td>' +
     '<td style="' + cellPad + 'border:1px solid #555;text-align:center;' + cellFs + 'font-weight:bold;">العدد</td>' +
@@ -318,8 +326,8 @@ function buildEmptyRoomTableHTML(room: string, sizeLevel?: number) {
     '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;">0</td>' +
     '</tr>' +
     '<tr style="background:#FFF1CC;">' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:#1F497D;">الصافي</td>' +
-    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:#1F497D;">0</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;' + cellFs + 'font-weight:bold;text-align:center;color:' + titleBg + ';">الصافي</td>' +
+    '<td colspan="2" style="' + titlePad + 'border:1px solid #555;text-align:center;' + titleFs + 'font-weight:bold;color:' + titleBg + ';">0</td>' +
     '</tr>' +
     '</table>'
 }
@@ -370,7 +378,7 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
   // Build room data with global adaptive sizing
   const buildRoomCells = (sizeLevel: number) => {
     const cells: string[] = []
-    orderedRooms.forEach(room => {
+    orderedRooms.forEach((room, idx) => {
       const roomEntries = roomMap[room] || []
       if (roomEntries.length > 0) {
         const roomTotal = roomEntries.reduce((s, e) => s + e.totalAmount, 0)
@@ -378,9 +386,9 @@ function buildCarReportHTML(selectedDate: string, branchId: string, branchName: 
         grandTotalAmount += roomTotal
         grandTotalCars += roomCars
         grandTotalNet += getNetAmount(roomTotal, branchName, room)
-        cells.push(buildRoomTableHTML(room, roomEntries, branchName, sizeLevel))
+        cells.push(buildRoomTableHTML(room, roomEntries, branchName, sizeLevel, idx))
       } else {
-        cells.push(buildEmptyRoomTableHTML(room, sizeLevel))
+        cells.push(buildEmptyRoomTableHTML(room, sizeLevel, idx))
       }
     })
     return cells
