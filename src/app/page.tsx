@@ -944,7 +944,7 @@ function buildEmployeeReportHTML(
 }
 
 // ==================== MAIN COMPONENT ====================
-const APP_VERSION = 'v17-expenses-pagination'
+const APP_VERSION = 'v18-closings-coverage'
 
 export default function JetCleanApp() {
   // فحص النسخة: لو النسخة المحفوظة مختلفة، أعد تحميل الصفحة
@@ -999,7 +999,8 @@ export default function JetCleanApp() {
   const [quickCoupons, setQuickCoupons] = useState('')
   const [quickExpName, setQuickExpName] = useState('')
   const [quickExpAmount, setQuickExpAmount] = useState('')
-  const [quickExpenses, setQuickExpenses] = useState<{ name: string; amount: number }[]>([])
+  const [quickExpType, setQuickExpType] = useState('expense')
+  const [quickExpenses, setQuickExpenses] = useState<{ name: string; amount: number; expType: string }[]>([])
 
   // إشعارات الإضافة التلقائية + تحديث حي
   const [notifications, setNotifications] = useState<{ id: string; message: string; time: string }[]>([])
@@ -1138,6 +1139,14 @@ export default function JetCleanApp() {
   const [exportingEmp, setExportingEmp] = useState(false)
   const [showEmpReportModal, setShowEmpReportModal] = useState(false)
   const [showExpReportModal, setShowExpReportModal] = useState(false)
+  const [showSettlementModal, setShowSettlementModal] = useState(false)
+  const [closingData, setClosingData] = useState<any>(null) // summary data for closing
+  const [closingDates, setClosingDates] = useState<string[]>([])
+  const [closingBranchId, setClosingBranchId] = useState('')
+  const [closingTargetDate, setClosingTargetDate] = useState('')
+  const [closingCashRemaining, setClosingCashRemaining] = useState('')
+  const [closingLoading, setClosingLoading] = useState(false)
+  const [closingHistory, setClosingHistory] = useState<any[]>([])
   const [expReportBranchId, setExpReportBranchId] = useState<string>('')
   const [expReportPeriod, setExpReportPeriod] = useState<'day' | 'range' | 'month'>('day')
   const [expReportDay, setExpReportDay] = useState(() => new Date().toISOString().split('T')[0])
@@ -2102,7 +2111,7 @@ export default function JetCleanApp() {
     const name = quickExpName.trim()
     const amount = parseInt(quickExpAmount) || 0
     if (!name || amount <= 0) return alert('الرجاء إدخال اسم المصروف وقيمته')
-    setQuickExpenses(prev => [...prev, { name, amount }])
+    setQuickExpenses(prev => [...prev, { name, amount, expType: quickExpType }])
     setQuickExpName('')
     setQuickExpAmount('')
   }
@@ -2126,7 +2135,9 @@ export default function JetCleanApp() {
 
       const treasury = { ...updated[wKey].treasury! }
       quickExpenses.forEach(exp => {
-        const key = 'مصروف_' + exp.name
+        // debt type uses prefix سلفة_, expense type uses prefix مصروف_
+        const prefix = exp.expType === 'debt' ? 'سلفة_' : 'مصروف_'
+        const key = prefix + exp.name
         const existing = treasury[key] || { income: 0, expense: 0 }
         treasury[key] = { ...existing, expense: (existing.expense || 0) + exp.amount }
       })
@@ -2835,6 +2846,117 @@ export default function JetCleanApp() {
       alert('حدث خطأ أثناء التصدير: ' + (err?.message || ''))
     }
     setExporting(false)
+  }
+
+  // ==================== CLOSING / COVERAGE ====================
+  const loadClosingHistory = async () => {
+    try {
+      if (!adminSelectedBranch) return
+      const res = await fetch('/api/closings?branchId=' + adminSelectedBranch)
+      if (res.ok) setClosingHistory(await res.json())
+    } catch {}
+  }
+
+  const handleLoadClosingSummary = async () => {
+    if (!closingBranchId || closingDates.length === 0) return
+    setClosingLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.set('branchId', closingBranchId)
+      closingDates.forEach(d => params.append('dates', d))
+
+      // Fetch worker expenses for selected dates
+      let transferTotal = 0
+      let expensesTotal = 0
+      let debtsTotal = 0
+      const records: any[] = []
+
+      for (const date of closingDates) {
+        const weRes = await fetch(`/api/worker-expenses?date=${date}&branchId=${closingBranchId}`, { cache: 'no-store' })
+        if (weRes.ok) {
+          const weData = await weRes.json()
+          for (const item of weData) {
+            const treas = item.jsonData?.treasury || {}
+            for (const [key, val] of Object.entries(treas)) {
+              if (key.startsWith('\u0645\u0635\u0631\u0648\u0641_') && val && typeof val === 'object' && 'expense' in val) {
+                expensesTotal += (val as any).expense || 0
+              }
+              if (key.startsWith('\u0633\u0644\u0641\u0629_') && val && typeof val === 'object' && 'expense' in val) {
+                debtsTotal += (val as any).expense || 0
+              }
+              if (key === '\u062a\u0645_\u0627\u0644\u062a\u062d\u0648\u064a\u0644' && val && typeof val === 'object' && 'expense' in val) {
+                transferTotal += (val as any).expense || 0
+              }
+            }
+          }
+        }
+        // Fetch records (withdrawals/shortages)
+        const recRes = await fetch(`/api/records?date=${date}&branchId=${closingBranchId}`, { cache: 'no-store' })
+        if (recRes.ok) {
+          const recData = await recRes.json()
+          for (const r of recData) {
+            if (r.coverageStatus !== 'covered') {
+              records.push(r)
+            }
+          }
+        }
+      }
+
+      const cashRemaining = parseInt(closingCashRemaining) || 0
+      const deficit = (expensesTotal + cashRemaining) - transferTotal
+
+      setClosingData({
+        transferTotal,
+        expensesTotal,
+        debtsTotal,
+        cashRemaining,
+        deficit,
+        records,
+        recordsTotal: records.reduce((s: number, r: any) => s + r.amount, 0),
+      })
+    } catch (err: any) {
+      alert('حدث خطأ: ' + (err?.message || ''))
+    }
+    setClosingLoading(false)
+  }
+
+  const handleConfirmClosing = async () => {
+    if (!closingData || !closingBranchId) return
+    if (!confirm('هل تريد تأكيد الاقفال؟ لا يمكن التراجع عن هذا الإجراء.')) return
+    setClosingLoading(true)
+    try {
+      const res = await fetch('/api/closings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchId: closingBranchId,
+          dates: closingDates,
+          transferToDate: closingTargetDate,
+          cashRemaining: parseInt(closingCashRemaining) || 0,
+          coverageRecords: [],
+          createdBy: user?.name || 'admin',
+        }),
+      })
+      if (res.ok) {
+        alert('تم الاقفال بنجاح!')
+        setShowSettlementModal(false)
+        setClosingData(null)
+        setClosingDates([])
+        loadClosingHistory()
+      } else {
+        const err = await res.json()
+        alert('حدث خطأ: ' + (err?.error || ''))
+      }
+    } catch (err: any) {
+      alert('حدث خطأ: ' + (err?.message || ''))
+    }
+    setClosingLoading(false)
+  }
+
+  const toggleClosingDate = (date: string) => {
+    setClosingDates(prev =>
+      prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date].sort()
+    )
   }
 
   // ==================== BRANCH EXPENSES PDF EXPORT ====================
@@ -3780,37 +3902,46 @@ export default function JetCleanApp() {
               const qBranchId2 = isAdminMode ? (adminSelectedBranch || '') : (user?.branchId || '')
               return (
               <div className="bg-slate-800 p-5 rounded-2xl border border-rose-500/30">
-                <h3 className="text-lg font-bold text-rose-400 mb-4">📋 إدخال مصروفات</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                <h3 className="text-lg font-bold text-rose-400 mb-4">إدخال مصروفات</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-3">
                   <input
                     type="text"
                     value={quickExpName}
                     onChange={e => setQuickExpName(e.target.value)}
                     placeholder="اسم المصروف (مثلاً: صيانة)"
-                    className="sm:col-span-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+                    className="sm:col-span-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
                   />
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={quickExpAmount}
-                      onChange={e => setQuickExpAmount(e.target.value)}
-                      placeholder="المبلغ"
-                      className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
-                    />
-                    <button
-                      onClick={handleAddQuickExpense}
-                      disabled={isBranchLocked}
-                      className={`text-white font-bold px-4 py-2 rounded-lg transition text-sm ${isBranchLocked ? 'bg-slate-700 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500'}`}
-                    >
-                      ➕
-                    </button>
-                  </div>
+                  <select
+                    value={quickExpType}
+                    onChange={e => setQuickExpType(e.target.value)}
+                    className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+                  >
+                    <option value="expense">مصروف</option>
+                    <option value="debt">سلفة عامل</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={quickExpAmount}
+                    onChange={e => setQuickExpAmount(e.target.value)}
+                    placeholder="المبلغ"
+                    className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-rose-500"
+                  />
+                  <button
+                    onClick={handleAddQuickExpense}
+                    disabled={isBranchLocked}
+                    className={`text-white font-bold px-4 py-2 rounded-lg transition text-sm ${isBranchLocked ? 'bg-slate-700 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500'}`}
+                  >
+                    ➕
+                  </button>
                 </div>
                 {quickExpenses.length > 0 && (
                   <div className="space-y-2 mb-3">
                     {quickExpenses.map((exp, idx) => (
                       <div key={idx} className="flex justify-between items-center bg-slate-900 border border-slate-700 rounded-lg px-3 py-2">
-                        <span className="text-slate-300 text-sm">{exp.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${exp.expType === 'debt' ? 'bg-amber-600/20 text-amber-400' : 'bg-rose-600/20 text-rose-400'}`}>{exp.expType === 'debt' ? 'سلفة' : 'مصروف'}</span>
+                          <span className="text-slate-300 text-sm">{exp.name}</span>
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="text-rose-400 font-bold text-sm">{exp.amount} د.ل</span>
                           <button onClick={() => handleRemoveQuickExpense(idx)} className="text-slate-500 hover:text-rose-400 text-xs">✕</button>
@@ -4470,6 +4601,9 @@ export default function JetCleanApp() {
                     </button>
                     <button onClick={() => { setShowAdminDropdown(false); setShowExpReportModal(true); setExpReportBranchId('') }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-white text-xs flex items-center gap-2 transition">
                       <span>📋</span> تقرير المصروفات
+                    </button>
+                    <button onClick={() => { setShowAdminDropdown(false); setShowSettlementModal(true); setClosingBranchId(''); setClosingDates([]); setClosingData(null); loadClosingHistory() }} className="w-full text-right px-4 py-2 hover:bg-slate-700 text-amber-400 text-xs flex items-center gap-2 transition">
+                      <span>🔒</span> الاقفالات
                     </button>
 
                     {/* فاصل */}
@@ -5619,7 +5753,7 @@ export default function JetCleanApp() {
       )}
 
       {/* Daily Closing Modal */}
-      {showClosingModal && (
+      {showSettlementModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
             <h3 className="text-lg font-bold text-white text-center">🔒 الإغلاق اليومي - {formatDateShort(adminDate)}</h3>
@@ -5954,6 +6088,130 @@ export default function JetCleanApp() {
               </button>
               <button onClick={() => setShowExpReportModal(false)} disabled={exporting} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">إلغاء</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Closing Modal */}
+      {showSettlementModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-amber-500/30 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-amber-400">🔒 الاقفالات</h3>
+              <button onClick={() => setShowSettlementModal(false)} className="text-slate-400 hover:text-white text-sm">✕</button>
+            </div>
+
+            {/* Step 1: Select Branch */}
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">اختر الفرع</label>
+              <select value={closingBranchId} onChange={e => { setClosingBranchId(e.target.value); setClosingData(null); setClosingDates([]) }}
+                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-amber-500">
+                <option value="">-- اختر الفرع --</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+
+            {/* Step 2: Select Dates */}
+            {closingBranchId && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">حدد الأيام المقفلة (اضغط لاختيار/إلغاء)</label>
+                <div className="grid grid-cols-7 gap-1 max-h-32 overflow-y-auto bg-slate-900 rounded-lg p-2">
+                  {(() => {
+                    const today = new Date()
+                    const days: { date: string; label: string }[] = []
+                    for (let i = 0; i < 60; i++) {
+                      const d = new Date(today)
+                      d.setDate(d.getDate() - i)
+                      const ds = d.toISOString().split('T')[0]
+                      days.push({ date: ds, label: String(d.getDate()) })
+                    }
+                    return days.map(d => (
+                      <button key={d.date}
+                        onClick={() => toggleClosingDate(d.date)}
+                        className={`text-[11px] py-1.5 rounded font-bold transition ${
+                          closingDates.includes(d.date) ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        }`}>
+                        {d.label}
+                      </button>
+                    ))
+                  })()}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">تم اختيار {closingDates.length} يوم</p>
+              </div>
+            )}
+
+            {/* Step 3: Cash remaining & target date */}
+            {closingBranchId && closingDates.length > 0 && !closingData && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">الكاش المتبقي (إجمالي للأيام المحددة)</label>
+                  <input type="number" value={closingCashRemaining} onChange={e => setClosingCashRemaining(e.target.value)}
+                    placeholder="0" className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-amber-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">ينقل العجز إلى يوم</label>
+                  <input type="date" value={closingTargetDate} onChange={e => setClosingTargetDate(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-amber-500" />
+                </div>
+                <button onClick={handleLoadClosingSummary} disabled={closingLoading}
+                  className="w-full bg-amber-600 hover:bg-amber-500 disabled:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                  {closingLoading ? '⏳ جاري التحميل...' : '📊 عرض الملخص'}
+                </button>
+              </div>
+            )}
+
+            {/* Step 4: Summary & Confirm */}
+            {closingData && (
+              <div className="space-y-3">
+                <div className="bg-slate-900 rounded-xl p-4 space-y-2">
+                  <h4 className="text-sm font-bold text-white mb-2">ملخص الاقفال</h4>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">الفترة</span><span className="text-white">{closingDates[0]} → {closingDates[closingDates.length - 1]}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">عدد الأيام</span><span className="text-white">{closingDates.length}</span></div>
+                  <div className="border-t border-slate-700 my-1"></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">إجمالي تم التحويل (خرج)</span><span className="text-cyan-400 font-bold">{closingData.transferTotal} د.ل</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">إجمالي المصروفات</span><span className="text-rose-400 font-bold">{closingData.expensesTotal} د.ل</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">السلفات (ديون)</span><span className="text-amber-400 font-bold">{closingData.debtsTotal} د.ل</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">الكاش المتبقي</span><span className="text-emerald-400 font-bold">{closingData.cashRemaining} د.ل</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-slate-400">سحوبات/عجوزات موظفين</span><span className="text-orange-400 font-bold">{closingData.recordsTotal} د.ل</span></div>
+                  <div className="border-t border-slate-700 my-1"></div>
+                  <div className="flex justify-between text-sm font-bold">
+                    <span className="text-slate-300">العجز</span>
+                    <span className={closingData.deficit < 0 ? 'text-rose-500' : 'text-emerald-400'}>
+                      {closingData.deficit < 0 ? Math.abs(closingData.deficit) + ' د.ل ← عجز!' : 'لا يوجد عجز ✅'}
+                    </span>
+                  </div>
+                </div>
+
+                {closingData.deficit < 0 && !closingTargetDate && (
+                  <p className="text-rose-400 text-xs text-center">⚠️ يوجد عجز ولكن لم يتم تحديد يوم لنقل العجز</p>
+                )}
+
+                <div className="flex gap-3">
+                  <button onClick={handleConfirmClosing} disabled={closingLoading || (closingData.deficit < 0 && !closingTargetDate)}
+                    className={`flex-1 font-bold py-2.5 rounded-xl text-sm transition ${closingLoading ? 'bg-slate-700' : 'bg-amber-600 hover:bg-amber-500 text-white'} disabled:opacity-50`}>
+                    {closingLoading ? '⏳ جاري الاقفال...' : '🔒 تأكيد الاقفال'}
+                  </button>
+                  <button onClick={() => { setClosingData(null) }} className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                    ↩️ تعديل
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Closing History */}
+            {closingHistory.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-bold text-slate-400">سجل الاقفالات السابقة</h4>
+                {closingHistory.slice(0, 5).map((c: any) => (
+                  <div key={c.id} className="bg-slate-900 rounded-lg p-3 text-xs space-y-1 border border-slate-700">
+                    <div className="flex justify-between"><span className="text-slate-500">التاريخ</span><span className="text-white">{new Date(c.createdAt).toLocaleDateString('ar-LY')}</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">الأيام</span><span className="text-cyan-400">{JSON.parse(c.dates).length} يوم</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">التحويل</span><span className="text-white">{c.transferTotal} د.ل</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">العجز المنقول</span><span className={c.deficit > 0 ? 'text-rose-400' : 'text-emerald-400'}>{c.deficit} د.ل</span></div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
