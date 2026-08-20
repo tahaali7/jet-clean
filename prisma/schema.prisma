@@ -1,50 +1,44 @@
-// ============================================
-// PostgreSQL Schema - JetClean Car Wash Management
-// ============================================
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./db/custom.db"
 }
 
 model Branch {
-  id             String          @id @default(cuid())
-  name           String          @unique
-  config         Json?
-  employees      Employee[]
-  carEntries     CarEntry[]
+  id            String         @id @default(cuid())
+  name          String         @unique
+  config        Json?
+  employees     Employee[]
+  carEntries    CarEntry[]
   workerExpenses WorkerExpense[]
-  treasuries     Treasury[]
-  records        Record[]
-  closedDays     ClosedDay[]
-  closings       Closing[]
-  coverageRecords CoverageRecord[]
+  treasuries    Treasury[]
+  records       Record[]
+  closedDays    ClosedDay[]
 }
 
 model Employee {
-  id            String  @id @default(cuid())
-  name          String
-  branchId      String?
-  branch        Branch? @relation(fields: [branchId], references: [id])
-  shift         String
-  password      String  @default("")
-  role          String  @default("employee")
-  hasLogin      Boolean @default(false)
-  startDate     String  @default("")
-  endDate       String  @default("")
+  id        String  @id @default(cuid())
+  name      String
+  branchId  String?
+  branch    Branch? @relation(fields: [branchId], references: [id])
+  shift     String
+  password  String  @default("")
+  role      String  @default("employee")
+  hasLogin  Boolean @default(false)
+  startDate String  @default("")
+  endDate   String  @default("")
   multiBranchIds String @default("[]")
-  deleted       Boolean @default(false)
-  records       Record[]
+  deleted   Boolean @default(false)
+  records   Record[]
 }
 
 model AdminAccount {
   id       String @id @default("admin")
-  name     String @default("")
-  password String @default("")
+  name     String @default("طه علي")
+  password String @default("19970880528")
 }
 
 model CarEntry {
@@ -69,35 +63,32 @@ model WorkerExpense {
   id       String @id @default(cuid())
   date     String
   branchId String
-  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch   Branch @relation(fields: [branchId], references: [id])
   amount   Int    @default(0)
   note     String @default("")
   jsonData Json?
-  expType  String @default("expense") // "expense" or "debt"
 }
 
 model Treasury {
-  id               String @id @default(cuid())
-  date             String
-  branchId         String
-  branch           Branch @relation(fields: [branchId], references: [id])
-  total            Int    @default(0)
-  cash             Int    @default(0)
-  later            Int    @default(0)
-  isInClosingPeriod Boolean @default(false)
+  id       String @id @default(cuid())
+  date     String
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+  total    Int    @default(0)
+  cash     Int    @default(0)
+  later    Int    @default(0)
 }
 
 model Record {
-  id             String   @id @default(cuid())
-  empId          String
-  type           String
-  amount         Int
-  note           String @default("")
-  date           String
-  branchId       String
-  branch         Branch @relation(fields: [branchId], references: [id])
-  employee       Employee @relation(fields: [empId], references: [id])
-  coverageStatus String @default("pending") // "pending" or "covered"
+  id       String   @id @default(cuid())
+  empId    String
+  type     String
+  amount   Int
+  note     String   @default("")
+  date     String
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+  employee Employee @relation(fields: [empId], references: [id])
 }
 
 model ClosedDay {
@@ -119,8 +110,8 @@ model Notification {
   message   String
   branchId  String?
   type      String   @default("normal")
-  createdBy String @default("")
-  readBy    String @default("[]")
+  createdBy String   @default("")
+  readBy    String   @default("[]")
   createdAt DateTime @default(now())
 }
 
@@ -133,43 +124,13 @@ model ActivityLog {
   branchName String?
   action    String
   category  String
-  details   String @default("")
-  ip        String @default("")
+  details   String   @default("")
+  ip        String   @default("")
   createdAt DateTime @default(now())
 }
 
-model Closing {
-  id             String   @id @default(cuid())
-  branchId       String
-  branch         Branch @relation(fields: [branchId], references: [id])
-  dates          String
-  expensesTotal  Int     @default(0)
-  transferTotal  Int     @default(0)
-  cashRemaining  Int     @default(0)
-  deficit        Int     @default(0)
-  debtsCovered   Int     @default(0)
-  transferToDate String  @default("")
-  coverageIds    String  @default("[]")
-  createdBy      String  @default("")
-  createdAt      DateTime @default(now())
-}
-
-model CoverageRecord {
-  id           String   @id @default(cuid())
-  branchId     String
-  branch       Branch @relation(fields: [branchId], references: [id])
-  recordId     String?
-  weId         String?
-  amount       Int
-  coverageType String   @default("cash")
-  sourceDate   String   @default("")
-  targetDate   String   @default("")
-  closingId    String?
-  createdAt    DateTime @default(now())
-}
-
 model Maintenance {
-  id        String @id @default("main")
+  id        String   @id @default("main")
   enabled   Boolean  @default(false)
   updatedAt DateTime @default(now())
 }
