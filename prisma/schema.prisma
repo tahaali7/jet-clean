@@ -1,10 +1,19 @@
+// ============================================
+// PostgreSQL Schema - للاستخدام مع Supabase أو Neon
+// ============================================
+// لتفعيل PostgreSQL:
+// 1. انسخ محتوى هذا الملف إلى schema.prisma (استبدل الموجود)
+// 2. حدّث DATABASE_URL في .env برابط PostgreSQL
+// 3. شغّل: npx prisma generate && npx prisma db push
+// ============================================
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./db/custom.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Branch {
@@ -63,10 +72,11 @@ model WorkerExpense {
   id       String @id @default(cuid())
   date     String
   branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
   amount   Int    @default(0)
   note     String @default("")
   jsonData Json?
+
 }
 
 model Treasury {
@@ -87,7 +97,7 @@ model Record {
   note     String   @default("")
   date     String
   branchId String
-  branch   Branch @relation(fields: [branchId], references: [id])
+  branch   Branch   @relation(fields: [branchId], references: [id])
   employee Employee @relation(fields: [empId], references: [id])
 }
 
@@ -108,10 +118,10 @@ model BackupFile {
 model Notification {
   id        String   @id @default(cuid())
   message   String
-  branchId  String?
-  type      String   @default("normal")
+  branchId  String?            // null = كل الفروع
+  type      String   @default("normal") // normal أو urgent
   createdBy String   @default("")
-  readBy    String   @default("[]")
+  readBy    String   @default("[]")      // قائمة empId اللي قرأوا
   createdAt DateTime @default(now())
 }
 
