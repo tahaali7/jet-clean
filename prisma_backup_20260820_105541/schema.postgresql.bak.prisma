@@ -1,0 +1,146 @@
+// ============================================
+// PostgreSQL Schema - للاستخدام مع Supabase أو Neon
+// ============================================
+// لتفعيل PostgreSQL:
+// 1. انسخ محتوى هذا الملف إلى schema.prisma (استبدل الموجود)
+// 2. حدّث DATABASE_URL في .env برابط PostgreSQL
+// 3. شغّل: npx prisma generate && npx prisma db push
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  config        Json?
+  employees     Employee[]
+  carEntries    CarEntry[]
+  workerExpenses WorkerExpense[]
+  treasuries    Treasury[]
+  records       Record[]
+  closedDays    ClosedDay[]
+}
+
+model Employee {
+  id        String  @id @default(cuid())
+  name      String
+  branchId  String?
+  branch    Branch? @relation(fields: [branchId], references: [id])
+  shift     String
+  password  String  @default("")
+  role      String  @default("employee")
+  hasLogin  Boolean @default(false)
+  startDate String  @default("")
+  endDate   String  @default("")
+  multiBranchIds String @default("[]")
+  deleted   Boolean @default(false)
+  records   Record[]
+}
+
+model AdminAccount {
+  id       String @id @default("admin")
+  name     String @default("طه علي")
+  password String @default("19970880528")
+}
+
+model CarEntry {
+  id           String   @id @default(cuid())
+  date         String
+  branchId     String
+  branch       Branch   @relation(fields: [branchId], references: [id])
+  empId        String
+  empName      String
+  room         String
+  totalCars    Int      @default(0)
+  totalAmount  Int      @default(0)
+  extraCars    Int      @default(0)
+  extraAmount  Int      @default(0)
+  priceCounts  String   @default("{}")
+  customPrices String   @default("{}")
+  entryTime    String   @default("")
+  createdAt    DateTime @default(now())
+}
+
+model WorkerExpense {
+  id       String @id @default(cuid())
+  date     String
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  amount   Int    @default(0)
+  note     String @default("")
+  jsonData Json?
+
+}
+
+model Treasury {
+  id       String @id @default(cuid())
+  date     String
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+  total    Int    @default(0)
+  cash     Int    @default(0)
+  later    Int    @default(0)
+}
+
+model Record {
+  id       String   @id @default(cuid())
+  empId    String
+  type     String
+  amount   Int
+  note     String   @default("")
+  date     String
+  branchId String
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  employee Employee @relation(fields: [empId], references: [id])
+}
+
+model ClosedDay {
+  id       String @id @default(cuid())
+  date     String
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id])
+}
+
+model BackupFile {
+  id        String   @id @default(cuid())
+  label     String
+  data      String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  message   String
+  branchId  String?            // null = كل الفروع
+  type      String   @default("normal") // normal أو urgent
+  createdBy String   @default("")
+  readBy    String   @default("[]")      // قائمة empId اللي قرأوا
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  userRole  String
+  branchId  String?
+  branchName String?
+  action    String
+  category  String
+  details   String   @default("")
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Maintenance {
+  id        String   @id @default("main")
+  enabled   Boolean  @default(false)
+  updatedAt DateTime @default(now())
+}
